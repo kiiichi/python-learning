@@ -1,37 +1,50 @@
-# Python学习
-
-#### 介绍
+# Python(3.11.0) 学习
 我见君来，顿觉吾庐，溪山美哉。
 
-#### 软件架构
-软件架构说明
+### lambda
 
+#### 用法1：结合 **map()** 函数给 *序列* 逐一进行想要的函数操作
 
-#### 安装教程
+> 有三种基本的*序列*类型：list, tuple 和 range 对象。详见 “3.11.0 Documentation » Python 标准库 » 内置类型 » 序列类型”
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+map() 函数：
 
-#### 使用说明
+描述：
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+map() 会根据提供的函数对指定序列做映射。
+ 
+第一个参数 function 以参数序列中的每一个元素调用 function 函数，返回包含每次 function 函数返回值的列表。
+ 
+语法：
+ 
+**map(function, iterable, ...)**
+ 
+参数：
+ 
+function ----> 函数
+ 
+iterable ----> 一个或多个序列
+返回值：
+ 
+Python 2.x 版本返回的是列表
 
-#### 参与贡献
+Python 3.x 版本返回的是迭代器
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+例如：
+```
+# ======= 一般写法 =======
+def square(x)
+    return x **2
 
+list(map(square, [1,2,3,4,5]))
 
-#### 特技
+# 结果：[1, 4, 9, 16, 25]
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+# ======= 匿名函数写法 =======
+list(map(lambda x: x **2, [1,2,3,4,5]))
+
+# 结果：[1, 4, 9, 16, 25]
+
+list(map(lambda x, y: x +y, [1,2,3,4,5], [5,4,3,2,1]))
+
+# 结果：[6, 6, 6, 6, 6]
