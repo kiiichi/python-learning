@@ -1,0 +1,3 @@
+[console_scripts]
+lasersdk_gen = toptica.lasersdk.lasersdk_gen:main
+

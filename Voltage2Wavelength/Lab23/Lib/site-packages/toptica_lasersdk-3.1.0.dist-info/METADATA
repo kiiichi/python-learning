@@ -1,0 +1,34 @@
+Metadata-Version: 2.1
+Name: toptica-lasersdk
+Version: 3.1.0
+Summary: TOPTICA Python Laser SDK
+Home-page: https://toptica.github.io/python-lasersdk/
+Author: TOPTICA Photonics AG
+Author-email: info@toptica.com
+License: MIT
+Keywords: toptica photonics laser sdk dlcpro ichrome cle mle
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.6, <3.12
+Description-Content-Type: text/x-rst
+License-File: LICENSE.txt
+Requires-Dist: ifaddr
+Requires-Dist: pyserial
+
+TOPTICA Python Laser SDK
+========================
+
+The **TOPTICA Python Laser SDK** allows for the easy control of TOPTICA laser products from a PC using the Python programming language.
+
+
