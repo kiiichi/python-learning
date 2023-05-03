@@ -60,7 +60,7 @@ with Client(NetworkConnection(DLCPRO_CONNECTION)) as client:
     """ Setting Scan Parameter """
     StartVol=0.000
     StopVol=140
-    ScanStepVol=1
+    ScanStepVol=0.1
     SetWl=1550.
 
     """ prepare to scan """
@@ -72,7 +72,7 @@ with Client(NetworkConnection(DLCPRO_CONNECTION)) as client:
     """ start scan """
     input("Press any button to start...")
     client.set('laser1:dl:pc:external-input:enabled',False)
-    while SetVol < StopVol:
+    while SetVol <= StopVol:
         WriteVol(SetVol)
         LastSetVol=ReadVolSet()
         TopticaSleep(0.5)
