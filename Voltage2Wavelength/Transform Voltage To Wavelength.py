@@ -25,7 +25,7 @@ def interpolate_voltage_to_wavelength(voltage, reference_table):
 
 """ Genarate Reference Dictionary """
 # Import the Excel file as a pandas DataFrame
-reference_data = pd.read_csv('reference_data.csv')
+reference_data = pd.read_csv('data/reference_data.csv')
 
 # Transform the DataFrame into a dictionary where the keys are the voltage values and the values are the wavelength values
 reference_table = dict(zip(reference_data['voltage'], reference_data['wavelength']))
@@ -39,7 +39,7 @@ for voltage in voltage_values1:
 
 
 """ Input, Transform, and Output """
-df = pd.read_csv('transforming.csv')
+df = pd.read_csv('data/transforming.csv')
 voltage_values = df['voltage'].tolist() # Convert the voltage values to a list
 # Interpolate the corresponding wavelength values
 wavelength_values = [interpolate_voltage_to_wavelength(v, reference_table) for v in voltage_values]
@@ -48,5 +48,5 @@ wavelength_values = [interpolate_voltage_to_wavelength(v, reference_table) for v
 result_df = pd.DataFrame({'voltage': voltage_values, 'wavelength': wavelength_values})
 
 # Write the results to a new CSV file
-result_df.to_csv('transformed.csv', index=False)
+result_df.to_csv('data/transformed.csv', index=False)
 print('transforming finished')
