@@ -106,6 +106,7 @@
 ### 2.1 .gitignore文件中的忽略规则
 
 文件 .gitignore 的格式规范如下：
+>https://git-scm.com/docs/gitignore
 
 > 所有空行或者以注释符号 ＃ 开头的行都会被 Git 忽略。
 > 
