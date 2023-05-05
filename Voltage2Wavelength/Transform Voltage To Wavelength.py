@@ -25,7 +25,7 @@ def interpolate_voltage_to_wavelength(voltage, reference_table):
 
 """ Genarate Reference Dictionary """
 # Import the Excel file as a pandas DataFrame
-reference_data = pd.read_csv('data/reference_data.csv')
+reference_data = pd.read_csv('reference_data.csv')
 
 # Transform the DataFrame into a dictionary where the keys are the voltage values and the values are the wavelength values
 reference_table = dict(zip(reference_data['voltage'], reference_data['wavelength']))
