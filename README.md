@@ -59,7 +59,13 @@
 
 按 'requirements.txt' 安装模块
 
-    pip install -r requirements
+    pip install -r requirements.txt
+
+按 'requirements.txt' 卸载模块
+
+    pip uninstall -r requirements.txt
+    or
+    pip uninstall -r requirements.txt -y
 
 当提示权限不够时，前面加上sudo
 
