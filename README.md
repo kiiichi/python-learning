@@ -17,6 +17,13 @@
     py -m venv tutorial_env
 
 激活虚拟环境
+
+>windows中，需要允许计算机运行脚本，详见 https:/go.microsoft.com/fwlink/?LinkID=135170
+
+在管理员身份的 powershell 中：
+
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
+
 在vscode上，运行：
 
     tutorial-env\Scripts\Activate.ps1
@@ -25,7 +32,7 @@
 
 安装环境需要的模块
 
-    pip install -r requirements
+    pip install -r requirements.txt
 
 ### 1.2 相关的基本命令
 
