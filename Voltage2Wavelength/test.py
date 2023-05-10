@@ -1,6 +1,11 @@
 import re
 
-s = "ain1.4v83.4v"
-numbers = re.findall(r'\d+\.\d+', s)
+s = ' 过偶1.1vfac80.1v.csv'
 
-print(numbers) # Output: ['19.99', '15.99']
+match = re.search(r'\s?(\d+\.?\d*)v(\d+\.?\d*)', s)
+
+if match:
+    num1 = match.group(1)
+    num2 = match.group(2)
+
+    print(num1, num2)
