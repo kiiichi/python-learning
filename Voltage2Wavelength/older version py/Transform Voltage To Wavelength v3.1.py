@@ -4,6 +4,13 @@ from tkinter import filedialog
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+import warnings
+
+
+'''Input Parameters'''
+arc_factor = 0.2
+set_voltage = 74.7
+set_wavelength = 1549.97684
 
 def interpolate_voltage_to_wavelength(voltage, reference_table):
     """Interpolate the wavelength value for a given voltage value using the reference table. Can be modify by interpolate module in SciPy. Details in 'https://zhuanlan.zhihu.com/p/136700122'
@@ -30,7 +37,7 @@ def interpolate_voltage_to_wavelength(voltage, reference_table):
 
 """ Genarate Reference Dictionary """
 # Import the Excel file as a pandas DataFrame
-reference_data = pd.read_csv('reference_data.csv')
+reference_data = pd.read_csv('reference_data_1.csv')
 
 # Transform the DataFrame into a dictionary where the keys are the voltage values and the values are the wavelength values
 reference_table = dict(zip(reference_data['voltage'], reference_data['wavelength']))
@@ -44,9 +51,6 @@ for voltage in voltage_values1:
 
 
 """ Input, Transform, and Output """
-arc_factor = 1
-set_voltage = 80
-set_wavelength = 1550.
 # create the Tkinter root window
 root = tk.Tk()
 root.withdraw() # hide the root window
@@ -82,8 +86,22 @@ def Lorentz(x,y0,A,xc,w):
     return y
 
 # Fit the function to the data using SciPy's curve_fit method
-popt, pcov = curve_fit(Lorentz, x, y, maxfev=10000)
 
+y0 = np.average(y[0:1000])
+
+A = 0
+
+min_y = min(y)
+position_xc = df.index[df['power'] == min_y].tolist()[0]
+xc = df['time'][position_xc]
+
+half_power = min_y + (y0-min_y)/2
+half_power_point = min(y, key=lambda v: abs(v - half_power))
+position_half_power = df.index[df['power'] == half_power_point].tolist()[0]
+w = df['time'][position_half_power] - xc
+
+popt, pcov = curve_fit(Lorentz, x, y, p0=[y0,A,xc,w], maxfev=100000)
+# popt, pcov = curve_fit(Lorentz, x, y,  maxfev=10000)
 # Evaluate the fitted function over a range of x values
 x_fit = np.linspace(x.min(), x.max(), 100)
 y_fit = Lorentz(x_fit, *popt)
@@ -101,8 +119,9 @@ print(f"xc = {xc:.8f} +/- {np.sqrt(var_xc):.8f}")
 print(f"w = {w:.8f} +/- {np.sqrt(var_w):.8f}")
 
 # Plot the original data and the fitted function
-plt.plot(x, y, 'o', label='Data')
+plt.plot(x, y, ',', label='Data')
 plt.plot(x_fit, y_fit, label='Fitted Function')
+# plt.xlim(x.min(), x.max())
 plt.legend()
 plt.show()
 
@@ -130,19 +149,19 @@ power0 = df['power'][position_xc]
 print(f"FWHM_x1 point position is {position_x1}, wavelength is {w1}")
 print(f"FWHM_x2 point position is {position_x2}, wavelength is {w2}")
 
-# calculate the Q factor
-v1 = 299792458/w1
-v2 = 299792458/w2
-v0 = 299792458/w0
-delta_v = abs(v1 - v2)
-q_loaded = v0/delta_v
+delta_w = abs(w1 - w2)
+q_loaded = w0/delta_w
 transport0 = power0/y0
-q_instinct_under = 2*q_loaded/(1+np.sqrt(transport0))
-q_instinct_over = 2*q_loaded/(1-np.sqrt(transport0))
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="invalid value encountered in sqrt")
+    q_instinct_under = 2*q_loaded/(1+np.sqrt(transport0))
+    q_instinct_over = 2*q_loaded/(1-np.sqrt(transport0))
+
 q_instinct_critical = 2*q_loaded
 
-print(f"FWHM is {delta_v}")
+print(f"FWHM is {delta_w}")
 print(f"Q_loaded is {q_loaded:.2e}")
-print(f"The under couple Q_instinct is {q_instinct_under:.2e}")
-print(f"The critical couple Q_instinct is {q_instinct_critical:.2e}")
-print(f"The over couple Q_instinct is {q_instinct_over:.2e}")
+print(f"Under couple Q_instinct is {q_instinct_under:.2e}")
+print(f"Critical couple Q_instinct is {q_instinct_critical:.2e}")
+print(f"Over couple Q_instinct is {q_instinct_over:.2e}")
