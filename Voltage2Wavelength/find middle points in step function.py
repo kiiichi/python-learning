@@ -1,17 +1,15 @@
-import csv
+import pandas as pd
 
-def extract_middle_points(filename):
-    with open(filename, 'r') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip header row
-        values = [float(row[0]) for row in reader]
+def extract_middle_points(filename, threshold=-0.0005):
+    df = pd.read_csv(filename)
+    values = df['wavelength'].values.tolist()  # Replace 'wavelength' with the actual column name
 
     step_points = []
     middle_points = []
 
     # Find step points
     for i in range(1, len(values) - 1):
-        if values[i] < values[i - 1] and values[i] < values[i + 1]:
+        if values[i] - values[i - 1] < threshold:
             step_points.append(i)
 
     # Find middle points and calculate averages
@@ -22,10 +20,11 @@ def extract_middle_points(filename):
         average = sum(values[start:end]) / (end - start)
         middle_points.append((middle, average))
 
-    return middle_points
+    return middle_points, step_points
 
 # Usage example
 filename = 'wavelength_meter_data.csv'
-middle_points = extract_middle_points(filename)
+middle_points, step_points = extract_middle_points(filename)
 for point in middle_points:
     print(f"Middle Point: {point[0]}, Average Value: {point[1]}")
+print(f"Total step points: {len(step_points)}")
