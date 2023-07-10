@@ -14,7 +14,7 @@
 
 创建虚拟环境
 
-    py -m venv tutorial_env
+    py -m venv tutorial_env # 环境名为.venv时可在Git项目中保持隐藏
 
 激活虚拟环境
 
