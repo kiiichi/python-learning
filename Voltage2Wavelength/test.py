@@ -1,11 +1,15 @@
-import re
+import pandas as pd
 
-s = ' 过偶1.1vfac80.1v.csv'
+filename = 'wavelength_meter_data.csv'
+output_filename = 'middle_points.csv'
+threshold = -0.0001
 
-match = re.search(r'\s?(\d+\.?\d*)v(\d+\.?\d*)', s)
+# Read CSV and extract values
+df = pd.read_csv(filename)
+values = df['wavelength'].values.tolist()  # Replace 'wavelength' with the actual column name
 
-if match:
-    num1 = match.group(1)
-    num2 = match.group(2)
+step_points = []
+middle_points = []
+flag = 0
 
-    print(num1, num2)
+print(values[107900-1])
