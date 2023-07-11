@@ -35,8 +35,9 @@ for channel in channels:
     x_origin = float(preamble[5])
     volt_scale = float(preamble[7])
     volt_offset = float(preamble[8])
+    y_reference = float(preamble[9])
     waveform_raw = oscilloscope.query_binary_values(':WAV:DATA?', datatype='B', container=np.array)  # Retrieve binary waveform data
-    waveform_data.append((waveform_raw.astype(float) - volt_offset - 128) * volt_scale )  # Convert waveform values to voltage
+    waveform_data.append((waveform_raw.astype(float) - volt_offset - y_reference) * volt_scale )  # Convert waveform values to voltage
     volt_scales.append(volt_scale)  # Save the volt scale and offset for each channel
     volt_offsets.append(volt_offset)
 
