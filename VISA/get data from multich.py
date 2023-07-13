@@ -5,7 +5,7 @@ import pyvisa as visa
 
 # Set basic file parameters
 file_name = 'waveform.csv'  # Set the file name
-channels = [3, 4]  # Set the channels to retrieve data from
+channels = [2,3,4]  # Set the channels to retrieve data from
 memory_depth = '100k'  # Set the memory depth to {AUTO|1k|10k|100k|1M|10M|25M|50M}
 
 # Connect to the oscilloscope
