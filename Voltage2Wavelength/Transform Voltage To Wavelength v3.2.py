@@ -10,8 +10,7 @@ import re
 
 '''Input Parameters'''
 
-set_wavelength = 1549.97684
-
+set_wavelength = 1549.90212
 def interpolate_voltage_to_wavelength(voltage, reference_table):
     """Interpolate the wavelength value for a given voltage value using the reference table. Can be modify by interpolate module in SciPy. Details in 'https://zhuanlan.zhihu.com/p/136700122'
     
@@ -37,7 +36,7 @@ def interpolate_voltage_to_wavelength(voltage, reference_table):
 
 """ Genarate Reference Dictionary """
 # Import the Excel file as a pandas DataFrame
-reference_data = pd.read_csv('reference_data_0.1_refine.csv')
+reference_data = pd.read_csv('reference_data_0.1_refine_2.0.csv')
 
 # Transform the DataFrame into a dictionary where the keys are the voltage values and the values are the wavelength values
 reference_table = dict(zip(reference_data['voltage'], reference_data['wavelength']))
