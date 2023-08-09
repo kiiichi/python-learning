@@ -2,8 +2,9 @@
 
 ## 1. 部署虚拟环境
 
-### 1.1 具体操作
+### 1.1. 具体操作
 
+#### 1.1.1. 配置基本环境
 确认有pip
 
     py -m pip --version
@@ -12,6 +13,7 @@
 
     py -m pip install --upgrade pip setuptools wheel
 
+#### 1.1.2. 进入虚拟环境
 创建虚拟环境
 
     py -m venv tutorial_env # 环境名为.venv时可在Git项目中保持隐藏
@@ -34,7 +36,7 @@
 
     pip install -r requirements.txt
 
-### 1.2 相关的基本命令
+### 1.2. 相关的基本命令
 
 `pip` 是首选的安装程序。从Python 3.4开始，它默认包含在Python二进制安装程序中。
 
@@ -44,7 +46,7 @@
 
 `virtualenv` 是 `venv` 的第三方替代（及其前身）。 它允许在 Python 3.4 之前的版本中使用虚拟环境，那些版本或是完全不提供 `venv`，或是不会自动安装 pip 到所创建的虚拟环境。
 
-#### 1.2.1 pip 基本命令
+#### 1.2.1. pip 基本命令
 >pip 有许多子命令: "install", "uninstall", "freeze" 等等。
 详见python文档：安装Python模块
 
@@ -76,7 +78,7 @@
 
 当提示权限不够时，前面加上sudo
 
-### 1.2.2 venv 基本命令
+### 1.2.2. venv 基本命令
 
 要创建虚拟环境，请确定要放置它的目录，并将 `venv` 模块作为脚本运行目录路径:
 
@@ -116,7 +118,7 @@
 
 对于有虚拟环境的代码库，在与虚拟环境相关的文件里只需要上传 'requirements.txt'，其余文件需要在Git项目中定义 .gitignore 文件排除掉。在其他设备上下载代码库后需**重新部署**虚拟环境。
 
-### 2.1 .gitignore文件中的忽略规则
+### 2.1. .gitignore文件中的忽略规则
 
 文件 .gitignore 的格式规范如下：
 >https://git-scm.com/docs/gitignore
@@ -134,7 +136,7 @@
 >> 问号（?）只匹配一个任意字符；
 >> 如果在方括号中使用短划线分隔两个字符，表示所有在这两个字符范围内的都可以匹配（比如 [0-9] 表示匹配所有 0 到 9 的数字）。
 
-### 2.2 常用匹配示例：
+### 2.2. 常用匹配示例：
 
 `bin/` ：忽略当前路径下的bin文件夹，该文件夹下的所有内容都会被忽略，不忽略 bin 文件
 
@@ -154,7 +156,7 @@
 
 `config.php` ： 忽略当前路径的 config.php 文件
 
-### 2.3 .gitignore 配置文件示例
+### 2.3. .gitignore 配置文件示例
 
 ```
 # Byte-compiled / optimized / DLL files
