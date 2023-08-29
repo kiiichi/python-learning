@@ -12,6 +12,7 @@ with Client(NetworkConnection(DLCPRO_CONNECTION)) as client:
         client.get('system-type'), client.get('serial-number'), client.get('system-label', str)))
     
     '''随便试点啥'''
-    # client.set('laser1:dl:pc:external-input:enabled',False)
+    client.get('emission-button-enabled')
+    # client.set('laser1:dl:pc:voltage-set',30)
 
 print()
