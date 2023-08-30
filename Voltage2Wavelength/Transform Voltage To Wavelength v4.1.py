@@ -35,16 +35,20 @@ def interpolate_voltage_to_wavelength(voltage, fiting_curve_name):
     
     Need a voltage and a fitting curve name, return interpolated_wavelength
     """
-
+    voltage = np.float64(voltage)
     match fiting_curve_name:
         case 'toptica1':
-            interpolated_wavelength = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 1.55038451e+03 - 1550
+            # interpolated_wavelength = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 1.55038451e+03 - 1550
+            # interpolated_wavelength = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 3.84508009e-01
+            # interpolated_wavelength = 3.30472506e-08 * voltage**3 - 8.58686280e-06  * voltage**2 - 1.71089692e-03 * voltage + 3.85216506e-01
+            interpolated_wavelength = ((3.30472506e-08 * voltage - 8.58686280e-06) * voltage - 1.71089692e-03) * voltage + 3.85216506e-01
+        
         case 'toptica2':
             interpolated_wavelength = 1.45757887e-12 * voltage**5 - 7.47082544e-10 * voltage**4 + 1.66903897e-07 * voltage**3 - 1.84056335e-05 * voltage**2 - 1.72441280e-03 * voltage + 1.55004321e+03 - 1550
         case _:
             print('[Function]interpolate_voltage_to_wavelength: No such fitting curve name')
 
-    return interpolated_wavelength
+    return np.float64(interpolated_wavelength)
 
 # """ Genarate Reference Dictionary """
 # # Import the Excel file as a pandas DataFrame
@@ -80,16 +84,17 @@ arc_factor = float(file_name_num[0])
 set_voltage = float(file_name_num[1])
 print(f'arc_factor: {arc_factor}, set_voltage: {set_voltage}')
 
-df = pd.read_csv(file_path, names=['time', 'power', 'voltage_scope'], skiprows=12)
+df = pd.read_csv(file_path, names=['time', 'voltage_scope', 'power'], skiprows=12)
 voltage_actual_values = (df['voltage_scope']*arc_factor+set_voltage).tolist() # Convert the voltage values to a list
 df['voltage_actual'] = voltage_actual_values
 # Interpolate the corresponding wavelength values
-wavelength_values = [interpolate_voltage_to_wavelength(v, 'toptica1')+set_wavelength for v in voltage_actual_values]
+# wavelength_values = [interpolate_voltage_to_wavelength(v, 'toptica1')+set_wavelength for v in voltage_actual_values]
+wavelength_values = [interpolate_voltage_to_wavelength(v, 'toptica1') for v in voltage_actual_values]
 
 # Write the results to a new CSV file
 df['wavelength'] = wavelength_values
 df.to_csv(f'{folder_path}/refined_{file_name}', index=False)
-
+# df.to_csv(f'{folder_path}/refined_{file_name}', index=False, float_format='%.15f')
 print('refined file saved')
 
 
