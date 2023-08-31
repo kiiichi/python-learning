@@ -43,9 +43,10 @@ print(f'act_wavelength: {act_wavelength}, arc_factor: {arc_factor}, set_voltage:
 
 
 """ Get Data from Oscilloscope """
-data = osc_ask_data([1,2], '1M') # data[0] is time, data[1] is voltage, data[2] is power
-time_values = data[0]
+# data = osc_ask_data([1,2], '1M') # data[0] is time, data[1] is voltage, data[2] is power
+data = osc_ask_data([1,2], '1M', f'filename_arc={arc_factor}vset={set_voltage}v.csv') # data[0] is time, data[1] is voltage, data[2] is power
 
+time_values = data[0]
 slope, intercept = np.polyfit(time_values, data[1], 1)
 voltage_fit = slope * time_values + intercept
 voltage_actual_values = voltage_fit * arc_factor + set_voltage

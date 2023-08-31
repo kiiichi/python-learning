@@ -109,13 +109,6 @@ print(f"A = {A:.8f} +/- {np.sqrt(var_A):.8f}")
 print(f"xc = {xc:.8f} +/- {np.sqrt(var_xc):.8f}")
 print(f"w = {w:.8f} +/- {np.sqrt(var_w):.8f}")
 
-# Plot the original data and the fitted function
-plt.plot(x, y, ',', label='Data')
-plt.plot(x_fit, y_fit, label='Fitted Function')
-# plt.xlim(x.min(), x.max())
-plt.legend()
-plt.show()
-
 
 """ Calculate Quality Factor"""
 # extract the wavelength at the corresponding time
@@ -139,3 +132,11 @@ print(f"Q_loaded is {q_loaded:.2e}")
 print(f"Under couple Q_instinct is {q_instinct_under:.2e}")
 print(f"Critical couple Q_instinct is {q_instinct_critical:.2e}")
 print(f"Over couple Q_instinct is {q_instinct_over:.2e}")
+
+# Plot the original data and the fitted function
+plt.plot(x, y, ',', label='Data')
+plt.plot(x_fit, y_fit, label='Fitted Function')
+# plt.xlim(x.min(), x.max())
+plt.legend()
+plt.show()
+
