@@ -28,7 +28,7 @@
 
 在vscode上，运行：
 
-    tutorial-env\Scripts\Activate.ps1
+    tutorial_env\Scripts\Activate.ps1
 
 或选择 'tutorial-env\Scripts\python.exe' 作为interpreter
 
