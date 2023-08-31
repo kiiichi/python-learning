@@ -43,6 +43,7 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', /, file_name=None, oscil
         print(f"Getting data from Channel {channel}...")
         oscilloscope.write(f':WAV:SOUR CHAN{channel}')  # Set source of the waveform
         waveform_raw = oscilloscope.query_binary_values(':WAV:DATA?', datatype='B', container=np.array)  # Retrieve binary waveform data
+        preamble = oscilloscope.query(':WAV:PRE?').split(',')
         volt_scale = float(preamble[7])
         volt_offset = float(preamble[8])
         y_reference = float(preamble[9])

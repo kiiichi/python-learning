@@ -81,6 +81,7 @@ set_voltage = float(file_name_num[1])
 print(f'arc_factor: {arc_factor}, set_voltage: {set_voltage}')
 
 df = pd.read_csv(file_path, names=['time', 'voltage_scope', 'power'], skiprows=12)
+
 voltage_actual_values = (df['voltage_scope']*arc_factor+set_voltage).tolist() # Convert the voltage values to a list
 df['voltage_actual'] = voltage_actual_values
 # Interpolate the corresponding wavelength values

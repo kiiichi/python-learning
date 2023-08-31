@@ -21,13 +21,11 @@ def interpolate_voltage_to_wavelength_diff(voltage, fiting_curve_name):
     
     Need a voltage and a fitting curve name, return interpolated_wavelength_diff
     """
-    voltage = np.float64(voltage)
     match fiting_curve_name:
         case 'toptica1':
-            interpolated_wavelength = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 1.55038451e+03 - 1550
-            # interpolated_wavelength = 1.41735740e-4 * voltage**5 - 5.70767417e-2 * voltage**4 + 1.15683891e1 * voltage**3 - 1.37073757e3 * voltage**2 - 1.58771892e5 * voltage + 1.55038451e11 - 1550e8
+            interpolated_wavelength = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 3.84508009e-01
         case 'toptica2':
-            interpolated_wavelength = 1.45757887e-12 * voltage**5 - 7.47082544e-10 * voltage**4 + 1.66903897e-07 * voltage**3 - 1.84056335e-05 * voltage**2 - 1.72441280e-03 * voltage + 1.55004321e+03 - 1550
+            interpolated_wavelength = 1.45757887e-12 * voltage**5 - 7.47082543e-10 * voltage**4 + 1.66903897e-07 * voltage**3 - 1.84056335e-05 * voltage**2 - 1.72441280e-03 * voltage + 4.32064375e-02
         case _:
             print('[Function]interpolate_voltage_to_wavelength: No such fitting curve name')
 
@@ -52,14 +50,19 @@ print(f'act_wavelength: {act_wavelength}, arc_factor: {arc_factor}, set_voltage:
 """ Get Data from Oscilloscope """
 data = osc_ask_data([1,2], '1M') # data[0] is time, data[1] is voltage, data[2] is power
 time_values = data[0]
-voltage_actual_values = data[1] * arc_factor + set_voltage
+
+slope, intercept = np.polyfit(time_values, data[1], 1)
+voltage_fit = slope * time_values + intercept
+voltage_actual_values = voltage_fit * arc_factor + set_voltage
 wavelength_values = interpolate_voltage_to_wavelength_diff(voltage_actual_values, 'toptica1') + act_wavelength
 # wavelength_values = interpolate_voltage_to_wavelength_diff(voltage_actual_values, 'toptica1')
+
 power = data[2]
 
 
 """ Fit the data """
-x = time_values
+# x = time_values
+x = wavelength_values
 y = power
 # Define the math function want to fit
 def Lorentz(x,y0,A,xc,w):
@@ -83,7 +86,7 @@ w = np.abs(half_y_x_point - xc)
 popt, pcov = curve_fit(Lorentz, x, y, p0=[y0,A,xc,w], maxfev=100000)
 # popt, pcov = curve_fit(Lorentz, x, y,  maxfev=10000)
 # Evaluate the fitted function over a range of x values
-x_fit = np.linspace(x.min(), x.max(), 10000)
+x_fit = np.linspace(x.min(), x.max(), 100)
 y_fit = Lorentz(x_fit, *popt)
 
 # extract the values of a, b, and c from the optimized parameters
@@ -108,10 +111,12 @@ plt.show()
 
 """ Calculate Quality Factor"""
 # extract the wavelength at the corresponding time
-w0 = wavelength_values[min_y_index]
-w = np.abs(wavelength_values[half_y_index] - w0)
+# w0 = wavelength_values[min_y_index]
+w0 = xc
+# w = np.abs(wavelength_values[half_y_index] - w0)
+delatw = w
 
-q_loaded = w0/2/w
+q_loaded = w0/delatw
 transport0 = min_y/y0
 
 with warnings.catch_warnings():
@@ -121,7 +126,7 @@ with warnings.catch_warnings():
 
 q_instinct_critical = 2*q_loaded
 
-print(f"FWHM is {2*w}")
+print(f"FWHM is {delatw}")
 print(f"Q_loaded is {q_loaded:.2e}")
 print(f"Under couple Q_instinct is {q_instinct_under:.2e}")
 print(f"Critical couple Q_instinct is {q_instinct_critical:.2e}")
