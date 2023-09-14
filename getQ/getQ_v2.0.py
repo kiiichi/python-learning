@@ -5,7 +5,7 @@ Need to give a parameter, fitting_curve_name, and a filename to save the data.
 If filename is not given, the data will not be saved. 
 
 '''
-
+osc_channels = [1,2] # oscilloscope channels to read, the first channel number must be the voltage channel, the second channel number must be the optical power channel
 fitting_curve_name = 'toptica1'
 
 
@@ -62,7 +62,7 @@ print(f'act_wavelength: {act_wavelength}, arc_factor: {arc_factor}, set_voltage:
 
 
 """ Get Data from Oscilloscope """
-data = osc_ask_data([1,2], '1M') # data[0] is time, data[1] is voltage, data[2] is power
+data = osc_ask_data(osc_channels, '1M') # data[0] is time, data[1] is voltage, data[2] is power
 # data = osc_ask_data([1,2], '1M', f'{filename}_arc={arc_factor}vset={set_voltage}v.csv') # data[0] is time, data[1] is voltage, data[2] is power
 
 time_values = data[0]
