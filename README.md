@@ -36,6 +36,18 @@
 
     pip install -r requirements.txt
 
+|平台|Shell|用于激活虚拟环境的命令|
+|---|---|---|
+|POSIX|bash/zsh|$ source <venv>/bin/activate|
+|POSIX|fish|$ source <venv>/bin/activate.fish|
+|POSIX|csh/tcsh|$ source <venv>/bin/activate.csh|
+|POSIX|PowerShell|$ <venv>/bin/Activate.ps1|
+|Windows|cmd.exe|C:\ ...venvname... \Scripts\activate.bat|
+|Windows|PowerShell|PS C:\ ...venvname... \Scripts\Activate.ps1|
+
+
+
+
 ### 1.2. 相关的基本命令
 
 `pip` 是首选的安装程序。从Python 3.4开始，它默认包含在Python二进制安装程序中。
@@ -271,6 +283,8 @@ venv.bak/
 # Python(3.11.0) 学习
 我见君来，顿觉吾庐，溪山美哉。
 
+## 流程控制工具——教程第3章
+
 ### lambda
 
 #### 用法1：结合 **map()** 函数给 *序列* 逐一进行想要的函数操作
@@ -318,4 +332,46 @@ list(map(lambda x: x **2, [1,2,3,4,5]))
 list(map(lambda x, y: x +y, [1,2,3,4,5], [5,4,3,2,1]))
 
 # 结果：[6, 6, 6, 6, 6]
+```
+
+##  数据结构——教程第五章
+
+### 列表详解
+类似 `numpy.argmin()` 会返回下标，`list.index()` 可以返回列表中第一个值为 x 的元素的零基索引
+
+#### 用列表实现堆栈很快，实现队列很慢
+
+使用列表方法实现堆栈非常容易，最后插入的最先取出（“后进先出”）。把元素添加到堆栈的顶端，使用 `append()` 。从堆栈顶部取出元素，使用 `pop()` ，不用指定索引。
+
+实现队列最好用 collections.deque，可以快速从两端添加或删除元素。
+
+#### 列表推导式
+
+创建平方值的列表：```squares = [x**2 for x in range(10)]```
+等价于
+```
+squares = []
+for x in range(10):
+    squares.append(x**2)
+```
+
+同样的：```combs = [(x, y) for x in [1,2,3] for y in [3,1,4] if x != y]```
+等价于
+```
+combs = []
+for x in [1,2,3]:
+    for y in [3,1,4]:
+        if x != y:
+            combs.append((x, y))
+```
+
+转置矩阵 ```matrix = [[1, 2, 3, 4],[5, 6, 7, 8],[9, 10, 11, 12]] ``` 的代码 ``` inversed = [[row[i] for row in matrix] for i in range(4)] ```
+等价于
+```
+for i in range(4):
+    middle_var = []
+    for row in matrix:
+        middle_var.append(row[i])
+    inversed.append(middle_var)
+
 ```

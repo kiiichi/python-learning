@@ -60,7 +60,7 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', /, oscilloscope_address=
         # Save waveform data to a CSV file
         print('Writing CSV...')
         BUFFER_SIZE = 1000000  # Adjust the buffer size as needed
-        with open(f'{folder_path}/{file_name}.csv', 'w', newline='') as csvfile:
+        with open(f'{folder_path}/{file_name}', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['Time'] + [f'Channel {channel}' for channel in channels])  # Write header
             for row in zip(*waveform_data):  # Transpose and write
