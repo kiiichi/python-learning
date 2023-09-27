@@ -73,3 +73,15 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', /, oscilloscope_address=
     print('OSC operation Done\n')
 
     return waveform_data
+
+if __name__ == '__main__':
+    oscilloscope_address = 'TCPIP0::192.168.1.9::inst0::INSTR'
+    rm = visa.ResourceManager()
+    print(rm.list_resources())
+    oscilloscope = rm.open_resource(oscilloscope_address)
+    print(oscilloscope.query('*IDN?'))  # Query the identification string of the oscilloscope
+    oscilloscope.write(':SOURce1:FUNCtion:SHApe DC')
+    print(oscilloscope.query(':SOURce1:FUNCtion:SHApe?'))
+    oscilloscope.write(':SOURce1:VOLTage:LEVel:IMMediate:OFFSet 0.5')
+    
+    oscilloscope.close()
