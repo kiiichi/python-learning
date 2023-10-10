@@ -16,7 +16,7 @@
 #### 1.1.2. 进入虚拟环境
 创建虚拟环境
 
-    py -m venv tutorial_env # 环境名为.venv时可在Git项目中保持隐藏
+    python3 -m venv tutorial_env # 环境名为.venv时可在Git项目中保持隐藏
 
 激活虚拟环境
 
@@ -38,10 +38,10 @@
 
 |平台|Shell|用于激活虚拟环境的命令|
 |---|---|---|
-|POSIX|bash/zsh|$ source <venv>/bin/activate|
-|POSIX|fish|$ source <venv>/bin/activate.fish|
-|POSIX|csh/tcsh|$ source <venv>/bin/activate.csh|
-|POSIX|PowerShell|$ <venv>/bin/Activate.ps1|
+|POSIX|bash/zsh|$ source \<venv>/bin/activate|
+|POSIX|fish|$ source \<venv>/bin/activate.fish|
+|POSIX|csh/tcsh|$ source \<venv>/bin/activate.csh|
+|POSIX|PowerShell|$ \<venv>/bin/Activate.ps1|
 |Windows|cmd.exe|C:\ ...venvname... \Scripts\activate.bat|
 |Windows|PowerShell|PS C:\ ...venvname... \Scripts\Activate.ps1|
 
