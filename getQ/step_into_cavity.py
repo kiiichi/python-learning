@@ -147,10 +147,10 @@ root.bind("1", lambda event: [target_var.set(max_value-0*(max_value-min_value)),
 root.bind("2", lambda event: [target_var.set(max_value-0.25*(max_value-min_value)), on_run2target()])
 root.bind("3", lambda event: [target_var.set(max_value-0.5*(max_value-min_value)), on_run2target()])
 root.bind("4", lambda event: [target_var.set(max_value-0.75*(max_value-min_value)), on_run2target()])
-root.bind("a", lambda event: on_step(0.01))
-root.bind("d", lambda event: on_step(-0.01))
-root.bind("q", lambda event: on_step(0.1))
-root.bind("e", lambda event: on_step(-0.1))
+root.bind("a", lambda event: on_step(0.005))
+root.bind("d", lambda event: on_step(-0.005))
+root.bind("q", lambda event: on_step(0.02))
+root.bind("e", lambda event: on_step(-0.02))
 
 
 root.mainloop()

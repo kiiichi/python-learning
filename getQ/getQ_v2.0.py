@@ -5,7 +5,7 @@ Need to give a parameter, fitting_curve_name, and a filename to save the data.
 If filename is not given, the data will not be saved. 
 
 '''
-osc_channels = [1,2] # oscilloscope channels to read, the first channel number must be the voltage channel, the second channel number must be the optical power channel
+osc_channels = [3,2] # oscilloscope channels to read, the first channel number must be the voltage channel, the second channel number must be the optical power channel
 fitting_curve_name = 'toptica1'
 
 
