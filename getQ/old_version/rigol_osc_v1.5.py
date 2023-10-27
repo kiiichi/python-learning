@@ -9,13 +9,13 @@ import pyvisa as visa
 import tkinter as tk
 from tkinter import filedialog
 
-def osc_ask_data(channels=[1,2,3], memory_depth='100k', file_name=None, /, oscilloscope_address='TCPIP0::192.168.1.9::inst0::INSTR'):
+def osc_ask_data(channels=[1,2,3], memory_depth='100k', /, oscilloscope_address='TCPIP0::192.168.1.9::inst0::INSTR'):
     '''Used to get data from oscilloscope. Input file_name or not to decide whether to save data to a csv file.
 
     Need channels, memory_depth, file_name, oscilloscope_address, return waveform_data
     '''
 
-    # file_name = input("Please enter the name for the CSV file (or press enter to skip saving): ")
+    file_name = input("Please enter the name for the CSV file (or press enter to skip saving): ")
 
     # Connect to the oscilloscope
     rm = visa.ResourceManager()
@@ -60,7 +60,7 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', file_name=None, /, oscil
         # Save waveform data to a CSV file
         print('Writing CSV...')
         BUFFER_SIZE = 1000000  # Adjust the buffer size as needed
-        with open(f'{folder_path}/{file_name}_.csv', 'w', newline='') as csvfile:
+        with open(f'{folder_path}/{file_name}.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['Time'] + [f'Channel {channel}' for channel in channels])  # Write header
             for row in zip(*waveform_data):  # Transpose and write
