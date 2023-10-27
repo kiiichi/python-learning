@@ -53,6 +53,10 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', file_name=None, /, oscil
         waveform_data.append(waveform_voltage)
 
     if file_name:
+        # Save the screenshot
+        print('Saving screenshot...')
+        oscilloscope.write(':SAVE:IMAGe:TYPE TIFF')
+        oscilloscope.write(f':SAVE:IMAGe D:\{file_name}.tiff')
         # choose a folder to save the data
         root = tk.Tk()
         root.withdraw()  # hide the root window
@@ -66,10 +70,8 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', file_name=None, /, oscil
             for row in zip(*waveform_data):  # Transpose and write
                 writer.writerow(row)
         print('CSV writing Done')
-        # Save the screenshot
-        print('Saving screenshot...')
-        oscilloscope.write(':SAVE:IMAGe:TYPE TIFF')
-        oscilloscope.write(f':SAVE:IMAGe D:\{file_name}.tiff')
+
+
 
 
     # Disconnect from the oscilloscope
