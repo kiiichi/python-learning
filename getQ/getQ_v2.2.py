@@ -123,18 +123,21 @@ delatw = w
 q_loaded = w0/delatw
 transport0 = min_y/y0
 
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="invalid value encountered in sqrt")
     q_instinct_under = 2*q_loaded/(1+np.sqrt(transport0))
     q_instinct_over = 2*q_loaded/(1-np.sqrt(transport0))
 
 q_instinct_critical = 2*q_loaded
+eta_escape_under = 1/(1+np.sqrt((1+np.sqrt(transport0))/(1-np.sqrt(transport0))))
+eta_escape_over = 1/(1+np.sqrt((1-np.sqrt(transport0))/(1+np.sqrt(transport0))))
 
 print(f"FWHM is {delatw}")
 print(f"Q_loaded is {q_loaded:.2e}")
-print(f"Under couple Q_instinct is {q_instinct_under:.2e}")
-print(f"Critical couple Q_instinct is {q_instinct_critical:.2e}")
-print(f"Over couple Q_instinct is {q_instinct_over:.2e}")
+print(f"Under couple Q_instinct is {q_instinct_under:.2e} with escape efficiency {eta_escape_under:.2e}")
+print(f"Critical couple Q_instinct is {q_instinct_critical:.2e} with escape efficiency 0.5")
+print(f"Over couple Q_instinct is {q_instinct_over:.2e} with escape efficiency {eta_escape_over:.2e}")
 
 # Plot the original data and the fitted function
 plt.plot(x, y, ',', label='Data')

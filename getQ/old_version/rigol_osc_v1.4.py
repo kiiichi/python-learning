@@ -66,11 +66,6 @@ def osc_ask_data(channels=[1,2,3], memory_depth='100k', /, oscilloscope_address=
             for row in zip(*waveform_data):  # Transpose and write
                 writer.writerow(row)
         print('CSV writing Done')
-        # Save the screenshot
-        print('Saving screenshot...')
-        oscilloscope.write(':SAVE:IMAGe:TYPE TIFF')
-        oscilloscope.write(f':SAVE:IMAGe D:\{file_name}.tiff')
-
 
     # Disconnect from the oscilloscope
     oscilloscope.write(':RUN')
