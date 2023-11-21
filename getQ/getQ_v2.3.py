@@ -1,6 +1,7 @@
 '''
 This script is used to get the Q factor of the cavity.
 
+
 Need to give a parameter, fitting_curve_name, and a filename to save the data. 
 If filename is not given, the data will not be saved. 
 
