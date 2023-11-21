@@ -1,0 +1,137 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.o
+
+# user data
+curves/
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+# vivado windows stuff
+#pyrpl/fpga/.srcs
+pyrpl/fpga/.*
+#pyrpl/fpga/.Xil
+#pyrpl/fpga/out
+pyrpl/fpga/out/*.bin
+pyrpl/fpga/out/*.bit
+pyrpl/fpga/out/*.dcp
+pyrpl/fpga/out/*.xml
+pyrpl/fpga/sdk
+pyrpl/fpga/*.html
+pyrpl/fpga/*.xml
+pyrpl/fpga/red_pitaya.prm
+pyrpl/fpga/*.dmp
+pyrpl/.idea
+
+# Vivado project-related stuff
+pyrpl/fpga/project/.*
+pyrpl/fpga/project/
+*.jou
+
+#fpga-related
+fpga/out/
+fpga/sdk/
+fpga/ip/
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+#*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+cover/*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+xunit.xml
+unit_tests.xml
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+#!doc/sphinx/build/html
+# Sphinx documentation
+_build
+_static
+_templates
+
+
+# PyBuilder
+target/
+
+#Ipython Notebook
+.ipynb_checkpoints
+
+
+#notebooks
+!docs/source/*
+!docs/source/developer_guide/dist
+
+*.pydevproject
+*.project
+
+#pycharm
+.idea/
+
+#config backups
+pyrpl/config/*.bak
+*.bak
+
+#user config
+pyrpl/config/user_config/*.yml
+pyrpl/config/user_config/*.bak
+pyrpl/config/user_config
+
+#test files made by Xueshi
+test_import.py
+run.py 
+rpiq_gui.py
+rpiq.ui
+
+# distribution stuff
+README.rst
+scripts/dist/
+scripts/build/
+scripts/__init__.py
+scripts/run_pyrpl.spec
+scripts/pyrpl.spec
+cover/index.html
+
+#notebook checkpoints
+.ipynb_checkpoints

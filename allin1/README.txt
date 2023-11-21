@@ -4,7 +4,7 @@
 
 2. 使用正确版本的 python 创建虚拟环境
 
-	python路径/python -m venv .venv
+	python路径\python -m venv .venv
 
 3. 升级 pip 至 20.1 
 
@@ -14,7 +14,10 @@
 
 	pip install numpy scipy paramiko pandas nose PyQt5<=5.14 qtpy<=1.9 pyqtgraph pyyaml nbconvert
 
-4. 运行 setup.py
+5. 导航到pyrpl目录
+
+	cd pyrpl-main
+
+6. 运行 setup.py
 
 	python setup.py develop
-
