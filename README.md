@@ -18,6 +18,8 @@
 
     python3 -m venv tutorial_env # 环境名为.venv时可在Git项目中保持隐藏
 
+> 上面的例子是已经为 Python 配置好 PATH 和 PATHEXT 变量，如果需要使用其他版本 Python，则需要注明 `python` 路径：`c:\Python35\python -m venv c:\path\to\myenv`
+
 激活虚拟环境
 
 >windows中，需要允许计算机运行脚本，详见 https:/go.microsoft.com/fwlink/?LinkID=135170
