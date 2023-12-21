@@ -199,8 +199,20 @@ def p1_ramp_on(channel_num):
 def p2_ramp_on(channel_num):
     if channel_num == 0:
         p2_asg0.output_direct = 'out1'
+        p2_asg0.amplitude = 1
     elif channel_num == 1:
         p2_asg1.output_direct = 'out2'
+        p2_asg1.amplitude = 1
+    else:
+        print('Invalid channel number')
+
+def p2_miniramp_on(channel_num):
+    if channel_num == 0:
+        p2_asg0.output_direct = 'out1'
+        p2_asg0.amplitude = 0.03
+    elif channel_num == 1:
+        p2_asg1.output_direct = 'out2'
+        p2_asg1.amplitude = 0.03
     else:
         print('Invalid channel number')
 
@@ -357,7 +369,7 @@ ttk.Label(frame, text="MC pid ival:").grid(column=0, row=4)
 ttk.Label(frame, textvariable=p3_pid0_ival).grid(column=1, row=4, sticky=tk.W)
 
 ttk.Label(frame, text="----------------------- SHORT CUT -----------------------").grid(column=0, row=5, columnspan=3)
-ttk.Label(frame, text="Pump&Local rp: z = ramp, r = reset, f = lock").grid(column=0, row=6, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="Pump&Local rp: z = ramp, r = reset, f = lock, c = miniramp").grid(column=0, row=6, columnspan=3, sticky=tk.W)
 ttk.Label(frame, text="MC rp: ctrl+z = ramp, ctrl+r = reset, ctrl+n = coarselock, ctrl+m = finelock").grid(column=0, row=7, columnspan=3, sticky=tk.W)
 
 # Bind shortcut keys
@@ -371,6 +383,9 @@ root.bind('z', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1),
 root.bind('f', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
                           p1_pid_unpaused(0), p2_pid_unpaused(0), p2_pid_unpaused(1),
                           pump_rp_state.set('Pump Locked'), local_rp_state.set('Local Locked')])
+root.bind('c', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
+                          p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
+                          p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),])
 
 root.bind('<Control-r>', lambda e: p3_pid_reset(0))
 root.bind('<Control-z>', lambda e: [p3_pid_paused(0),
