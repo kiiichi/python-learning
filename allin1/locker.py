@@ -385,7 +385,8 @@ root.bind('f', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
                           pump_rp_state.set('Pump Locked'), local_rp_state.set('Local Locked')])
 root.bind('c', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
                           p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
-                          p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),])
+                          p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
+                          pump_rp_state.set('Pump miniramping'), local_rp_state.set('Local Ramping')])
 
 root.bind('<Control-r>', lambda e: p3_pid_reset(0))
 root.bind('<Control-z>', lambda e: [p3_pid_paused(0),
