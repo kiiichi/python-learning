@@ -209,10 +209,10 @@ def p2_ramp_on(channel_num):
 def p2_miniramp_on(channel_num):
     if channel_num == 0:
         p2_asg0.output_direct = 'out1'
-        p2_asg0.amplitude = 0.03
+        p2_asg0.amplitude = 0.25
     elif channel_num == 1:
         p2_asg1.output_direct = 'out2'
-        p2_asg1.amplitude = 0.03
+        p2_asg1.amplitude = 0.25
     else:
         print('Invalid channel number')
 
