@@ -8,7 +8,7 @@ from tkinter import ttk
 HOSTNAME1 = '192.168.1.17' # pumplocker
 HOSTNAME2 = '192.168.1.3' # locallocker
 HOSTNAME3 = '192.168.1.27' # MClocker fast loop
-HOSTNAME4 = '192.168.1.32' # MClocker slow loop
+HOSTNAME4 = '192.168.1.32' # MClocker slow loop 
 # HOSTNAME1 = '_FAKE_' # pumplocker
 # HOSTNAME2 = '_FAKE_' # locallocker
 # HOSTNAME3 = '_FAKE_' # MClocker fast loop
@@ -172,7 +172,7 @@ def p4_setup():
                 max_voltage=1, 
                 min_voltage=0, 
                 pause_gains='pi', 
-                paused=True, 
+                paused=False, 
                 differential_mode_enabled=False)
     p4_pid0.ival = 0
     p4_pid0.inputfilter = [151.78, 0, 0, 0]
@@ -185,7 +185,7 @@ def p4_setup():
                 max_voltage=1,
                 min_voltage=0,
                 pause_gains='pi', 
-                paused=True, 
+                paused=False, 
                 differential_mode_enabled=False)
     p4_pid1.ival = 0
     p4_pid1.inputfilter = [151.78, 1.1858, 2.37, 0]
