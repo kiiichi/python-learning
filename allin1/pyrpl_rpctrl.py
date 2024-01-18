@@ -1,27 +1,15 @@
 import pyrpl
-from time import sleep
-import tkinter as tk
-from tkinter import ttk
+from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_RP4
 
 #Connect to the Red Pitaya
-
-HOSTNAME1 = '192.168.1.17' # pumplocker
-HOSTNAME2 = '192.168.1.3' # locallocker
-HOSTNAME3 = '192.168.1.27' # MClocker fast loop
-HOSTNAME4 = '192.168.1.32' # MClocker slow loop 
-# HOSTNAME1 = '_FAKE_' # pumplocker
-# HOSTNAME2 = '_FAKE_' # locallocker
-# HOSTNAME3 = '_FAKE_' # MClocker fast loop
-# HOSTNAME4 = '_FAKE_' # MClocker slow loop
-
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
-                hostname=HOSTNAME1, gui=False)
+                hostname=HOSTNAME_RP1, gui=False)
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME2)
+                hostname=HOSTNAME_RP2)
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME3)
+                hostname=HOSTNAME_RP3)
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME4)
+                hostname=HOSTNAME_RP4)
 
 # Make shortcuts for the modules to be used
 p1_asg0=p1.rp.asg0
@@ -334,89 +322,3 @@ def slow_ramp(state):
         current_out1 = p3.rp.sampler.out1
         p3_asg1.waveform = 'dc'
         p3_asg1.offset = current_out1
-
-
-def get_ival():
-    p1_pid0_ival.set(float('%.4f'% p1_pid0.ival))
-    p2_pid0_ival.set(float('%.4f'% p2_pid0.ival))
-    p2_pid1_ival.set(float('%.4f'% p2_pid1.ival))
-    p3_pid0_ival.set(float('%.4f'% p3_pid0.ival))
-    root.after(200, get_ival)
-
-# GUI
-root = tk.Tk()
-root.title("Locking GUI")
-frame = ttk.Frame(root, padding="10")
-frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-pump_rp_state = tk.StringVar(value='pump_rp_state')
-local_rp_state = tk.StringVar(value='local_rp_state')
-MC_FL_rp_state = tk.StringVar(value='MC_FL_rp_state')
-MC_SL_rp_state = tk.StringVar(value='MC_SL_rp_state')
-
-
-p1_pid0_ival = tk.DoubleVar(value=0)
-p2_pid0_ival = tk.DoubleVar(value=0)
-p2_pid1_ival = tk.DoubleVar(value=0)
-p3_pid0_ival = tk.DoubleVar(value=0)
-
-ttk.Label(frame, textvariable=pump_rp_state).grid(column=0, row=0)
-ttk.Label(frame, textvariable=local_rp_state).grid(column=1, row=0)
-ttk.Label(frame, textvariable=MC_FL_rp_state).grid(column=2, row=0)
-ttk.Label(frame, textvariable=MC_SL_rp_state).grid(column=2, row=1)
-
-ttk.Label(frame, text="Pump pid ival:").grid(column=0, row=1)
-ttk.Label(frame, textvariable=p1_pid0_ival).grid(column=1, row=1, sticky=tk.W)
-ttk.Label(frame, text="Local pid0 ival:").grid(column=0, row=2)
-ttk.Label(frame, textvariable=p2_pid0_ival).grid(column=1, row=2, sticky=tk.W)
-ttk.Label(frame, text="Local pid1 ival:").grid(column=0, row=3)
-ttk.Label(frame, textvariable=p2_pid1_ival).grid(column=1, row=3, sticky=tk.W)
-
-ttk.Label(frame, text="MC pid ival:").grid(column=0, row=4)
-ttk.Label(frame, textvariable=p3_pid0_ival).grid(column=1, row=4, sticky=tk.W)
-
-ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=5, columnspan=3)
-ttk.Label(frame, text="default rp: num1 = pump, num2 = local, num3 = MC_FL, num4 = MC_SL, num0 = ALL").grid(column=0, row=6, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="Pump&Local rp: z = ramp, r = reset, f = lock, c = miniramp").grid(column=0, row=7, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="MC rp: ctrl+z = ramp, ctrl+r = reset, ctrl+n = coarselock, ctrl+m = finelock").grid(column=0, row=8, columnspan=3, sticky=tk.W)
-
-# Bind shortcut keys
-root.bind('<Control-q>', lambda e: root.destroy())
-
-root.bind('1', lambda e: [p1_setup(), pump_rp_state.set('Pump Default')])
-root.bind('2', lambda e: [p2_setup(), local_rp_state.set('Local Default')])
-root.bind('3', lambda e: [p3_setup(), MC_FL_rp_state.set('MC_FL Default')])
-root.bind('4', lambda e: [p4_setup(), MC_SL_rp_state.set('MC_SL Default')])
-root.bind('0', lambda e: [p1_setup(), p2_setup(), p3_setup(), p4_setup(),
-                          pump_rp_state.set('Pump Default'), local_rp_state.set('Local Default'), MC_FL_rp_state.set('MC_FL Default'), MC_SL_rp_state.set('MC_SL Default')])
-
-root.bind('r', lambda e: [p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1)])
-root.bind('z', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
-                          p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
-                          p1_ramp_on(0), p2_ramp_on(0), p2_ramp_on(1),
-                          pump_rp_state.set('Pump Ramping'), local_rp_state.set('Local Ramping')])
-root.bind('f', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
-                          p1_pid_unpaused(0), p2_pid_unpaused(0), p2_pid_unpaused(1),
-                          pump_rp_state.set('Pump Locked'), local_rp_state.set('Local Locked')])
-root.bind('c', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
-                          p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
-                          p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
-                          pump_rp_state.set('Pump miniramping'), local_rp_state.set('Local Ramping')])
-
-root.bind('<Control-r>', lambda e: p3_pid_reset(0))
-root.bind('<Control-z>', lambda e: [p3_pid_paused(0),
-                                    p3_pid_reset(0), 
-                                    p3_ramp_on(0), 
-                                    p3_ramp_off(1),
-                                    MC_FL_rp_state.set('MC Ramping')])
-root.bind('<Control-n>', lambda e: [p3_ramp_off(0),
-                                    slow_ramp('on'), 
-                                    p3_pid_unpaused(0),
-                                    MC_FL_rp_state.set('MC Coarse Locking')])
-root.bind('<Control-m>', lambda e: [slow_ramp('off'), 
-                                    p3_pid_reset(0), 
-                                    p3_pid_unpaused(0),
-                                    MC_FL_rp_state.set('MC Fine Locking')])
-
-root.after(200, get_ival)
-root.mainloop()
