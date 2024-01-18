@@ -5,14 +5,15 @@ from tkinter import ttk
 
 #Connect to the Red Pitaya
 
-HOSTNAME1 = '192.168.1.17' # pumplocker
-HOSTNAME2 = '192.168.1.3' # locallocker
-HOSTNAME3 = '192.168.1.27' # MClocker fast loop
-HOSTNAME4 = '192.168.1.32' # MClocker slow loop 
-# HOSTNAME1 = '_FAKE_' # pumplocker
-# HOSTNAME2 = '_FAKE_' # locallocker
-# HOSTNAME3 = '_FAKE_' # MClocker fast loop
-# HOSTNAME4 = '_FAKE_' # MClocker slow loop
+# HOSTNAME1 = '192.168.1.17' # pumplocker
+# HOSTNAME2 = '192.168.1.3' # locallocker
+# HOSTNAME3 = '192.168.1.27' # MClocker fast loop
+# HOSTNAME4 = '192.168.1.32' # MClocker slow loop 
+
+HOSTNAME1 = '_FAKE_' # pumplocker
+HOSTNAME2 = '_FAKE_' # locallocker
+HOSTNAME3 = '_FAKE_' # MClocker fast loop
+HOSTNAME4 = '_FAKE_' # MClocker slow loop
 
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
                 hostname=HOSTNAME1, gui=False)
