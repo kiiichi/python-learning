@@ -20,7 +20,7 @@ def ws_sidebind_set(n):
 
 # GUI
 root = tk.Tk()
-root.title("Locking GUI")
+root.title("Control Center GUI")
 frame = ttk.Frame(root, padding="10")
 frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
