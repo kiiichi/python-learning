@@ -1,5 +1,5 @@
 import pyrpl
-from connection_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_RP4
+from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_RP4
 
 #Connect to the Red Pitaya
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 

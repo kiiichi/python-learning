@@ -2,7 +2,7 @@ import requests
 import json
 import numpy as np
 from WSMethods import *
-from connection_table import HOSTNAME_WS
+from parameter_table import HOSTNAME_WS
 
 def ws_dualband_setup(center_pump_wl, space_freq, bandwidth_freq, attenuation=[0,0], phase=[0,0], port=[1,1], ip = HOSTNAME_WS):
     """ This function is used to generate the .wsp file for dual-band wavesheper filter. Return the center wavelngth of each band on OSA.

@@ -1,5 +1,5 @@
 import pyvisa as visa
-from connection_table import HOSTNAME_PSG
+from parameter_table import HOSTNAME_PSG
 
 def ctrl_psg(freq, power):
     rm = visa.ResourceManager()
