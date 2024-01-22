@@ -41,8 +41,8 @@ def ws_dualband_setup(center_pump_wl, space_freq, bandwidth_freq, attenuation=[0
     wsPort2 = np.zeros(wsFreq2.shape) + port[1]
 
     # Make blank to combin a .wsp file
-    result = requests.get('http://' + ip + '/waveshaper/devinfo').json()
-    print(result)
+    # result = requests.get('http://' + ip + '/waveshaper/devinfo').json()
+    # print(result)
     s = result['startfreq']
     e = result['stopfreq']
 
@@ -67,8 +67,12 @@ def ws_dualband_setup(center_pump_wl, space_freq, bandwidth_freq, attenuation=[0
     wsPort = np.hstack ([wsPortBlank0, wsPort1, wsPortBlank1, wsPort2, wsPortBlank2])
 
     r = uploadProfile(ip, wsFreq, wsAttn, wsPhase, wsPort)
-    
+    print(f'Dual band filter set on center: {center_pump_wl}')
+
     return center_wl_1, center_wl_2
+
+result = requests.get('http://' + HOSTNAME_WS + '/waveshaper/devinfo').json()
+print(f'WaveShaper Connected:  {result}')
 
 if __name__ == '__main__':
 

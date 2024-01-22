@@ -9,6 +9,11 @@ def ctrl_psg(freq, power):
     PSG.write(':OUTPut:STATe ON')
     PSG.close()
 
+rm = visa.ResourceManager()
+PSG = rm.open_resource('TCPIP0::' + HOSTNAME_PSG + '::inst0::INSTR')
+print('PSG Connected: '+ PSG.query('*IDN?'))
+PSG.close()
+
 if __name__ == '__main__':
 
     # PSG test

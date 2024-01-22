@@ -1,9 +1,9 @@
 from time import sleep
 import tkinter as tk
 from tkinter import ttk
+from pyrpl_rpctrl import *
 from http_instctrl import *
 from scpi_instctrl import *
-from pyrpl_rpctrl import *
 from parameter_table import FSR, PSG_freq, PSG_power
 
 def get_ival():
@@ -55,58 +55,59 @@ ttk.Label(frame, textvariable=band2_wl).grid(column=2, row=3)
 ttk.Label(frame, textvariable=band_num).grid(column=2, row=4)
 
 ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=5, columnspan=3)
-ttk.Label(frame, text="default rp: num1 = pump, num2 = local, num3 = MC_FL, num4 = MC_SL, num0 = ALL").grid(column=0, row=6, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="Pump&Local rp: z = ramp, r = reset, f = lock, c = miniramp").grid(column=0, row=7, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="MC rp: ctrl+z = ramp, ctrl+r = reset, ctrl+n = coarselock, ctrl+m = finelock").grid(column=0, row=8, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=6, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=7, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=8, columnspan=3, sticky=tk.W)
 ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=9, columnspan=3, sticky=tk.W)
+
 
 # Bind shortcut keys
 root.bind('<Control-q>', lambda e: root.destroy())
 
-root.bind('1', lambda e: [p1_setup(), pump_rp_state.set('Pump Default')])
-root.bind('2', lambda e: [p2_setup(), local_rp_state.set('Local Default')])
-root.bind('3', lambda e: [p3_setup(), MC_FL_rp_state.set('MC_FL Default')])
-root.bind('4', lambda e: [p4_setup(), MC_SL_rp_state.set('MC_SL Default')])
-root.bind('0', lambda e: [p1_setup(), p2_setup(), p3_setup(), p4_setup(),
+root.bind('<Control-KeyPress-1>', lambda e: [p1_setup(), pump_rp_state.set('Pump Default')])
+root.bind('<Control-KeyPress-2>', lambda e: [p2_setup(), local_rp_state.set('Local Default')])
+root.bind('<Control-KeyPress-3>', lambda e: [p3_setup(), MC_FL_rp_state.set('MC_FL Default')])
+root.bind('<Control-KeyPress-4>', lambda e: [p4_setup(), MC_SL_rp_state.set('MC_SL Default')])
+root.bind('<Control-KeyPress-0>', lambda e: [p1_setup(), p2_setup(), p3_setup(), p4_setup(),
                           pump_rp_state.set('Pump Default'), local_rp_state.set('Local Default'), MC_FL_rp_state.set('MC_FL Default'), MC_SL_rp_state.set('MC_SL Default')])
 
-root.bind('r', lambda e: [p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1)])
-root.bind('z', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
+root.bind('<Control-KeyPress-r>', lambda e: [p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1)])
+root.bind('<Control-KeyPress-z>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
                           p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
                           p1_ramp_on(0), p2_ramp_on(0), p2_ramp_on(1),
                           pump_rp_state.set('Pump Ramping'), local_rp_state.set('Local Ramping')])
-root.bind('f', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
+root.bind('<Control-KeyPress-f>', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
                           p1_pid_unpaused(0), p2_pid_unpaused(0), p2_pid_unpaused(1),
                           pump_rp_state.set('Pump Locked'), local_rp_state.set('Local Locked')])
-root.bind('c', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
+root.bind('<Control-KeyPress-c>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
                           p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
                           p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
                           pump_rp_state.set('Pump miniramping'), local_rp_state.set('Local Ramping')])
 
-root.bind('<Control-r>', lambda e: p3_pid_reset(0))
-root.bind('<Control-z>', lambda e: [p3_pid_paused(0),
+root.bind('<Control-KeyPress-m>', lambda e: p3_pid_reset(0))
+root.bind('<Control-KeyPress-n>', lambda e: [p3_pid_paused(0),
                                     p3_pid_reset(0), 
                                     p3_ramp_on(0), 
                                     p3_ramp_off(1),
                                     MC_FL_rp_state.set('MC Ramping')])
-root.bind('<Control-n>', lambda e: [p3_ramp_off(0),
+root.bind('<Control-KeyPress-,>', lambda e: [p3_ramp_off(0),
                                     slow_ramp('on'), 
                                     p3_pid_unpaused(0),
                                     MC_FL_rp_state.set('MC Coarse Locking')])
-root.bind('<Control-m>', lambda e: [slow_ramp('off'), 
+root.bind('<Control-KeyPress-.>', lambda e: [slow_ramp('off'), 
                                     p3_pid_reset(0), 
                                     p3_pid_unpaused(0),
                                     MC_FL_rp_state.set('MC Fine Locking')])
 
-root.bind('<Control-!>', lambda e: [ctrl_psg(PSG_freq[1], PSG_power[1]), ws_sidebind_set(1), band_num.set('Side Band 1')])
-root.bind('<Control-@>', lambda e: [ctrl_psg(PSG_freq[2], PSG_power[2]), ws_sidebind_set(2), band_num.set('Side Band 2')])
-root.bind('<Control-#>', lambda e: [ctrl_psg(PSG_freq[3], PSG_power[3]), ws_sidebind_set(3), band_num.set('Side Band 3')])
-root.bind('<Control-$>', lambda e: [ctrl_psg(PSG_freq[4], PSG_power[4]), ws_sidebind_set(4), band_num.set('Side Band 4')])
-root.bind('<Control-%>', lambda e: [ctrl_psg(PSG_freq[5], PSG_power[5]), ws_sidebind_set(5), band_num.set('Side Band 5')])
-root.bind('<Control-^>', lambda e: [ctrl_psg(PSG_freq[6], PSG_power[6]), ws_sidebind_set(6), band_num.set('Side Band 6')])
-root.bind('<Control-&>', lambda e: [ctrl_psg(PSG_freq[7], PSG_power[7]), ws_sidebind_set(7), band_num.set('Side Band 7')])
-root.bind('<Control-*>', lambda e: [ctrl_psg(PSG_freq[8], PSG_power[8]), ws_sidebind_set(8), band_num.set('Side Band 8')])
-root.bind('<Control-(>', lambda e: [ctrl_psg(PSG_freq[9], PSG_power[9]), ws_sidebind_set(9), band_num.set('Side Band 9')])
+root.bind('<Control-KeyPress-!>', lambda e: [ctrl_psg(PSG_freq[1], PSG_power[1]), ws_sidebind_set(1), band_num.set('Side Band 1')])
+root.bind('<Control-KeyPress-@>', lambda e: [ctrl_psg(PSG_freq[2], PSG_power[2]), ws_sidebind_set(2), band_num.set('Side Band 2')])
+root.bind('<Control-KeyPress-#>', lambda e: [ctrl_psg(PSG_freq[3], PSG_power[3]), ws_sidebind_set(3), band_num.set('Side Band 3')])
+root.bind('<Control-KeyPress-$>', lambda e: [ctrl_psg(PSG_freq[4], PSG_power[4]), ws_sidebind_set(4), band_num.set('Side Band 4')])
+root.bind('<Control-KeyPress-%>', lambda e: [ctrl_psg(PSG_freq[5], PSG_power[5]), ws_sidebind_set(5), band_num.set('Side Band 5')])
+root.bind('<Control-KeyPress-^>', lambda e: [ctrl_psg(PSG_freq[6], PSG_power[6]), ws_sidebind_set(6), band_num.set('Side Band 6')])
+root.bind('<Control-KeyPress-&>', lambda e: [ctrl_psg(PSG_freq[7], PSG_power[7]), ws_sidebind_set(7), band_num.set('Side Band 7')])
+root.bind('<Control-KeyPress-*>', lambda e: [ctrl_psg(PSG_freq[8], PSG_power[8]), ws_sidebind_set(8), band_num.set('Side Band 8')])
+root.bind('<Control-KeyPress-(>', lambda e: [ctrl_psg(PSG_freq[9], PSG_power[9]), ws_sidebind_set(9), band_num.set('Side Band 9')])
 
 
 root.after(400, get_ival)
