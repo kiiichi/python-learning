@@ -2,3 +2,4 @@
 data
 prj
 *.pyc
+__pycache__
