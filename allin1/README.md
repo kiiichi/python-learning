@@ -26,7 +26,7 @@
 
 ## 2. 为VISA配置环境
 
-    pip install pyvisa
+    pip install pyvisa toptica_lasersdk
 
 ## 3. 为HTTP配置环境
 

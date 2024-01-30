@@ -80,7 +80,7 @@ def ws_dualband_setup(center_pump_wl, space_freq, bandwidth_freq, attenuation=[0
     wsPort = np.hstack ([wsPortBlank0, wsPort1, wsPortBlank1, wsPortp, wsPortBlank2, wsPort2, wsPortBlank3])
 
     r = uploadProfile(ip, wsFreq, wsAttn, wsPhase, wsPort)
-    print(f'Dual band filter set on center: {center_pump_wl}')
+    print(f'WaveShaper: Dual band filter set on center: {center_pump_wl}')
 
     return center_wl_1, center_wl_2
 

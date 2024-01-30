@@ -4,7 +4,7 @@ from tkinter import ttk
 from pyrpl_rpctrl import *
 from http_instctrl import *
 from scpi_instctrl import *
-from parameter_table import FSR, PSG_freq, PSG_power
+from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 
 def get_ival():
     p1_pid0_ival.set(f"Pump pid ival: {'%.2f'% p1_pid0.ival}")
@@ -13,8 +13,12 @@ def get_ival():
     p3_pid0_ival.set(f"MC pid ival: {'%.2f'% p3_pid0.ival}")
     root.after(400, get_ival)
 
-def ws_sidebind_set(n):
+def ws_toptica_set(n):
+    "Set waveshaper and toptica wavelength to sideband n, also update GUI"
+
     center_wl_1, center_wl_2 = ws_dualband_setup(pump_wl.get(), FSR*n, 40)
+    ctrl_toptica1(center_wl_1 + toptica1_wl_bias)
+    ctrl_toptica2(center_wl_2 + toptica2_wl_bias)
     band1_wl.set(f"{'%.5f'% center_wl_1} nm")
     band2_wl.set(f"{'%.5f'% center_wl_2} nm")
 
@@ -99,15 +103,15 @@ root.bind('<Control-KeyPress-.>', lambda e: [slow_ramp('off'),
                                     p3_pid_unpaused(0),
                                     MC_FL_rp_state.set('MC Fine Locking')])
 
-root.bind('<Control-KeyPress-!>', lambda e: [ctrl_psg(PSG_freq[1], PSG_power[1]), ws_sidebind_set(1), band_num.set('Side Band 1')])
-root.bind('<Control-KeyPress-@>', lambda e: [ctrl_psg(PSG_freq[2], PSG_power[2]), ws_sidebind_set(2), band_num.set('Side Band 2')])
-root.bind('<Control-KeyPress-#>', lambda e: [ctrl_psg(PSG_freq[3], PSG_power[3]), ws_sidebind_set(3), band_num.set('Side Band 3')])
-root.bind('<Control-KeyPress-$>', lambda e: [ctrl_psg(PSG_freq[4], PSG_power[4]), ws_sidebind_set(4), band_num.set('Side Band 4')])
-root.bind('<Control-KeyPress-%>', lambda e: [ctrl_psg(PSG_freq[5], PSG_power[5]), ws_sidebind_set(5), band_num.set('Side Band 5')])
-root.bind('<Control-KeyPress-^>', lambda e: [ctrl_psg(PSG_freq[6], PSG_power[6]), ws_sidebind_set(6), band_num.set('Side Band 6')])
-root.bind('<Control-KeyPress-&>', lambda e: [ctrl_psg(PSG_freq[7], PSG_power[7]), ws_sidebind_set(7), band_num.set('Side Band 7')])
-root.bind('<Control-KeyPress-*>', lambda e: [ctrl_psg(PSG_freq[8], PSG_power[8]), ws_sidebind_set(8), band_num.set('Side Band 8')])
-root.bind('<Control-KeyPress-(>', lambda e: [ctrl_psg(PSG_freq[9], PSG_power[9]), ws_sidebind_set(9), band_num.set('Side Band 9')])
+root.bind('<Control-KeyPress-!>', lambda e: [ctrl_psg(PSG_freq[1], PSG_power[1]), ws_toptica_set(1), band_num.set('Side Band 1')])
+root.bind('<Control-KeyPress-@>', lambda e: [ctrl_psg(PSG_freq[2], PSG_power[2]), ws_toptica_set(2), band_num.set('Side Band 2')])
+root.bind('<Control-KeyPress-#>', lambda e: [ctrl_psg(PSG_freq[3], PSG_power[3]), ws_toptica_set(3), band_num.set('Side Band 3')])
+root.bind('<Control-KeyPress-$>', lambda e: [ctrl_psg(PSG_freq[4], PSG_power[4]), ws_toptica_set(4), band_num.set('Side Band 4')])
+root.bind('<Control-KeyPress-%>', lambda e: [ctrl_psg(PSG_freq[5], PSG_power[5]), ws_toptica_set(5), band_num.set('Side Band 5')])
+root.bind('<Control-KeyPress-^>', lambda e: [ctrl_psg(PSG_freq[6], PSG_power[6]), ws_toptica_set(6), band_num.set('Side Band 6')])
+root.bind('<Control-KeyPress-&>', lambda e: [ctrl_psg(PSG_freq[7], PSG_power[7]), ws_toptica_set(7), band_num.set('Side Band 7')])
+root.bind('<Control-KeyPress-*>', lambda e: [ctrl_psg(PSG_freq[8], PSG_power[8]), ws_toptica_set(8), band_num.set('Side Band 8')])
+root.bind('<Control-KeyPress-(>', lambda e: [ctrl_psg(PSG_freq[9], PSG_power[9]), ws_toptica_set(9), band_num.set('Side Band 9')])
 
 
 root.after(400, get_ival)
