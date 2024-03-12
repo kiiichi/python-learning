@@ -7,11 +7,27 @@ from scpi_instctrl import *
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 
 def get_ival():
-    p1_pid0_ival.set(f"Pump pid ival: {'%.2f'% p1_pid0.ival}")
-    p2_pid0_ival.set(f"Local pid0 ival: {'%.2f'% p2_pid0.ival}")
-    p2_pid1_ival.set(f"Local pid1 ival: {'%.2f'% p2_pid1.ival}")
-    p3_pid0_ival.set(f"MC pid ival: {'%.2f'% p3_pid0.ival}")
-    root.after(400, get_ival)
+    "Get pid ival and update GUI, also check if ival of pump or local locking is too large and reset if necessary"
+
+    p1_pid0_ival_num = p1_pid0.ival
+    p2_pid0_ival_num = p2_pid0.ival
+    p2_pid1_ival_num = p2_pid1.ival
+    p3_pid0_ival_num = p3_pid0.ival
+
+    p1_pid0_ival.set(f"Pump pid ival: {'%.2f'% p1_pid0_ival_num}")
+    p2_pid0_ival.set(f"Local pid0 ival: {'%.2f'% p2_pid0_ival_num}")
+    p2_pid1_ival.set(f"Local pid1 ival: {'%.2f'% p2_pid1_ival_num}")
+    p3_pid0_ival.set(f"MC pid ival: {'%.2f'% p3_pid0_ival_num}")
+
+    if check_autolock_var.get() == 'Auto Reset':
+        if p1_pid0_ival_num > 0.6 or p1_pid0_ival_num < -0.6:
+            p1_pid_reset(0)
+        if p2_pid0_ival_num > 0.6 or p2_pid0_ival_num < -0.6:
+            p2_pid_reset(0)
+        if p2_pid1_ival_num > 0.6 or p2_pid1_ival_num < -0.6:
+            p2_pid_reset(1)
+
+    root.after(100, get_ival)
 
 def ws_toptica_set(n):
     "Set waveshaper and toptica wavelength to sideband n, also update GUI"
@@ -58,7 +74,11 @@ ttk.Label(frame, textvariable=band1_wl).grid(column=2, row=2)
 ttk.Label(frame, textvariable=band2_wl).grid(column=2, row=3)
 ttk.Label(frame, textvariable=band_num).grid(column=2, row=4)
 
-ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=5, columnspan=3)
+# Check buttons
+check_autolock_var = tk.StringVar(value='Manual Reset')
+check_autolock_button =  ttk.Checkbutton(frame, text="Auto Reset", variable=check_autolock_var, onvalue="Auto Reset", offvalue="Manual Reset").grid(column=0, row=5)
+
+ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=6, columnspan=3)
 ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=6, columnspan=3, sticky=tk.W)
 ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=7, columnspan=3, sticky=tk.W)
 ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=8, columnspan=3, sticky=tk.W)
@@ -114,5 +134,5 @@ root.bind('<Control-KeyPress-*>', lambda e: [ctrl_psg(PSG_freq[8], PSG_power[8])
 root.bind('<Control-KeyPress-(>', lambda e: [ctrl_psg(PSG_freq[9], PSG_power[9]), ws_toptica_set(9), band_num.set('Side Band 9')])
 
 
-root.after(400, get_ival)
+root.after(100, get_ival)
 root.mainloop()

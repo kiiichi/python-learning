@@ -28,9 +28,9 @@ notebook.pack(pady=10, expand=True, fill=tk.BOTH)
 # Tab1
 tab1 = ttk.Frame(notebook)
 notebook.add(tab1, text="Tab 1")
-
+check_var = tk.StringVar()
 # Adding widgets to Tab1
-label_tab1 = ttk.Label(tab1, text="This is inside Tab 1!")
+label_tab1 = ttk.Label(tab1, textvariable=check_var)
 label_tab1.pack(pady=20)
 
 # Tab2
@@ -54,7 +54,7 @@ entry.insert(0, "This is an Entry!")
 entry.pack(pady=10)
 
 # Checkbutton
-check_var = tk.StringVar()
+check_var = tk.StringVar()  
 checkbutton = ttk.Checkbutton(root, text="Checkbutton", variable=check_var, onvalue="Checked", offvalue="Unchecked", command=lambda: show_name("Checkbutton"))
 checkbutton.pack(pady=10)
 
