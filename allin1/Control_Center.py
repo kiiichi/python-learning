@@ -106,7 +106,7 @@ root.bind('<Control-KeyPress-f>', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_
 root.bind('<Control-KeyPress-c>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
                           p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
                           p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
-                          pump_rp_state.set('Pump miniramping'), local_rp_state.set('Local Ramping')])
+                          pump_rp_state.set('Pump ramping'), local_rp_state.set('Local1 Miniramping')])
 
 root.bind('<Control-KeyPress-m>', lambda e: p3_pid_reset(0))
 root.bind('<Control-KeyPress-n>', lambda e: [p3_pid_paused(0),
