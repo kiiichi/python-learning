@@ -79,10 +79,10 @@ check_autolock_var = tk.StringVar(value='Manual Reset')
 check_autolock_button =  ttk.Checkbutton(frame, text="Auto Reset", variable=check_autolock_var, onvalue="Auto Reset", offvalue="Manual Reset").grid(column=0, row=5)
 
 ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=6, columnspan=3)
-ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=6, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=7, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=8, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=9, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=7, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=8, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=9, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=10, columnspan=3, sticky=tk.W)
 
 
 # Bind shortcut keys
@@ -106,7 +106,7 @@ root.bind('<Control-KeyPress-f>', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_
 root.bind('<Control-KeyPress-c>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
                           p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
                           p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
-                          pump_rp_state.set('Pump miniramping'), local_rp_state.set('Local Ramping')])
+                          pump_rp_state.set('Pump ramping'), local_rp_state.set('Local1 Miniramping')])
 
 root.bind('<Control-KeyPress-m>', lambda e: p3_pid_reset(0))
 root.bind('<Control-KeyPress-n>', lambda e: [p3_pid_paused(0),
