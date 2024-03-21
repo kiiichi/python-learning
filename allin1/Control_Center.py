@@ -33,8 +33,8 @@ def ws_toptica_set(n):
     "Set waveshaper and toptica wavelength to sideband n, also update GUI"
 
     center_wl_1, center_wl_2 = ws_dualband_setup(pump_wl.get(), FSR*n, 40)
-    ctrl_toptica1(center_wl_1 + toptica1_wl_bias)
-    ctrl_toptica2(center_wl_2 + toptica2_wl_bias)
+    ctrl_toptica1(center_wl_2 + toptica1_wl_bias)
+    ctrl_toptica2(center_wl_1 + toptica2_wl_bias)
     band1_wl.set(f"{'%.5f'% center_wl_1} nm")
     band2_wl.set(f"{'%.5f'% center_wl_2} nm")
 
