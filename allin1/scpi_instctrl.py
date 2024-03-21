@@ -5,9 +5,11 @@ from toptica.lasersdk.client import Client, NetworkConnection
 def ctrl_toptica1(wl):
     with Client(NetworkConnection(HOSTNAME_DLCPRO1)) as client:
         client.set('laser1:ctl:wavelength-set', wl)
+        client.set('laser1:scan:offset', 80)
 def ctrl_toptica2(wl):
     with Client(NetworkConnection(HOSTNAME_DLCPRO2)) as client:
         client.set('laser1:ctl:wavelength-set', wl)
+        client.set('laser1:scan:offset', 80)
 def ctrl_psg(freq, power):
     rm = visa.ResourceManager()
     PSG = rm.open_resource('TCPIP0::' + HOSTNAME_PSG + '::inst0::INSTR')
