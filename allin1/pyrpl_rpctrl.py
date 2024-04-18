@@ -30,6 +30,7 @@ p3_iq0=p3.rp.iq0
 
 p4_pid0=p4.rp.pid0
 p4_pid1=p4.rp.pid1
+
 # Set default values for modules
 def p1_setup():
     p1_asg0.setup(waveform='ramp', 
@@ -70,7 +71,6 @@ def p1_setup():
     #               differential_mode_enabled=False)
     # p1_pid1.ival = 0
     # p1_pid1.inputfilter = [0, 0, 0, 0]
-
 def p2_setup():
     p2_asg0.setup(waveform='ramp', 
                 frequency=10, 
@@ -322,3 +322,4 @@ def slow_ramp(state):
         current_out1 = p3.rp.sampler.out1
         p3_asg1.waveform = 'dc'
         p3_asg1.offset = current_out1
+

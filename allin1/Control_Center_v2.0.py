@@ -102,7 +102,7 @@ ttk.Label(frame, text="------------------------------------------------ SHORT CU
 ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=7, columnspan=5, sticky=tk.W)
 ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=8, columnspan=5, sticky=tk.W)
 ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=9, columnspan=5, sticky=tk.W)
-ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=10, columnspan=5, sticky=tk.W)
+ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 (Toptica as local) | alt + 1~9 (EOcomb as local) = sideband 1-9").grid(column=0, row=10, columnspan=5, sticky=tk.W)
 
 
 # Bind shortcut keys
@@ -143,6 +143,15 @@ root.bind('<Control-KeyPress-.>', lambda e: [slow_ramp('off'),
                                     p3_pid_unpaused(0),
                                     MC_FL_rp_state.set('MC Fine Locking')])
 
+root.bind("<Alt-KeyPress-1>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[1]), ws_toptica_set(1), band_num.set('Side Band 1')])
+root.bind("<Alt-KeyPress-2>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[2]), ws_toptica_set(2), band_num.set('Side Band 2')])
+root.bind("<Alt-KeyPress-3>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[3]), ws_toptica_set(3), band_num.set('Side Band 3')])
+root.bind("<Alt-KeyPress-4>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[4]), ws_toptica_set(4), band_num.set('Side Band 4')])
+root.bind("<Alt-KeyPress-5>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[5]), ws_toptica_set(5), band_num.set('Side Band 5')])
+root.bind("<Alt-KeyPress-6>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[6]), ws_toptica_set(6), band_num.set('Side Band 6')])
+root.bind("<Alt-KeyPress-7>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[7]), ws_toptica_set(7), band_num.set('Side Band 7')])
+root.bind("<Alt-KeyPress-8>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[8]), ws_toptica_set(8), band_num.set('Side Band 8')])
+root.bind("<Alt-KeyPress-9>", lambda e: [ctrl_psg(PSG_freq[0], PSG_power[9]), ws_toptica_set(9), band_num.set('Side Band 9')])
 root.bind('<Control-KeyPress-!>', lambda e: [ctrl_psg(PSG_freq[1], PSG_power[1]), ws_toptica_set(1), band_num.set('Side Band 1')])
 root.bind('<Control-KeyPress-@>', lambda e: [ctrl_psg(PSG_freq[2], PSG_power[2]), ws_toptica_set(2), band_num.set('Side Band 2')])
 root.bind('<Control-KeyPress-#>', lambda e: [ctrl_psg(PSG_freq[3], PSG_power[3]), ws_toptica_set(3), band_num.set('Side Band 3')])
