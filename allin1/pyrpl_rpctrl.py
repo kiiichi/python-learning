@@ -40,7 +40,7 @@ def p1_setup():
                 output_direct='off', 
                 start_phase=0)
     p1_asg1.setup(waveform='ramp', 
-                frequency=10, 
+                frequency=10, #找模式时改成10
                 amplitude=1, 
                 offset=0, 
                 trigger_source='immediately', 
@@ -57,7 +57,7 @@ def p1_setup():
                 paused=True, 
                 differential_mode_enabled=False)
     p1_pid0.ival = 0
-    p1_pid0.inputfilter = [607, 0, 0, 0]
+    p1_pid0.inputfilter = [607, 1.944e4, 0, 0] # []
     # p1_pid1.setup(input='in2', 
     #               output_direct='out2', 
     #               setpoint=0, 
@@ -97,7 +97,7 @@ def p2_setup():
                 paused=True, 
                 differential_mode_enabled=False)
     p2_pid0.ival = 0
-    p2_pid0.inputfilter = [0, 0, 0, 0]
+    p2_pid0.inputfilter = [1.944e4, 0, 0, 0] # []
     p2_pid1.setup(input='in2', 
                 output_direct='out2', 
                 setpoint=0, 
@@ -109,7 +109,7 @@ def p2_setup():
                 paused=True, 
                 differential_mode_enabled=False)
     p2_pid1.ival = 0
-    p2_pid1.inputfilter = [0, 0, 0, 0]
+    p2_pid1.inputfilter = [1.944e4, 0, 0, 0] #[]
 
 def p3_setup():
     p3_asg0.setup(waveform='ramp', 

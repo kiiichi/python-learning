@@ -20,11 +20,11 @@ def get_ival():
     p3_pid0_ival.set(f"MC pid ival: {'%.2f'% p3_pid0_ival_num}")
 
     if check_autolock_var.get() == 'Auto Reset':
-        if p1_pid0_ival_num > 0.6 or p1_pid0_ival_num < -0.6:
+        if p1_pid0_ival_num > 0.8 or p1_pid0_ival_num < -0.8:
             p1_pid_reset(0)
-        if p2_pid0_ival_num > 0.6 or p2_pid0_ival_num < -0.6:
+        if p2_pid0_ival_num > 0.8 or p2_pid0_ival_num < -0.8:
             p2_pid_reset(0)
-        if p2_pid1_ival_num > 0.6 or p2_pid1_ival_num < -0.6:
+        if p2_pid1_ival_num > 0.8 or p2_pid1_ival_num < -0.8        :
             p2_pid_reset(1)
 
     root.after(100, get_ival)
