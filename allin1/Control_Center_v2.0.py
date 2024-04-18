@@ -14,10 +14,10 @@ def get_ival():
     p2_pid1_ival_num = p2_pid1.ival
     p3_pid0_ival_num = p3_pid0.ival
 
-    p1_pid0_ival.set(f"Pump pid ival: {'%.2f'% p1_pid0_ival_num}")
-    p2_pid0_ival.set(f"Local pid0 ival: {'%.2f'% p2_pid0_ival_num}")
-    p2_pid1_ival.set(f"Local pid1 ival: {'%.2f'% p2_pid1_ival_num}")
-    p3_pid0_ival.set(f"MC pid ival: {'%.2f'% p3_pid0_ival_num}")
+    p1_pid0_ival.set(f"Pump: {'%.2f'% p1_pid0_ival_num}")
+    p2_pid0_ival.set(f"Local0: {'%.2f'% p2_pid0_ival_num}")
+    p2_pid1_ival.set(f"Local1: {'%.2f'% p2_pid1_ival_num}")
+    p3_pid0_ival.set(f"MC: {'%.2f'% p3_pid0_ival_num}")
 
     if check_autolock_var.get() == 'Auto Reset':
         if p1_pid0_ival_num > 0.6 or p1_pid0_ival_num < -0.6:
@@ -32,7 +32,7 @@ def get_ival():
 def ws_toptica_set(n):
     "Set waveshaper and toptica wavelength to sideband n, also update GUI"
 
-    center_wl_1, center_wl_2 = ws_dualband_setup(pump_wl.get(), FSR*n, 40, attenuation=[pump_att.get(), band1_att.get(), band2_att.get()], phase=[pump_degree.get(), band1_degree.get(), band2_degree.get()])
+    center_wl_1, center_wl_2 = ws_dualband_setup(pump_wl.get(), FSR*n, 40, attenuation=[band1_att.get(), pump_att.get(), band2_att.get()], phase=[band1_degree.get(), pump_degree.get(), band2_degree.get()])
     ctrl_toptica1(center_wl_2 + toptica1_wl_bias)
     ctrl_toptica2(center_wl_1 + toptica2_wl_bias)
     band1_wl.set(f"{'%.5f'% center_wl_1} nm")
@@ -67,38 +67,42 @@ pump_degree = tk.DoubleVar(value=0)
 band1_degree = tk.DoubleVar(value=0)
 band2_degree = tk.DoubleVar(value=0)
 
-ttk.Label(frame, textvariable=pump_rp_state).grid(column=0, row=1)
-ttk.Label(frame, textvariable=local_rp_state).grid(column=0, row=2)
-ttk.Label(frame, textvariable=MC_FL_rp_state).grid(column=0, row=3)
-ttk.Label(frame, textvariable=MC_SL_rp_state).grid(column=0, row=4)
+ttk.Label(frame, textvariable=pump_rp_state).grid(column=0, row=0)
+ttk.Label(frame, textvariable=local_rp_state).grid(column=0, row=1)
+ttk.Label(frame, textvariable=MC_FL_rp_state).grid(column=0, row=2)
+ttk.Label(frame, textvariable=MC_SL_rp_state).grid(column=0, row=3)
 
+ttk.Label(frame, text="PID Ival").grid(column=1, row=0)
 ttk.Label(frame, textvariable=p1_pid0_ival).grid(column=1, row=1)
 ttk.Label(frame, textvariable=p2_pid0_ival).grid(column=1, row=2)
 ttk.Label(frame, textvariable=p2_pid1_ival).grid(column=1, row=3)
 ttk.Label(frame, textvariable=p3_pid0_ival).grid(column=1, row=4)
 
-ttk.Entry(frame, textvariable=pump_wl, width=10).grid(column=2, row=1)
+ttk.Label(frame, text="Wavelength (nm)").grid(column=2, row=0)
+ttk.Entry(frame, textvariable=pump_wl, width=9, justify="center").grid(column=2, row=1)
 ttk.Label(frame, textvariable=band1_wl).grid(column=2, row=2)
 ttk.Label(frame, textvariable=band2_wl).grid(column=2, row=3)
 ttk.Label(frame, textvariable=band_num).grid(column=2, row=4)
 
-ttk.Entry(frame, textvariable=pump_degree, width=10).grid(column=3, row=1)
-ttk.Entry(frame, textvariable=band1_degree, width=10).grid(column=3, row=2)
-ttk.Entry(frame, textvariable=band2_degree, width=10).grid(column=3, row=3)
+ttk.Label(frame, text="Attenuation (dB)").grid(column=3, row=0)
+ttk.Entry(frame, textvariable=pump_att, width=9, justify="center").grid(column=3, row=1)
+ttk.Entry(frame, textvariable=band1_att, width=9, justify="center").grid(column=3, row=2)
+ttk.Entry(frame, textvariable=band2_att, width=9, justify="center").grid(column=3, row=3)
 
-ttk.Entry(frame, textvariable=pump_att, width=10).grid(column=4, row=1)
-ttk.Entry(frame, textvariable=band1_att, width=10).grid(column=4, row=2)
-ttk.Entry(frame, textvariable=band2_att, width=10).grid(column=4, row=3)
+ttk.Label(frame, text="Phase (degree)").grid(column=4, row=0)
+ttk.Entry(frame, textvariable=pump_degree, width=9, justify="center").grid(column=4, row=1)
+ttk.Entry(frame, textvariable=band1_degree, width=9, justify="center").grid(column=4, row=2)
+ttk.Entry(frame, textvariable=band2_degree, width=9, justify="center").grid(column=4, row=3)
 
 # Check buttons
 check_autolock_var = tk.StringVar(value='Manual Reset')
-check_autolock_button =  ttk.Checkbutton(frame, text="Auto Reset", variable=check_autolock_var, onvalue="Auto Reset", offvalue="Manual Reset").grid(column=0, row=5)
+check_autolock_button =  ttk.Checkbutton(frame, text="Auto Reset", variable=check_autolock_var, onvalue="Auto Reset", offvalue="Manual Reset").grid(column=0, row=4)
 
-ttk.Label(frame, text="--------------------------------------- SHORT CUT ----------------------------------------").grid(column=0, row=6, columnspan=3)
-ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=7, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=8, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=9, columnspan=3, sticky=tk.W)
-ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=10, columnspan=3, sticky=tk.W)
+ttk.Label(frame, text="------------------------------------------------ SHORT CUT -------------------------------------------------").grid(column=0, row=6, columnspan=5)
+ttk.Label(frame, text="default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)").grid(column=0, row=7, columnspan=5, sticky=tk.W)
+ttk.Label(frame, text="Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp").grid(column=0, row=8, columnspan=5, sticky=tk.W)
+ttk.Label(frame, text="MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock").grid(column=0, row=9, columnspan=5, sticky=tk.W)
+ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 = sideband 1-9").grid(column=0, row=10, columnspan=5, sticky=tk.W)
 
 
 # Bind shortcut keys
