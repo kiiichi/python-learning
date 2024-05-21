@@ -3,13 +3,13 @@ from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_R
 
 #Connect to the Red Pitaya
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
-                hostname=HOSTNAME_RP1, gui=False)
+                hostname=HOSTNAME_RP1, gui=True)
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2)
+                hostname=HOSTNAME_RP2, gui=False)
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP3)
+                hostname=HOSTNAME_RP3, gui=False)
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP4)
+                hostname=HOSTNAME_RP4, gui=False)
 
 # Make shortcuts for the modules to be used
 p1_asg0=p1.rp.asg0
@@ -50,8 +50,8 @@ def p1_setup():
     p1_pid0.setup(input='in1', 
                 output_direct='out1', 
                 setpoint=0, 
-                p=3, 
-                i=200, 
+                p=20, # 3
+                i=1000, # 200
                 max_voltage=1, 
                 min_voltage=-1, 
                 pause_gains='pi', 
