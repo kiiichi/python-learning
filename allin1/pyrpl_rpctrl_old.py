@@ -28,7 +28,6 @@ p3_pid0=p3.rp.pid0
 p3_pid1=p3.rp.pid1
 p3_iq0=p3.rp.iq0
 
-p4_asg0=p4.rp.asg0
 p4_pid0=p4.rp.pid0
 p4_pid1=p4.rp.pid1
 
@@ -46,7 +45,7 @@ def p1_setup():
                 amplitude=1, 
                 offset=0, 
                 trigger_source='immediately', 
-                output_direct='off', 
+                output_direct='out2', 
                 start_phase=0)
     p1_pid0.setup(input='in1', 
                 output_direct='out1', 
@@ -60,18 +59,18 @@ def p1_setup():
                 differential_mode_enabled=False)
     p1_pid0.ival = 0
     p1_pid0.inputfilter = [607, 1.944e4, 0, 0] # []
-    p1_pid1.setup(input='in2', 
-                  output_direct='out2', 
-                  setpoint=0, 
-                  p=3, 
-                  i=200, 
-                  max_voltage=1, 
-                  min_voltage=-1, 
-                  pause_gains='pi', 
-                  paused=True, 
-                  differential_mode_enabled=False)
-    p1_pid1.ival = 0
-    p1_pid1.inputfilter = [607, 1.944e4, 0, 0]
+    # p1_pid1.setup(input='in2', 
+    #               output_direct='out2', 
+    #               setpoint=0, 
+    #               p=0.1, 
+    #               i=2000, 
+    #               max_voltage=1, 
+    #               min_voltage=-1, 
+    #               pause_gains='pi', 
+    #               paused=True, 
+    #               differential_mode_enabled=False)
+    # p1_pid1.ival = 0
+    # p1_pid1.inputfilter = [0, 0, 0, 0]
 def p2_setup():
     p2_asg0.setup(waveform='ramp', 
                 frequency=10, 
@@ -153,13 +152,6 @@ def p3_setup():
                 output_direct='out1')
         
 def p4_setup():
-    p4_asg0.setup(waveform='ramp', 
-                frequency=10, 
-                amplitude=1, 
-                offset=0, 
-                trigger_source='immediately', 
-                output_direct='out2', 
-                start_phase=0)
     p4_pid0.setup(input='in1', 
                 output_direct='out1', 
                 setpoint=-0.1, 

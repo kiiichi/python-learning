@@ -10,11 +10,13 @@ def get_ival():
     "Get pid ival and update GUI, also check if ival of pump or local locking is too large and reset if necessary"
 
     p1_pid0_ival_num = p1_pid0.ival
+    p1_pid1_ival_num = p1_pid1.ival
     p2_pid0_ival_num = p2_pid0.ival
     p2_pid1_ival_num = p2_pid1.ival
     p3_pid0_ival_num = p3_pid0.ival
 
     p1_pid0_ival.set(f"Pump: {'%.2f'% p1_pid0_ival_num}")
+    p1_pid1_ival.set(f"P_ref: {'%.2f'% p1_pid1_ival_num}")
     p2_pid0_ival.set(f"Local0: {'%.2f'% p2_pid0_ival_num}")
     p2_pid1_ival.set(f"Local1: {'%.2f'% p2_pid1_ival_num}")
     p3_pid0_ival.set(f"MC: {'%.2f'% p3_pid0_ival_num}")
@@ -22,6 +24,8 @@ def get_ival():
     if check_autolock_var.get() == 'Auto Reset':
         if p1_pid0_ival_num > 0.6 or p1_pid0_ival_num < -0.6:
             p1_pid_reset(0)
+        if p1_pid1_ival_num > 0.6 or p1_pid1_ival_num < -0.6:
+            p1_pid_reset(1)
         if p2_pid0_ival_num > 0.6 or p2_pid0_ival_num < -0.6:
             p2_pid_reset(0)
         if p2_pid1_ival_num > 0.6 or p2_pid1_ival_num < -0.6:
@@ -50,6 +54,7 @@ MC_FL_rp_state = tk.StringVar(value='MC_FL_rp_state')
 MC_SL_rp_state = tk.StringVar(value='MC_SL_rp_state')
 
 p1_pid0_ival = tk.StringVar(value = 'Pump pid ival: 0')
+p1_pid1_ival = tk.StringVar(value = 'P_ref pid ival: 0')
 p2_pid0_ival = tk.StringVar(value = 'Local pid0 ival: 0')
 p2_pid1_ival = tk.StringVar(value = 'Local pid1 ival: 0')
 p3_pid0_ival = tk.StringVar(value = 'MC pid ival: 0')
@@ -74,9 +79,10 @@ ttk.Label(frame, textvariable=MC_SL_rp_state).grid(column=0, row=3)
 
 ttk.Label(frame, text="PID Ival").grid(column=1, row=0)
 ttk.Label(frame, textvariable=p1_pid0_ival).grid(column=1, row=1)
-ttk.Label(frame, textvariable=p2_pid0_ival).grid(column=1, row=2)
-ttk.Label(frame, textvariable=p2_pid1_ival).grid(column=1, row=3)
-ttk.Label(frame, textvariable=p3_pid0_ival).grid(column=1, row=4)
+ttk.Label(frame, textvariable=p1_pid1_ival).grid(column=1, row=2)
+ttk.Label(frame, textvariable=p2_pid0_ival).grid(column=1, row=3)
+ttk.Label(frame, textvariable=p2_pid1_ival).grid(column=1, row=4)
+ttk.Label(frame, textvariable=p3_pid0_ival).grid(column=1, row=5)
 
 ttk.Label(frame, text="Wavelength (nm)").grid(column=2, row=0)
 ttk.Entry(frame, textvariable=pump_wl, width=9, justify="center").grid(column=2, row=1)
@@ -108,25 +114,25 @@ ttk.Label(frame, text="PSG and WS: ctrl + shift + 1~9 (Toptica as local) | alt +
 # Bind shortcut keys
 root.bind('<Control-q>', lambda e: root.destroy())
 
-root.bind('<Control-KeyPress-1>', lambda e: [p1_setup(), pump_rp_state.set('Pump Default')])
+root.bind('<Control-KeyPress-1>', lambda e: [p1_setup(), pump_rp_state.set('Pump&P_ref Default')])
 root.bind('<Control-KeyPress-2>', lambda e: [p2_setup(), local_rp_state.set('Local Default')])
 root.bind('<Control-KeyPress-3>', lambda e: [p3_setup(), MC_FL_rp_state.set('MC_FL Default')])
 root.bind('<Control-KeyPress-4>', lambda e: [p4_setup(), MC_SL_rp_state.set('MC_SL Default')])
 root.bind('<Control-KeyPress-0>', lambda e: [p1_setup(), p2_setup(), p3_setup(), p4_setup(),
-                          pump_rp_state.set('Pump Default'), local_rp_state.set('Local Default'), MC_FL_rp_state.set('MC_FL Default'), MC_SL_rp_state.set('MC_SL Default')])
+                          pump_rp_state.set('Pump&P_ref Default'), local_rp_state.set('Local Default'), MC_FL_rp_state.set('MC_FL Default'), MC_SL_rp_state.set('MC_SL Default')])
 
-root.bind('<Control-KeyPress-r>', lambda e: [p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1)])
-root.bind('<Control-KeyPress-z>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
-                          p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
-                          p1_ramp_on(0), p2_ramp_on(0), p2_ramp_on(1),
-                          pump_rp_state.set('Pump Ramping'), local_rp_state.set('Local Ramping')])
-root.bind('<Control-KeyPress-f>', lambda e: [p1_ramp_off(0), p2_ramp_off(0), p2_ramp_off(1),
-                          p1_pid_unpaused(0), p2_pid_unpaused(0), p2_pid_unpaused(1),
-                          pump_rp_state.set('Pump Locked'), local_rp_state.set('Local Locked')])
-root.bind('<Control-KeyPress-c>', lambda e: [p1_pid_paused(0), p2_pid_paused(0), p2_pid_paused(1), 
-                          p1_pid_reset(0), p2_pid_reset(0), p2_pid_reset(1),
-                          p1_ramp_on(0), p2_miniramp_on(0), p2_ramp_off(1),
-                          pump_rp_state.set('Pump ramping'), local_rp_state.set('Local1 Miniramping')])
+root.bind('<Control-KeyPress-r>', lambda e: [p1_pid_reset(0), p1_pid_reset(1), p2_pid_reset(0), p2_pid_reset(1)])
+root.bind('<Control-KeyPress-z>', lambda e: [p1_pid_paused(0), p1_pid_paused(1), p2_pid_paused(0), p2_pid_paused(1), 
+                          p1_pid_reset(0), p1_pid_reset(1), p2_pid_reset(0), p2_pid_reset(1),
+                          p1_ramp_on(0), p1_ramp_on(1), p2_ramp_on(0), p2_ramp_on(1),
+                          pump_rp_state.set('Pump&P_ref Ramping'), local_rp_state.set('Local Ramping')])
+root.bind('<Control-KeyPress-f>', lambda e: [p1_ramp_off(0), p1_ramp_off(1), p2_ramp_off(0), p2_ramp_off(1),
+                          p1_pid_unpaused(0), p1_pid_unpaused(1), p2_pid_unpaused(0), p2_pid_unpaused(1),
+                          pump_rp_state.set('Pump&P_ref Locked'), local_rp_state.set('Local Locked')])
+root.bind('<Control-KeyPress-c>', lambda e: [p1_pid_paused(0), p1_pid_paused(1), p2_pid_paused(0), p2_pid_paused(1), 
+                          p1_pid_reset(0), p1_pid_reset(1), p2_pid_reset(0), p2_pid_reset(1),
+                          p1_ramp_on(0), p1_ramp_on(1), p2_miniramp_on(0), p2_ramp_off(1),
+                          pump_rp_state.set('Pump&P_ref Ramping'), local_rp_state.set('Local1 Miniramping')])
 
 root.bind('<Control-KeyPress-m>', lambda e: p3_pid_reset(0))
 root.bind('<Control-KeyPress-n>', lambda e: [p3_pid_paused(0),
