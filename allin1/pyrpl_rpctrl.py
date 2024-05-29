@@ -50,8 +50,8 @@ def p1_setup():
     p1_pid0.setup(input='in1', 
                 output_direct='out1', 
                 setpoint=0, 
-                p=20, # 3
-                i=1000, # 200
+                p=3, # 20
+                i=200, # 1000
                 max_voltage=1, 
                 min_voltage=-1, 
                 pause_gains='pi', 
