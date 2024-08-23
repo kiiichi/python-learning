@@ -5,9 +5,9 @@ from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_R
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
                 hostname=HOSTNAME_RP1, gui=True)
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2, gui=False)
+                hostname=HOSTNAME_RP2, gui=True)
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP3, gui=False)
+                hostname=HOSTNAME_RP3, gui=True)
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
                 hostname=HOSTNAME_RP4, gui=False)
 
@@ -51,27 +51,27 @@ def p1_setup():
     p1_pid0.setup(input='in1', 
                 output_direct='out1', 
                 setpoint=0, 
-                p=3, # 20
-                i=200, # 1000
+                p=1.0010e-1, # 20_initial # 3_toptica_as_local_last_version
+                i=1.0000e3, # 1000_initial # 200_toptica_as_local_last_version
                 max_voltage=1, 
                 min_voltage=-1, 
                 pause_gains='pi', 
                 paused=True, 
                 differential_mode_enabled=False)
     p1_pid0.ival = 0
-    p1_pid0.inputfilter = [607, 1.944e4, 0, 0] # []
-    p1_pid1.setup(input='in2', 
+    p1_pid0.inputfilter = [1.944e4, 0, 0, 0] # []_initial # 607, 1.944e4, 0, 0_toptica_as_local_last_version
+    p1_pid1.setup(input='off', 
                   output_direct='out2', 
                   setpoint=0, 
-                  p=3, 
-                  i=200, 
+                  p=1.0010e-2, # 3_toptica_as_local_last_version
+                  i=5.0000e2, #200_toptica_as_local_last_version
                   max_voltage=1, 
                   min_voltage=-1, 
                   pause_gains='pi', 
                   paused=True, 
                   differential_mode_enabled=False)
     p1_pid1.ival = 0
-    p1_pid1.inputfilter = [607, 1.944e4, 0, 0]
+    p1_pid1.inputfilter = [0, 0, 0, 0] # []_initial # 607, 1.944e4, 0, 0_toptica_as_local_last_version
 def p2_setup():
     p2_asg0.setup(waveform='ramp', 
                 frequency=10, 
@@ -90,15 +90,15 @@ def p2_setup():
     p2_pid0.setup(input='in1', 
                 output_direct='out1', 
                 setpoint=0, 
-                p=0.1, 
-                i=2000, 
+                p=1.0010e-1, # 0.1_toptica_as_local_last_version
+                i=2.0000e3, # 2000_toptica_as_local_last_version
                 max_voltage=1, 
                 min_voltage=-1, 
                 pause_gains='pi', 
                 paused=True, 
                 differential_mode_enabled=False)
     p2_pid0.ival = 0
-    p2_pid0.inputfilter = [1.944e4, 0, 0, 0] # []
+    p2_pid0.inputfilter = [1.944e4, 0, 0, 0] # [] # 1.944e4, 0, 0, 0_toptica_as_local_last_version
     p2_pid1.setup(input='in2', 
                 output_direct='out2', 
                 setpoint=0, 
@@ -132,7 +132,7 @@ def p3_setup():
     p3_pid0.setup(input='iq0', 
                 output_direct='both', 
                 setpoint=0, 
-                p=-1, 
+                p=-0.4, # -1 before ,-0.1 
                 i=-200, 
                 max_voltage=1, 
                 min_voltage=-1, 
@@ -144,12 +144,12 @@ def p3_setup():
 
     p3_iq0.setup(input='in1',
                 acbandwidth=9716.419,
-                frequency=10000,
-                phase=0,
-                bandwidth=[607.13719,0],
-                quadrature_factor=1,
+                frequency=100000, # 10000 before
+                phase=70, # 0 before
+                bandwidth=[9.716e3,9.716e3], # [607.13719,0] before
+                quadrature_factor=10, # 1 before
                 gain=0,
-                amplitude=0.002,
+                amplitude=0.1, # 0.002 before
                 output_direct='out1')
         
 def p4_setup():

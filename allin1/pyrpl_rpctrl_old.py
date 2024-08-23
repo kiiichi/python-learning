@@ -5,9 +5,9 @@ from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_R
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
                 hostname=HOSTNAME_RP1, gui=True)
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2, gui=False)
+                hostname=HOSTNAME_RP2, gui=True)
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP3, gui=False)
+                hostname=HOSTNAME_RP3, gui=True)
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
                 hostname=HOSTNAME_RP4, gui=False)
 

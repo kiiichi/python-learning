@@ -74,10 +74,10 @@ def ws_dualband_setup(center_pump_wl, space_freq, bandwidth_freq, attenuation=[0
     wsPhaseBlank3 = np.zeros(wsFreqBlank3.shape)
     wsPortBlank3 = np.zeros(wsFreqBlank3.shape)
 
-    wsFreq = np.hstack ([wsFreqBlank0, wsFreq1, wsFreqBlank1, wsFreqp, wsFreqBlank2, wsFreq2, wsFreqBlank3])
-    wsAttn = np.hstack ([wsAttnBlank0, wsAttn1, wsAttnBlank1, wsAttnp, wsAttnBlank2, wsAttn2, wsAttnBlank3])
+    wsFreq = np.hstack ([wsFreqBlank0, wsFreq1, wsFreqBlank1, wsFreqp,  wsFreqBlank2, wsFreq2, wsFreqBlank3])
+    wsAttn = np.hstack ([wsAttnBlank0, wsAttn1, wsAttnBlank1, wsAttnp,  wsAttnBlank2, wsAttn2, wsAttnBlank3])
     wsPhase = np.hstack ([wsPhaseBlank0, wsPhase1, wsPhaseBlank1, wsPhasep, wsPhaseBlank2, wsPhase2, wsPhaseBlank3])
-    wsPort = np.hstack ([wsPortBlank0, wsPort1, wsPortBlank1, wsPortp, wsPortBlank2, wsPort2, wsPortBlank3])
+    wsPort = np.hstack ([wsPortBlank0, wsPort1, wsPortBlank1, wsPortp,  wsPortBlank2, wsPort2, wsPortBlank3])
 
     r = uploadProfile(ip, wsFreq, wsAttn, wsPhase, wsPort)
     print(f'WaveShaper: Dual band filter set on center: {center_pump_wl}')

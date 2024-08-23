@@ -29,6 +29,7 @@ def interpolate_voltage_to_wavelength_diff(voltage, fitting_curve_name):
     match fitting_curve_name:
         case 'toptica1':
             interpolated_wavelength_diff = 1.41735740e-12 * voltage**5 - 5.70767417e-10 * voltage**4 + 1.15683891e-07 * voltage**3 - 1.37073757e-05 * voltage**2 - 1.58771892e-03 * voltage + 3.84508009e-01
+  
         case 'toptica2':
             interpolated_wavelength_diff = 1.45757887e-12 * voltage**5 - 7.47082543e-10 * voltage**4 + 1.66903897e-07 * voltage**3 - 1.84056335e-05 * voltage**2 - 1.72441280e-03 * voltage + 4.32064375e-02
         case _:
