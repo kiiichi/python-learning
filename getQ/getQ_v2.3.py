@@ -21,6 +21,7 @@ from rigol_osc import osc_ask_data
 import matplotlib.pyplot as plt
 import warnings
 
+
 def interpolate_voltage_to_wavelength_diff(voltage, fitting_curve_name):
     """Modified from looking up reference table and interpolating to get a polynomial fitting from reference table.
     
