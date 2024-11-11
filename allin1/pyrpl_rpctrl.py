@@ -3,13 +3,13 @@ from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_R
 
 #Connect to the Red Pitaya
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
-                hostname=HOSTNAME_RP1, gui=True)
+                hostname=HOSTNAME_RP1, gui=False) # pumplocker
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2, gui=True)
+                hostname=HOSTNAME_RP2, gui=False) # locallocker
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP3, gui=True)
+                hostname=HOSTNAME_RP3, gui=True) # MClocker fast loop
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP4, gui=False)
+                hostname=HOSTNAME_RP4, gui=False) # MClocker slow loop 
 
 # Make shortcuts for the modules to be used
 p1_asg0=p1.rp.asg0
@@ -132,7 +132,7 @@ def p3_setup():
     p3_pid0.setup(input='iq0', 
                 output_direct='both', 
                 setpoint=0, 
-                p=-0.4, # -1 before ,-0.1 
+                p=-0.1, # -1 before ,-0.1 , 24.11.6:0.4
                 i=-200, 
                 max_voltage=1, 
                 min_voltage=-1, 
@@ -145,9 +145,9 @@ def p3_setup():
     p3_iq0.setup(input='in1',
                 acbandwidth=9716.419,
                 frequency=100000, # 10000 before
-                phase=70, # 0 before
+                phase=95, # 0 before, 24.11.6:70
                 bandwidth=[9.716e3,9.716e3], # [607.13719,0] before
-                quadrature_factor=10, # 1 before
+                quadrature_factor=10, # 1 before, 24.11.6:10
                 gain=0,
                 amplitude=0.1, # 0.002 before
                 output_direct='out1')
