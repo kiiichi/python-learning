@@ -361,7 +361,7 @@ function()
             KTrig("Frostfire Bolt") 
             return true end
         
-        --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) ) then
+        -- if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) ) then
         --    KTrig("Freeze") return true end
         
         if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) and not (aura_env.PrevCast == ids.Freeze) ) then
