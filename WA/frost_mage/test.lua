@@ -13,6 +13,9 @@ function()
     
     local Duration = C_Spell.GetSpellCooldown(spellID).duration
     local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    print("Duration: " .. Duration)
+    print("OffCooldown: " .. tostring(OffCooldown))
+
     if not OffCooldown then print("Not OffCooldown") return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
@@ -25,4 +28,25 @@ function()
     
     print("Spell is ready")
     return true
+end
+
+
+function(event, nearbyEnemies, customData)
+    if (nearbyEnemies or 0) >=3 then 
+        return true
+    end
+end
+
+function(event, spellID, customData)
+    if spellID == "Clear" then
+        return true
+    end
+end
+
+function(event, spellID, customData)
+    if spellID == "Clear" then
+        return false
+    elseif  spellID ~= "Clear" then
+        return true
+    end
 end

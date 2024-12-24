@@ -296,7 +296,8 @@ function()
             NearbyEnemies = NearbyEnemies + 1
         end
     end
-    
+    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
+
     local CurrentIcicles = GetPlayerStacks(ids.IciclesBuff)
     if IsCasting(ids.Frostbolt) then CurrentIcicles = min(CurrentIcicles + 1, 5) 
     elseif IsCasting(ids.GlacialSpike) then CurrentIcicles = 0 end
