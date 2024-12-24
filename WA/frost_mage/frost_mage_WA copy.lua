@@ -365,7 +365,7 @@ function()
         -- if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) ) then
         --    KTrig("Freeze") return true end
         
-        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) and not (aura_env.PrevCast == ids.Freeze) ) then
+        if OffCooldown(ids.IceNova) and aura_env.config["Freezable"] == true and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) and not (aura_env.PrevCast == ids.Freeze) ) then
             KTrig("Ice Nova") 
             return true end
         
@@ -431,7 +431,7 @@ function()
             end
         end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) ) then
             KTrig("Ice Lance")
             return true end
         
@@ -465,7 +465,7 @@ function()
             KTrig("Flurry") 
             return true end
         
-        if OffCooldown(ids.IceNova) and ( NearbyEnemies < 5 and (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or NearbyEnemies >= 5 and CurrentTime - aura_env.ConeOfColdLastUsed < 6 and CurrentTime - aura_env.ConeOfColdLastUsed > 6 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
+        if OffCooldown(ids.IceNova) and aura_env.config["Freezable"] == true and ( NearbyEnemies < 5 and (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or NearbyEnemies >= 5 and CurrentTime - aura_env.ConeOfColdLastUsed < 6 and CurrentTime - aura_env.ConeOfColdLastUsed > 6 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
             KTrig("Ice Nova") 
             return true end
         
@@ -527,7 +527,7 @@ function()
             end
         end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) ) then
             KTrig("Ice Lance") return true end
         
         if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 ) then
@@ -553,10 +553,10 @@ function()
         if OffCooldown(ids.FrostfireBolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 6 or GetPlayerStacks(ids.DeathsChillBuff) == 6 and not (aura_env.PrevCast == ids.FrostfireBolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             KTrig("Frostfire Bolt") return true end
         
-        if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
-           KTrig("Freeze") return true end
+        -- if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
+        --    KTrig("Freeze") return true end
         
-        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and not (aura_env.PrevCast == ids.Freeze) ) then
+        if OffCooldown(ids.IceNova) and aura_env.config["Freezable"] == true and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and not (aura_env.PrevCast == ids.Freeze) ) then
             KTrig("Ice Nova") return true end
         
         -- if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or CurrentIcicles >= 3 ) and not (aura_env.PrevCast == ids.Freeze) ) then
@@ -610,7 +610,7 @@ function()
         end
         
         -- if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 and not Variables.Boltspam ) then
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and (  not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) == 0  ) or GetTargetStacks(ids.WintersChillDebuff) > 0 and not Variables.Boltspam ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and (  not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) == 0  ) or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) and not Variables.Boltspam ) then
 
             KTrig("Ice Lance") return true end
         
@@ -640,7 +640,7 @@ function()
         if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
             KTrig("Flurry") return true end
         
-        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
+        if OffCooldown(ids.IceNova) and aura_env.config["Freezable"] == true and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
             KTrig("Ice Nova") return true end
         
         if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 22 or PlayerHasBuff(ids.IcyVeinsBuff) ) ) then
@@ -686,7 +686,7 @@ function()
         if OffCooldown(ids.Frostbolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < ( 8 + 4 * (IsPlayerSpell(ids.SlickIceTalent) and 1 or 0) ) or GetPlayerStacks(ids.DeathsChillBuff) == ( 8 + 4 * (IsPlayerSpell(ids.SlickIceTalent) and 1 or 0) ) and not (aura_env.PrevCast == ids.Frostbolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             KTrig("Frostbolt") return true end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or not Variables.Boltspam and GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or not Variables.Boltspam and (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) ) then
             KTrig("Ice Lance") return true end
         
         if OffCooldown(ids.Frostbolt) then
@@ -758,7 +758,7 @@ function()
         end
         
         -- if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) ) then
-        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and GetTargetStacks(ids.WintersChillDebuff) == 0 or GetTargetStacks(ids.WintersChillDebuff) > 0 ) ) then
+        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and GetTargetStacks(ids.WintersChillDebuff) == 0 or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) ) ) then
             KTrig("Ice Lance") return true end
         
         if OffCooldown(ids.FrostfireBolt) then
@@ -834,10 +834,10 @@ function()
         if OffCooldown(ids.Frostbolt) and ( Variables.Boltspam and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and GetPlayerStacks(ids.DeathsChillBuff) < 8 ) then
             KTrig("Frostbolt") return true end
         
-        if OffCooldown(ids.IceLance) and ( Variables.Boltspam and ( GetTargetStacks(ids.WintersChillDebuff) == 2 or GetTargetStacks(ids.WintersChillDebuff) > 0 and OffCooldown(ids.Flurry) ) ) then
+        if OffCooldown(ids.IceLance) and ( Variables.Boltspam and ( GetTargetStacks(ids.WintersChillDebuff) == 2 or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) and OffCooldown(ids.Flurry) ) ) then
             KTrig("Ice Lance") return true end
         
-        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) ) then
+        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (GetTargetStacks(ids.WintersChillDebuff) > 0 and not (GetTargetStacks(ids.WintersChillDebuff) == 1 and (IsCasting(ids.FrostfireBolt) or IsCasting(ids.GlacialSpike))) ) ) ) then
             KTrig("Ice Lance") return true end
         
         if OffCooldown(ids.Frostbolt) then

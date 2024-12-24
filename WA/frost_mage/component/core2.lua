@@ -14,5 +14,8 @@ aura_env.test = function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
         aura_env.ConeOfColdLastUsed = GetTime()
     end
     
+    local KTrigCD = aura_env.KTrigCD
+    KTrigCD("Clear")
+
     return
 end

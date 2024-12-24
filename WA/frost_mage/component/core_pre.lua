@@ -1,10 +1,8 @@
------------------------
--- 核心触发器载入配置 --
------------------------
 WeakAuras.WatchGCD()
 
 aura_env.FrozenOrbRemains = 0
 aura_env.ConeOfColdLastUsed = 0
+aura_env.FlagKTrigCD = true
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
@@ -45,6 +43,7 @@ aura_env.ids = {
     SplinteringColdTalent = 379049,
     SplinteringRayTalent = 418733,
     SplinterstormTalent = 443742,
+    GlacialSpikeTalent = 199786,
     
     -- Buffs
     BrainFreezeBuff = 190446,
@@ -64,8 +63,18 @@ aura_env.ids = {
 aura_env.OutOfRange = false
 
 aura_env.KTrig = function(Name, ...)
-    WeakAuras.ScanEvents("K_GLOW_EXCLUSIVE", Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    if aura_env.FlagKTrigCD then
+        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
+    end
+    aura_env.FlagKTrigCD = flase
+end
+
+aura_env.KTrigCD = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigCD = false
 end
 
 aura_env.OffCooldown = function(spellID)
@@ -74,7 +83,7 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    if aura_env.config[tostring(spellID)] == false then return false end
+    -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
     if (not usable) and (not nomana) then return false end
@@ -228,3 +237,4 @@ end
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
+
