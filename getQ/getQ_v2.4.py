@@ -62,7 +62,7 @@ with Client(NetworkConnection(DLCPRO_CONNECTION)) as client:
     arc_factor = client.get('laser1:dl:pc:external-input:factor', float)
     set_voltage = client.get('laser1:dl:pc:voltage-set', float)
     if base_file_name:
-        file_name = base_file_name + f'_arcf{arc_factor}_setv{set_voltage}_actw{act_wavelength:.4f}.csv'
+        file_name = base_file_name + f'_arcf{arc_factor}_setv{set_voltage}_actw{act_wavelength:.4f}'
     else:
         file_name = None
 
