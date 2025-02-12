@@ -3,13 +3,13 @@ from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_R
 
 #Connect to the Red Pitaya
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
-                hostname=HOSTNAME_RP1, gui=False) # pumplocker
+                hostname=HOSTNAME_RP1, gui=True) # pumplocker
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2, gui=False) # locallocker
+                hostname=HOSTNAME_RP2, gui=True) # locallocker
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
                 hostname=HOSTNAME_RP3, gui=True) # MClocker fast loop
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP4, gui=False) # MClocker slow loop 
+                hostname=HOSTNAME_RP4, gui=True) # MClocker slow loop 
 
 # Make shortcuts for the modules to be used
 p1_asg0=p1.rp.asg0
@@ -50,7 +50,7 @@ def p1_setup():
                 start_phase=0)
     p1_pid0.setup(input='in1', 
                 output_direct='out1', 
-                setpoint=0, 
+                setpoint=-0.014, 
                 p=1.0010e-1, # 20_initial # 3_toptica_as_local_last_version
                 i=1.0000e3, # 1000_initial # 200_toptica_as_local_last_version
                 max_voltage=1, 

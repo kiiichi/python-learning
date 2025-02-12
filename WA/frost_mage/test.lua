@@ -50,3 +50,16 @@ function(event, spellID, customData)
         return true
     end
 end
+
+
+function(spellID)
+    local spellID = 44614
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    local CurrentCharges = ChargeInfo.currentCharges
+    print ("CurrentCharges: " .. CurrentCharges)
+    if ChargeInfo.cooldownStartTime == 0 then return CurrentCharges end
+    
+    local FractionalCharge = (GetTime() - ChargeInfo.cooldownStartTime) / ChargeInfo.cooldownDuration
+    print ("FractionalCharge: " .. FractionalCharge)
+    return CurrentCharges + FractionalCharge
+end
