@@ -1,6 +1,3 @@
-------------------
--- 核心触发器1 --
-------------------
 env.test = function()
     if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
     then
@@ -163,7 +160,8 @@ env.test = function()
             end
         end
         
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        -- if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) or ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.FrozenOrb) ) or ( IsPlayerSpell(ids.CometStormTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.CometStorm) ) ) ) then
             -- KTrig("Shifting Power") return true end
             if aura_env.config[tostring(ids.ShiftingPower)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shifting Power")
@@ -263,7 +261,8 @@ env.test = function()
             KTrig("Blizzard") 
             return true end
         
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+            -- if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+            if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) or ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.FrozenOrb) ) or ( IsPlayerSpell(ids.CometStormTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.CometStorm) ) ) ) then
             -- KTrig("Shifting Power") return true end
             if aura_env.config[tostring(ids.ShiftingPower)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shifting Power")
@@ -354,8 +353,9 @@ env.test = function()
                 return true
             end
         end
-        
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+
+        -- if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) or ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.FrozenOrb) ) or ( IsPlayerSpell(ids.CometStormTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.CometStorm) ) or ( IsPlayerSpell(ids.RayOfFrostTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.RayOfFrost) ) ) ) then
             -- KTrig("Shifting Power") return true end
             if aura_env.config[tostring(ids.ShiftingPower)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shifting Power")
@@ -503,7 +503,8 @@ env.test = function()
             end
         end
         
-        if OffCooldown(ids.ShiftingPower) and ( ( PlayerHasBuff(ids.IcyVeinsBuff) == false or not Variables.Boltspam ) and GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        -- if OffCooldown(ids.ShiftingPower) and ( ( PlayerHasBuff(ids.IcyVeinsBuff) == false or not Variables.Boltspam ) and GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( ( PlayerHasBuff(ids.IcyVeinsBuff) == false or not Variables.Boltspam ) and GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) or ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.FrozenOrb) ) or ( IsPlayerSpell(ids.CometStormTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.CometStorm) ) or ( IsPlayerSpell(ids.RayOfFrostTalent) and FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.RayOfFrost) ) ) ) then
             -- KTrig("Shifting Power") return true end
             if aura_env.config[tostring(ids.ShiftingPower)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shifting Power")
