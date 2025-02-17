@@ -1,429 +1,8 @@
-function()
-    if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
-    then
-        return
-    end
-    aura_env.LastUpdate = GetTime()
-    
-    ---- Setup ----------------------------------------------------------------------------------------------------
-    local CurrentTime = GetTime()
-    
-    local OffCooldown = aura_env.OffCooldown
-    local OffCooldownNotCasting = aura_env.OffCooldownNotCasting
-    local GetRemainingAuraDuration = aura_env.GetRemainingAuraDuration
-    local GetRemainingDebuffDuration = aura_env.GetRemainingDebuffDuration
-    local GetRemainingSpellCooldown = aura_env.GetRemainingSpellCooldown
-    local IsCasting = aura_env.IsCasting
-    local GetPlayerStacks = aura_env.GetPlayerStacks
-    local GetTargetStacks = aura_env.GetTargetStacks
-    local PlayerHasBuff = aura_env.PlayerHasBuff
-    local TargetHasDebuff = aura_env.TargetHasDebuff
-    local HasBloodlust = aura_env.HasBloodlust
-    local GetSpellChargesFractional = aura_env.GetSpellChargesFractional
-    local GetTimeToNextCharge = aura_env.GetTimeToNextCharge
-    local GetTimeToFullCharges = aura_env.GetTimeToFullCharges
-    local TargetTimeToXPct = aura_env.TargetTimeToXPct
-    local FightRemains = aura_env.FightRemains
-    local IsAuraRefreshable = aura_env.IsAuraRefreshable
-    local NGSend = aura_env.NGSend
-    
-    ---@class idsTable
-    local ids = aura_env.ids
-    aura_env.OutOfRange = false
-    local Variables = {}
-    if IsPlayerSpell(ids.Defile) then ids.DeathAndDecay = ids.Defile end
-    
-    ---- Setup Data ----------------------------------------------------------------------------------------------- 
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1696)
-    
-    local CurrentRunes = 0
-    for i = 1, 6 do
-        local start, duration, runeReady = GetRuneCooldown(i)
-        if runeReady then
-            CurrentRunes = CurrentRunes + 1
-        end
-    end
-    
-    local CurrentRunicPower = UnitPower("player", Enum.PowerType.RunicPower)
-    local MaxRunicPower = UnitPowerMax("player", Enum.PowerType.RunicPower)
-    
-    local GargoyleRemaining = max(aura_env.GargoyleExpiration - GetTime(), 0)
-    local ApocalypseRemaining = max(aura_env.ApocalypseExpiration - GetTime(), 0)
-    local ArmyRemaining = max(aura_env.ArmyExpiration - GetTime(), 0)
-    local AbominationRemaining = max(aura_env.AbominationExpiration - GetTime(), 0)
-    
-    local TargetsWithFesteringWounds = 0
-    local NearbyEnemies = 0
-    local NearbyRange = 10
-    for i = 1, 40 do
-        local unit = "nameplate"..i
-        if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
-            NearbyEnemies = NearbyEnemies + 1
-            if WA_GetUnitDebuff(unit, ids.FesteringWound, "PLAYER||HARMFUL") ~= nil then
-                TargetsWithFesteringWounds = TargetsWithFesteringWounds + 1
-            end
-        end
-    end
-    
-    WeakAuras.ScanEvents("NG_DEATH_STRIKE_UPDATE", aura_env.CalcDeathStrikeHeal())
-    
-    -- Only recommend things when something's targeted
-    if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
-        WeakAuras.ScanEvents("NG_GLOW_EXTRAS", {})
-        NGSend("Clear", nil) return end
-    
-    -- RangeChecker (Melee)
-    if C_Item.IsItemInRange(16114, "target") == false then aura_env.OutOfRange = true end
-    
-    ---- Rotation Variables ---------------------------------------------------------------------------------------
-    if NearbyEnemies == 1 then
-    Variables.StPlanning = true else Variables.StPlanning = false end
-    
-    if NearbyEnemies >= 2 then
-    Variables.AddsRemain = true else Variables.AddsRemain = false end
-    
-    if GetRemainingSpellCooldown(ids.Apocalypse) < 5 and GetTargetStacks(ids.FesteringWound) < 1 and GetRemainingSpellCooldown(ids.UnholyAssault) > 5 then
-    Variables.ApocTiming = 3 else Variables.ApocTiming = 0 end
-    
-    if IsPlayerSpell(ids.VileContagion) and GetRemainingSpellCooldown(ids.VileContagion) < 3 and CurrentRunicPower < 30 then
-    Variables.PoolingRunicPower = true else Variables.PoolingRunicPower = false end
-    
-    if ( GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming or not IsPlayerSpell(ids.Apocalypse) ) and ( GetTargetStacks(ids.FesteringWound) >= 1 and GetRemainingSpellCooldown(ids.UnholyAssault) < 20 and IsPlayerSpell(ids.UnholyAssault) and Variables.StPlanning or TargetHasDebuff(ids.RottenTouchDebuff) and GetTargetStacks(ids.FesteringWound) >= 1 or GetTargetStacks(ids.FesteringWound) >= 4 - (AbominationRemaining > 0 and 1 or 0) ) or FightRemains(10, NearbyRange) < 5 and GetTargetStacks(ids.FesteringWound) >= 1 then
-    Variables.PopWounds = true else Variables.PopWounds = false end
-    
-    if ( not IsPlayerSpell(ids.RottenTouch) or IsPlayerSpell(ids.RottenTouch) and not TargetHasDebuff(ids.RottenTouchDebuff) or MaxRunicPower - CurrentRunicPower < 20 ) and ( ( IsPlayerSpell(ids.ImprovedDeathCoil) and ( NearbyEnemies == 2 or IsPlayerSpell(ids.CoilOfDevastation) ) or CurrentRunes < 3 or GargoyleRemaining or PlayerHasBuff(ids.SuddenDoom) or not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) >= 4 ) ) then
-    Variables.SpendRp = true else Variables.SpendRp = false end
-    
-    Variables.EpidemicTargets = 3 + (IsPlayerSpell(ids.ImprovedDeathCoil) and 1 or 0) + ( (IsPlayerSpell(ids.FrenziedBloodthirstTalent) and GetPlayerStacks(ids.EssenceOfTheBloodQueen) > 5) and 1 or 0 ) + ( (IsPlayerSpell(ids.HungeringThirstTalent) and IsPlayerSpell(ids.HarbingerOfDoomTalent) and PlayerHasBuff(ids.SuddenDoom)) and 1 or 0 )
-    
-    ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
-    local ExtraGlows = {}
-    
-    if OffCooldown(ids.ArmyOfTheDead) and not IsPlayerSpell(ids.RaiseAbomination) and ( ( Variables.StPlanning or Variables.AddsRemain ) and ( IsPlayerSpell(ids.CommanderOfTheDead) and GetRemainingSpellCooldown(ids.DarkTransformation) < 5 or not IsPlayerSpell(ids.CommanderOfTheDead) and NearbyEnemies >= 1 ) or FightRemains(30, NearbyRange) < 35 ) then
-        ExtraGlows.ArmyOfTheDead = true
-    end
-    
-    if OffCooldown(ids.RaiseAbomination) and ( ( Variables.StPlanning or Variables.AddsRemain ) or FightRemains(25, NearbyRange) < 30 ) then
-        ExtraGlows.ArmyOfTheDead = true
-    end
-    
-    if OffCooldown(ids.SummonGargoyle) and ( ( Variables.StPlanning or Variables.AddsRemain ) and ( PlayerHasBuff(ids.CommanderOfTheDeadBuff) or not IsPlayerSpell(ids.CommanderOfTheDead) and NearbyEnemies >= 1 ) or FightRemains(60, NearbyRange) < 25 ) then
-        ExtraGlows.SummonGargoyle = true
-    end
-    
-    WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows)
-    
-    ---- Normal GCDs -------------------------------------------------------------------------------------------
-    
-    -- AOE
-    local Aoe = function()
-        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 and PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.BurstingSores) and GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower ) then
-            NGSend("Epidemic") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming or PlayerHasBuff(ids.FesteringScythe) ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 2 ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 and GetRemainingSpellCooldown(ids.Apocalypse) > WeakAuras.gcdDuration() or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike and TargetHasDebuff(ids.VirulentPlague) ) then
-            NGSend("Scourge Strike") return true end
-    end
-    
-    -- AoE Burst
-    local AoeBurst = function()
-        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike and NearbyEnemies < Variables.EpidemicTargets and ( not IsPlayerSpell(ids.BurstingSores) or IsPlayerSpell(ids.BurstingSores) and TargetsWithFesteringWounds < NearbyEnemies and TargetsWithFesteringWounds < NearbyEnemies * 0.4 and PlayerHasBuff(ids.SuddenDoom) or PlayerHasBuff(ids.SuddenDoom) and ( IsPlayerSpell(ids.DoomedBidding) and IsPlayerSpell(ids.MenacingMagusTalent) or IsPlayerSpell(ids.RottenTouch) or GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() ) ) ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.Epidemic) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike and ( not IsPlayerSpell(ids.BurstingSores) or IsPlayerSpell(ids.BurstingSores) and TargetsWithFesteringWounds < NearbyEnemies and TargetsWithFesteringWounds < NearbyEnemies * 0.4 and PlayerHasBuff(ids.SuddenDoom) or PlayerHasBuff(ids.SuddenDoom) and ( PlayerHasBuff(ids.AFeastOfSouls) or GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() or GetTargetStacks(ids.DeathRot) < 10 ) ) ) then
-            NGSend("Epidemic") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( NearbyEnemies < Variables.EpidemicTargets ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.Epidemic) then
-            NGSend("Epidemic") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) <= 2 ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) then
-            NGSend("Scourge Strike") return true end
-    end
-    
-    -- AoE Setup
-    local AoeSetup = function()
-        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( not IsPlayerSpell(ids.BurstingSores) and not IsPlayerSpell(ids.VileContagion) or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds >= 8 or not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.Defile) ) ) then
-            NGSend("Death and Decay") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( not IsPlayerSpell(ids.VileContagion) ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.VileContagion) < 5 or TargetsWithFesteringWounds == NearbyEnemies and GetTargetStacks(ids.FesteringWound) <= 4 ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and PlayerHasBuff(ids.SuddenDoom) and NearbyEnemies < Variables.EpidemicTargets ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower and PlayerHasBuff(ids.SuddenDoom) ) then
-            NGSend("Epidemic") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < WeakAuras.gcdDuration() and GetTargetStacks(ids.FesteringWound) == 0 or TargetsWithFesteringWounds < NearbyEnemies ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower ) then
-            NGSend("Epidemic") return true end
-    end
-    
-    -- Non-San'layn Cooldowns
-    local Cds = function()
-        if OffCooldown(ids.DarkTransformation) and ( Variables.StPlanning and ( GetRemainingSpellCooldown(ids.Apocalypse) < 8 or not IsPlayerSpell(ids.Apocalypse) or NearbyEnemies >= 1 ) or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Dark Transformation") return true end
-        
-        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( GetRemainingSpellCooldown(ids.Apocalypse) < WeakAuras.gcdDuration() * 2 or not IsPlayerSpell(ids.Apocalypse) or NearbyEnemies >= 2 and PlayerHasBuff(ids.DarkTransformation) ) or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Unholy Assault") return true end
-        
-        if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Apocalypse") return true end
-        
-        if OffCooldown(ids.Outbreak) and ( TargetTimeToXPct(0, 60) > GetRemainingDebuffDuration("target", ids.VirulentPlague) and floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and ( IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Superstrain) and ( IsAuraRefreshable(ids.FrostFever) or IsAuraRefreshable(ids.BloodPlague) ) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.Plaguebringer)) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) * 3 ) ) then
-            NGSend("Outbreak") return true end
-        
-        if OffCooldown(ids.AbominationLimb) and ( Variables.StPlanning and not PlayerHasBuff(ids.SuddenDoom) and ( PlayerHasBuff(ids.Festermight) and GetPlayerStacks(ids.Festermight) > 8 or not IsPlayerSpell(ids.Festermight) ) and ( ApocalypseRemaining < 5 or not IsPlayerSpell(ids.Apocalypse) ) and GetTargetStacks(ids.FesteringWound) <= 2 or FightRemains(60, NearbyRange) < 12 ) then
-            NGSend("Abomination Limb") return true end
-        
-    end
-    
-    -- Non-San'layn AoE Cooldowns
-    local CdsAoe = function()
-        if OffCooldown(ids.VileContagion) and ( GetTargetStacks(ids.FesteringWound) >= 4 and ( GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 or PlayerHasBuff(ids.DeathAndDecayBuff) and GetTargetStacks(ids.FesteringWound) >= 4 ) or Variables.AddsRemain and GetTargetStacks(ids.FesteringWound) == 6 ) then
-            NGSend("Vile Contagion") return true end
-        
-        if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 3 or not IsPlayerSpell(ids.VileContagion) ) ) then
-            NGSend("Unholy Assault") return true end
-        
-        if OffCooldown(ids.DarkTransformation) and ( Variables.AddsRemain and ( GetRemainingSpellCooldown(ids.VileContagion) > 5 or not IsPlayerSpell(ids.VileContagion) or PlayerHasBuff(ids.DeathAndDecayBuff) or GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 ) ) then
-            NGSend("Dark Transformation") return true end
-        
-        if OffCooldown(ids.Outbreak) and ( floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and IsAuraRefreshable(ids.VirulentPlague) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
-            NGSend("Outbreak") return true end
-        
-        if OffCooldown(ids.Apocalypse) and ( Variables.AddsRemain and CurrentRunes <= 3 ) then
-            NGSend("Apocalypse") return true end
-        
-        if OffCooldown(ids.AbominationLimb) and ( Variables.AddsRemain ) then
-            NGSend("Abomination Limb") return true end
-        
-    end
-    
-    -- San'layn AoE Cooldowns
-    local CdsAoeSan = function()
-        if OffCooldown(ids.DarkTransformation) and ( Variables.AddsRemain and PlayerHasBuff(ids.DeathAndDecayBuff) ) then
-            NGSend("Dark Transformation") return true end
-        
-        if OffCooldown(ids.VileContagion) and ( GetTargetStacks(ids.FesteringWound) >= 4  and ( GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 or PlayerHasBuff(ids.DeathAndDecayBuff) and GetTargetStacks(ids.FesteringWound) >= 4 ) or Variables.AddsRemain and GetTargetStacks(ids.FesteringWound) == 6 ) then
-            NGSend("Vile Contagion") return true end
-        
-        if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 6 or not IsPlayerSpell(ids.VileContagion) ) ) then
-            NGSend("Unholy Assault") return true end
-        
-        if OffCooldown(ids.Outbreak) and ( ( floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Morbidity) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and IsPlayerSpell(ids.Superstrain) and IsAuraRefreshable(ids.FrostFever) and IsAuraRefreshable(ids.BloodPlague) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
-            NGSend("Outbreak") return true end
-        
-        if OffCooldown(ids.Apocalypse) and ( Variables.AddsRemain and CurrentRunes <= 3 ) then
-            NGSend("Apocalypse") return true end
-        
-        if OffCooldown(ids.AbominationLimb) and ( Variables.AddsRemain ) then
-            NGSend("Abomination Limb") return true end
-    end
-    
-    -- San'layn Cooldowns
-    local CdsSan = function()
-        if OffCooldown(ids.DarkTransformation) and ( NearbyEnemies >= 1 and Variables.StPlanning and ( IsPlayerSpell(ids.Apocalypse) and (ApocalypseRemaining > 0) or not IsPlayerSpell(ids.Apocalypse) ) or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Dark Transformation") return true end
-        
-        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( PlayerHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("player", ids.DarkTransformation) < 12 ) or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Unholy Assault") return true end
-        
-        if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
-            NGSend("Apocalypse") return true end
-        
-        if OffCooldown(ids.Outbreak) and ( TargetTimeToXPct(0, 60) > GetRemainingDebuffDuration("target", ids.VirulentPlague) and floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and ( IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Morbidity) and PlayerHasBuff(ids.InflictionOfSorrow) and IsPlayerSpell(ids.Superstrain) and IsAuraRefreshable(ids.FrostFever) and IsAuraRefreshable(ids.BloodPlague) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
-            NGSend("Outbreak") return true end
-        
-        if OffCooldown(ids.AbominationLimb) and ( NearbyEnemies >= 1 and Variables.StPlanning and not PlayerHasBuff(ids.GiftOfTheSanlayn) and not PlayerHasBuff(ids.SuddenDoom) and PlayerHasBuff(ids.Festermight) and GetTargetStacks(ids.FesteringWound) <= 2 or not PlayerHasBuff(ids.GiftOfTheSanlayn) and FightRemains(60, NearbyRange) < 12 ) then
-            NGSend("Abomination Limb") return true end
-    end
-    
-    -- Cleave
-    local Cleave = function()
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) ) then
-            NGSend("Death and Decay") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) < 4 or PlayerHasBuff(ids.FesteringScythe) ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming and GetTargetStacks(ids.FesteringWound) < 4 ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( Variables.PopWounds ) then
-            NGSend("Scourge Strike") return true end
-        
-    end
-    
-    -- San'layn Fishing
-    local SanFishing = function()
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike ) then
-            NGSend("Death and Decay") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( PlayerHasBuff(ids.SuddenDoom) and IsPlayerSpell(ids.DoomedBidding) ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and FightRemains(60, NearbyRange) > 5 ) then
-            NGSend("Soul Reaper") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( ( GetTargetStacks(ids.FesteringWound) >= 3 - (AbominationRemaining > 0 and 1 or 0) and GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 3 - (AbominationRemaining > 0 and 1 or 0) ) then
-            NGSend("Festering Strike") return true end
-    end
-    
-    -- Single Target San'layn
-    local SanSt = function()
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.UnholyGround) and GetRemainingSpellCooldown(ids.DarkTransformation) < 5 ) then
-            NGSend("Death and Decay") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( PlayerHasBuff(ids.SuddenDoom) and GetRemainingAuraDuration("player", ids.GiftOfTheSanlayn) and ( IsPlayerSpell(ids.DoomedBidding) or IsPlayerSpell(ids.RottenTouch) ) or CurrentRunes < 3 and not PlayerHasBuff(ids.RunicCorruption) ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike or IsPlayerSpell(ids.GiftOfTheSanlayn) and PlayerHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("player", ids.DarkTransformation) < WeakAuras.gcdDuration() ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and FightRemains(60, NearbyRange) > 5 ) then
-            NGSend("Soul Reaper") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike and GetTargetStacks(ids.FesteringWound) >= 1 ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( ( GetTargetStacks(ids.FesteringWound) == 0 and GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming ) or ( IsPlayerSpell(ids.GiftOfTheSanlayn) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) or not IsPlayerSpell(ids.GiftOfTheSanlayn) ) and ( PlayerHasBuff(ids.FesteringScythe) or GetTargetStacks(ids.FesteringWound) <= 1 ) ) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( ( not IsPlayerSpell(ids.Apocalypse) or GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) and ( GetTargetStacks(ids.FesteringWound) >= 3 - (AbominationRemaining > 0 and 1 or 0) or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() or ( PlayerHasBuff(ids.SuddenDoom) and GetTargetStacks(ids.FesteringWound) >= 1 or CurrentRunes < 2 ) ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) > 4 ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower ) then
-            NGSend("Death Coil") return true end
-    end
-    
-    -- Single Taget Non-San'layn
-    local St = function()
-        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and FightRemains(60, NearbyRange) > 5 ) then
-            NGSend("Soul Reaper") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and (TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow)) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathAndDecay) and ( IsPlayerSpell(ids.UnholyGround) and not PlayerHasBuff(ids.DeathAndDecayBuff) and ( ApocalypseRemaining > 0 or AbominationRemaining > 0 or GargoyleRemaining > 0 ) ) then
-            NGSend("Death and Decay") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and Variables.SpendRp or FightRemains(60, NearbyRange) < 10 ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 4 and (not Variables.PopWounds or PlayerHasBuff(ids.FesteringScythe))) then
-            NGSend("Festering Strike") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( Variables.PopWounds ) then
-            NGSend("Scourge Strike") return true end
-        
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower ) then
-            NGSend("Death Coil") return true end
-        
-        if OffCooldown(ids.ScourgeStrike) and ( not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) >= 4 ) then
-            NGSend("Scourge Strike") return true end
-    end
-    
-    if IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies >= 2 then
-        if CdsAoeSan() then return true end end
-    
-    if not IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies >= 2 then
-        if CdsAoe() then return true end end
-    
-    if IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies == 1 then
-        if CdsSan() then return true end end
-    
-    if not IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies == 1 then
-        if Cds() then return true end end
-    
-    if NearbyEnemies == 2 then
-        if Cleave() then return true end end
-    
-    if NearbyEnemies >= 3 and not PlayerHasBuff(ids.DeathAndDecayBuff) and GetRemainingSpellCooldown(ids.DeathAndDecay) < 10 then
-        if AoeSetup() then return true end end
-    
-    if NearbyEnemies >= 3 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecay) and TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) ) then
-        if AoeBurst() then return true end end
-    
-    if NearbyEnemies >= 3 and not PlayerHasBuff(ids.DeathAndDecayBuff) then
-        if Aoe() then return true end end
-    
-    if NearbyEnemies <= 1 and IsPlayerSpell(ids.GiftOfTheSanlayn) and not OffCooldown(ids.DarkTransformation) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and GetRemainingAuraDuration("player", ids.EssenceOfTheBloodQueen) < GetRemainingSpellCooldown(ids.DarkTransformation) + 3 then
-        SanFishing() return true end
-    
-    if NearbyEnemies <= 1 and IsPlayerSpell(ids.VampiricStrike) then
-        if SanSt() then return true end end
-    
-    if NearbyEnemies <= 1 and not IsPlayerSpell(ids.VampiricStrike) then
-        if St() then return true end end
-    
-    WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", "Clear", nil)
-end
-
-
-
-
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Load--------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
 WeakAuras.WatchGCD()
 
 -- Death Strike Prediction
@@ -510,9 +89,22 @@ aura_env.ids = {
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
-aura_env.NGSend = function(Name, ...)
-    WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", Name, ...)
-    WeakAuras.ScanEvents("NG_OUT_OF_RANGE", aura_env.OutOfRange)
+
+-- Kichi --
+-- Kichi --
+aura_env.KTrig = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    if aura_env.FlagKTrigCD then
+        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
+    end
+    aura_env.FlagKTrigCD = flase
+end
+
+aura_env.KTrigCD = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigCD = false
 end
 
 aura_env.OffCooldown = function(spellID)
@@ -521,9 +113,13 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    if aura_env.config[tostring(spellID)] == false then return false end
+    -- Kichi --
+    -- Kichi --
+    -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
+    -- Kichi --
+    -- Kichi --
     if (not usable) or nomana then return false end
     
     local Duration = C_Spell.GetSpellCooldown(spellID).duration
@@ -719,163 +315,725 @@ aura_env.CalcDeathStrikeHeal = function()
     return TotalHeal
 end
 
----- Keybind Assistance ----------------------------------------------------------------------------------------
--- Based on https://wago.io/7bcXDdPqi
--- Initilize setup
-_G.kbTable_master = {}
-_G.UseKeybindAssistance = aura_env.config.UseKeybindAssistance
-local SpamAura = ""
-local SpamCount = 0
-local Updated = false
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Trigger1----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+function()
+    if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
+    then
+        return
+    end
+    aura_env.LastUpdate = GetTime()
+    
+    ---- Setup ----------------------------------------------------------------------------------------------------
+    local CurrentTime = GetTime()
+    
+    local OffCooldown = aura_env.OffCooldown
+    local OffCooldownNotCasting = aura_env.OffCooldownNotCasting
+    local GetRemainingAuraDuration = aura_env.GetRemainingAuraDuration
+    local GetRemainingDebuffDuration = aura_env.GetRemainingDebuffDuration
+    local GetRemainingSpellCooldown = aura_env.GetRemainingSpellCooldown
+    local IsCasting = aura_env.IsCasting
+    local GetPlayerStacks = aura_env.GetPlayerStacks
+    local GetTargetStacks = aura_env.GetTargetStacks
+    local PlayerHasBuff = aura_env.PlayerHasBuff
+    local TargetHasDebuff = aura_env.TargetHasDebuff
+    local HasBloodlust = aura_env.HasBloodlust
+    local GetSpellChargesFractional = aura_env.GetSpellChargesFractional
+    local GetTimeToNextCharge = aura_env.GetTimeToNextCharge
+    local GetTimeToFullCharges = aura_env.GetTimeToFullCharges
+    local TargetTimeToXPct = aura_env.TargetTimeToXPct
+    local FightRemains = aura_env.FightRemains
+    local IsAuraRefreshable = aura_env.IsAuraRefreshable
+    -- Kichi --
+    local KTrig = aura_env.KTrig
+    local KTrigCD = aura_env.KTrigCD
+    aura_env.FlagKTrigCD = true
 
--- Load custom options
-local custMod = aura_env.config.KeybindSettings.custMod
-local shiftMod = aura_env.config.KeybindSettings.shiftMod
-local ctrlMod = aura_env.config.KeybindSettings.ctrlMod
-local altMod = aura_env.config.KeybindSettings.altMod
-local custMouse = aura_env.config.KeybindSettings.custMouse
-local btnMouse = aura_env.config.KeybindSettings.btnMouse
-local shiftMouse = aura_env.config.KeybindSettings.shiftMouse
-local ctrlMouse = aura_env.config.KeybindSettings.ctrlMouse
-local altMouse = aura_env.config.KeybindSettings.altMouse
-local spamOpt = aura_env.config.KeybindSettings.spamOpt
-local crtog1 = aura_env.config.KeybindSettings.crtog1
-local creplace1 = aura_env.config.KeybindSettings.creplace1
-local crwith1 = aura_env.config.KeybindSettings.crwith1
-local crtog2 = aura_env.config.KeybindSettings.crtog2
-local creplace2 = aura_env.config.KeybindSettings.creplace2
-local crwith2 = aura_env.config.KeybindSettings.crwith2
-local crtog3 = aura_env.config.KeybindSettings.crtog3
-local creplace3 = aura_env.config.KeybindSettings.creplace3
-local crwith3 = aura_env.config.KeybindSettings.crwith3
-
--- Function to check for WA causing spam
-local function spamCheck(checkAura)
-    local lastAura = SpamAura
-    local prompt = ""
-    if not checkAura then
-        prompt = "Global update initiated"
-        return false, prompt
-    elseif (lastAura and checkAura == lastAura) then
-        if SpamCount > 3 then
-            return true
-        elseif SpamCount == 3 then
-            prompt = checkAura.." is spamming and will be ignored"
-            SpamCount = SpamCount +1
-            return true, prompt
+    ---@class idsTable
+    local ids = aura_env.ids
+    aura_env.OutOfRange = false
+    local Variables = {}
+    if IsPlayerSpell(ids.Defile) then ids.DeathAndDecay = ids.Defile end
+    
+    ---- Setup Data ----------------------------------------------------------------------------------------------- 
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1696)
+    
+    local CurrentRunes = 0
+    for i = 1, 6 do
+        local start, duration, runeReady = GetRuneCooldown(i)
+        if runeReady then
+            CurrentRunes = CurrentRunes + 1
         end
-    else 
-        prompt = checkAura.." triggered an update"
-        SpamAura = checkAura
-        SpamCount = SpamCount +1
-        return false , prompt
+    end
+    
+    local CurrentRunicPower = UnitPower("player", Enum.PowerType.RunicPower)
+    local MaxRunicPower = UnitPowerMax("player", Enum.PowerType.RunicPower)
+    
+    local GargoyleRemaining = max(aura_env.GargoyleExpiration - GetTime(), 0)
+    local ApocalypseRemaining = max(aura_env.ApocalypseExpiration - GetTime(), 0)
+    local ArmyRemaining = max(aura_env.ArmyExpiration - GetTime(), 0)
+    local AbominationRemaining = max(aura_env.AbominationExpiration - GetTime(), 0)
+    
+    local TargetsWithFesteringWounds = 0
+    local NearbyEnemies = 0
+    local NearbyRange = 10
+    for i = 1, 40 do
+        local unit = "nameplate"..i
+        if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
+            NearbyEnemies = NearbyEnemies + 1
+            if WA_GetUnitDebuff(unit, ids.FesteringWound, "PLAYER||HARMFUL") ~= nil then
+                TargetsWithFesteringWounds = TargetsWithFesteringWounds + 1
+            end
+        end
+    end
+    -- Kichi --
+    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
+
+    WeakAuras.ScanEvents("NG_DEATH_STRIKE_UPDATE", aura_env.CalcDeathStrikeHeal())
+    
+    -- Kichi --
+    -- Only recommend things when something's targeted
+    if aura_env.config["NeedTarget"] then
+        if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
+            WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
+            KTrig("Clear", nil)
+            KTrigCD("Clear", nil) 
+            return end
+    end
+    
+    -- RangeChecker (Melee)
+    if C_Item.IsItemInRange(16114, "target") == false then aura_env.OutOfRange = true end
+    
+    ---- Rotation Variables ---------------------------------------------------------------------------------------
+    if NearbyEnemies == 1 then
+    Variables.StPlanning = true else Variables.StPlanning = false end
+    
+    if NearbyEnemies >= 2 then
+    Variables.AddsRemain = true else Variables.AddsRemain = false end
+    
+    if GetRemainingSpellCooldown(ids.Apocalypse) < 5 and GetTargetStacks(ids.FesteringWound) < 1 and GetRemainingSpellCooldown(ids.UnholyAssault) > 5 then
+    Variables.ApocTiming = 3 else Variables.ApocTiming = 0 end
+    
+    if IsPlayerSpell(ids.VileContagion) and GetRemainingSpellCooldown(ids.VileContagion) < 3 and CurrentRunicPower < 30 then
+    Variables.PoolingRunicPower = true else Variables.PoolingRunicPower = false end
+    
+    if ( GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming or not IsPlayerSpell(ids.Apocalypse) ) and ( GetTargetStacks(ids.FesteringWound) >= 1 and GetRemainingSpellCooldown(ids.UnholyAssault) < 20 and IsPlayerSpell(ids.UnholyAssault) and Variables.StPlanning or TargetHasDebuff(ids.RottenTouchDebuff) and GetTargetStacks(ids.FesteringWound) >= 1 or GetTargetStacks(ids.FesteringWound) >= 4 - (AbominationRemaining > 0 and 1 or 0) ) or FightRemains(10, NearbyRange) < 5 and GetTargetStacks(ids.FesteringWound) >= 1 then
+    Variables.PopWounds = true else Variables.PopWounds = false end
+    
+    if ( not IsPlayerSpell(ids.RottenTouch) or IsPlayerSpell(ids.RottenTouch) and not TargetHasDebuff(ids.RottenTouchDebuff) or MaxRunicPower - CurrentRunicPower < 20 ) and ( ( IsPlayerSpell(ids.ImprovedDeathCoil) and ( NearbyEnemies == 2 or IsPlayerSpell(ids.CoilOfDevastation) ) or CurrentRunes < 3 or GargoyleRemaining or PlayerHasBuff(ids.SuddenDoom) or not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) >= 4 ) ) then
+    Variables.SpendRp = true else Variables.SpendRp = false end
+    
+    Variables.EpidemicTargets = 3 + (IsPlayerSpell(ids.ImprovedDeathCoil) and 1 or 0) + ( (IsPlayerSpell(ids.FrenziedBloodthirstTalent) and GetPlayerStacks(ids.EssenceOfTheBloodQueen) > 5) and 1 or 0 ) + ( (IsPlayerSpell(ids.HungeringThirstTalent) and IsPlayerSpell(ids.HarbingerOfDoomTalent) and PlayerHasBuff(ids.SuddenDoom)) and 1 or 0 )
+    
+    ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
+    local ExtraGlows = {}
+    
+    if OffCooldown(ids.ArmyOfTheDead) and not IsPlayerSpell(ids.RaiseAbomination) and ( ( Variables.StPlanning or Variables.AddsRemain ) and ( IsPlayerSpell(ids.CommanderOfTheDead) and GetRemainingSpellCooldown(ids.DarkTransformation) < 5 or not IsPlayerSpell(ids.CommanderOfTheDead) and NearbyEnemies >= 1 ) or FightRemains(30, NearbyRange) < 35 ) then
+        ExtraGlows.ArmyOfTheDead = true
+    end
+    
+    if OffCooldown(ids.RaiseAbomination) and ( ( Variables.StPlanning or Variables.AddsRemain ) or FightRemains(25, NearbyRange) < 30 ) then
+        ExtraGlows.ArmyOfTheDead = true
+    end
+    
+    if OffCooldown(ids.SummonGargoyle) and ( ( Variables.StPlanning or Variables.AddsRemain ) and ( PlayerHasBuff(ids.CommanderOfTheDeadBuff) or not IsPlayerSpell(ids.CommanderOfTheDead) and NearbyEnemies >= 1 ) or FightRemains(60, NearbyRange) < 25 ) then
+        ExtraGlows.SummonGargoyle = true
+    end
+    
+    -- Kichi --
+    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+    
+    ---- Normal GCDs -------------------------------------------------------------------------------------------
+    
+    -- AOE
+    local Aoe = function()
+        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 and PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.BurstingSores) and GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower ) then
+            KTrig("Epidemic") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming or PlayerHasBuff(ids.FesteringScythe) ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 2 ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 and GetRemainingSpellCooldown(ids.Apocalypse) > WeakAuras.gcdDuration() or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike and TargetHasDebuff(ids.VirulentPlague) ) then
+            KTrig("Scourge Strike") return true end
+    end
+    
+    -- AoE Burst
+    local AoeBurst = function()
+        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike and NearbyEnemies < Variables.EpidemicTargets and ( not IsPlayerSpell(ids.BurstingSores) or IsPlayerSpell(ids.BurstingSores) and TargetsWithFesteringWounds < NearbyEnemies and TargetsWithFesteringWounds < NearbyEnemies * 0.4 and PlayerHasBuff(ids.SuddenDoom) or PlayerHasBuff(ids.SuddenDoom) and ( IsPlayerSpell(ids.DoomedBidding) and IsPlayerSpell(ids.MenacingMagusTalent) or IsPlayerSpell(ids.RottenTouch) or GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() ) ) ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.Epidemic) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike and ( not IsPlayerSpell(ids.BurstingSores) or IsPlayerSpell(ids.BurstingSores) and TargetsWithFesteringWounds < NearbyEnemies and TargetsWithFesteringWounds < NearbyEnemies * 0.4 and PlayerHasBuff(ids.SuddenDoom) or PlayerHasBuff(ids.SuddenDoom) and ( PlayerHasBuff(ids.AFeastOfSouls) or GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() or GetTargetStacks(ids.DeathRot) < 10 ) ) ) then
+            KTrig("Epidemic") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) >= 1 or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( NearbyEnemies < Variables.EpidemicTargets ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.Epidemic) then
+            KTrig("Epidemic") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) <= 2 ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) then
+            KTrig("Scourge Strike") return true end
+    end
+    
+    -- AoE Setup
+    local AoeSetup = function()
+        if OffCooldown(ids.FesteringStrike) and ( PlayerHasBuff(ids.FesteringScythe)) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( not IsPlayerSpell(ids.BurstingSores) and not IsPlayerSpell(ids.VileContagion) or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds >= 8 or not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.Defile) ) ) then
+            KTrig("Death and Decay") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow) ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( not IsPlayerSpell(ids.VileContagion) ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.VileContagion) < 5 or TargetsWithFesteringWounds == NearbyEnemies and GetTargetStacks(ids.FesteringWound) <= 4 ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and PlayerHasBuff(ids.SuddenDoom) and NearbyEnemies < Variables.EpidemicTargets ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower and PlayerHasBuff(ids.SuddenDoom) ) then
+            KTrig("Epidemic") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < WeakAuras.gcdDuration() and GetTargetStacks(ids.FesteringWound) == 0 or TargetsWithFesteringWounds < NearbyEnemies ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower ) then
+            KTrig("Epidemic") return true end
+    end
+    
+    -- Non-San'layn Cooldowns
+    local Cds = function()
+        if OffCooldown(ids.DarkTransformation) and ( Variables.StPlanning and ( GetRemainingSpellCooldown(ids.Apocalypse) < 8 or not IsPlayerSpell(ids.Apocalypse) or NearbyEnemies >= 1 ) or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Dark Transformation") return true end
+        
+        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( GetRemainingSpellCooldown(ids.Apocalypse) < WeakAuras.gcdDuration() * 2 or not IsPlayerSpell(ids.Apocalypse) or NearbyEnemies >= 2 and PlayerHasBuff(ids.DarkTransformation) ) or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Unholy Assault") return true end
+        
+        if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Apocalypse") return true end
+        
+        if OffCooldown(ids.Outbreak) and ( TargetTimeToXPct(0, 60) > GetRemainingDebuffDuration("target", ids.VirulentPlague) and floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and ( IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Superstrain) and ( IsAuraRefreshable(ids.FrostFever) or IsAuraRefreshable(ids.BloodPlague) ) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.Plaguebringer)) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) * 3 ) ) then
+            KTrig("Outbreak") return true end
+        
+        if OffCooldown(ids.AbominationLimb) and ( Variables.StPlanning and not PlayerHasBuff(ids.SuddenDoom) and ( PlayerHasBuff(ids.Festermight) and GetPlayerStacks(ids.Festermight) > 8 or not IsPlayerSpell(ids.Festermight) ) and ( ApocalypseRemaining < 5 or not IsPlayerSpell(ids.Apocalypse) ) and GetTargetStacks(ids.FesteringWound) <= 2 or FightRemains(60, NearbyRange) < 12 ) then
+            KTrig("Abomination Limb") return true end
+        
+    end
+    
+    -- Non-San'layn AoE Cooldowns
+    local CdsAoe = function()
+        if OffCooldown(ids.VileContagion) and ( GetTargetStacks(ids.FesteringWound) >= 4 and ( GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 or PlayerHasBuff(ids.DeathAndDecayBuff) and GetTargetStacks(ids.FesteringWound) >= 4 ) or Variables.AddsRemain and GetTargetStacks(ids.FesteringWound) == 6 ) then
+            KTrig("Vile Contagion") return true end
+        
+        if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 3 or not IsPlayerSpell(ids.VileContagion) ) ) then
+            KTrig("Unholy Assault") return true end
+        
+        if OffCooldown(ids.DarkTransformation) and ( Variables.AddsRemain and ( GetRemainingSpellCooldown(ids.VileContagion) > 5 or not IsPlayerSpell(ids.VileContagion) or PlayerHasBuff(ids.DeathAndDecayBuff) or GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 ) ) then
+            KTrig("Dark Transformation") return true end
+        
+        if OffCooldown(ids.Outbreak) and ( floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and IsAuraRefreshable(ids.VirulentPlague) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
+            KTrig("Outbreak") return true end
+        
+        if OffCooldown(ids.Apocalypse) and ( Variables.AddsRemain and CurrentRunes <= 3 ) then
+            KTrig("Apocalypse") return true end
+        
+        if OffCooldown(ids.AbominationLimb) and ( Variables.AddsRemain ) then
+            KTrig("Abomination Limb") return true end
+        
+    end
+    
+    -- San'layn AoE Cooldowns
+    local CdsAoeSan = function()
+        if OffCooldown(ids.DarkTransformation) and ( Variables.AddsRemain and PlayerHasBuff(ids.DeathAndDecayBuff) ) then
+            KTrig("Dark Transformation") return true end
+        
+        if OffCooldown(ids.VileContagion) and ( GetTargetStacks(ids.FesteringWound) >= 4  and ( GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 or PlayerHasBuff(ids.DeathAndDecayBuff) and GetTargetStacks(ids.FesteringWound) >= 4 ) or Variables.AddsRemain and GetTargetStacks(ids.FesteringWound) == 6 ) then
+            KTrig("Vile Contagion") return true end
+        
+        if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 6 or not IsPlayerSpell(ids.VileContagion) ) ) then
+            KTrig("Unholy Assault") return true end
+        
+        if OffCooldown(ids.Outbreak) and ( ( floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Morbidity) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and IsPlayerSpell(ids.Superstrain) and IsAuraRefreshable(ids.FrostFever) and IsAuraRefreshable(ids.BloodPlague) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
+            KTrig("Outbreak") return true end
+        
+        if OffCooldown(ids.Apocalypse) and ( Variables.AddsRemain and CurrentRunes <= 3 ) then
+            KTrig("Apocalypse") return true end
+        
+        if OffCooldown(ids.AbominationLimb) and ( Variables.AddsRemain ) then
+            KTrig("Abomination Limb") return true end
+    end
+    
+    -- San'layn Cooldowns
+    local CdsSan = function()
+        if OffCooldown(ids.DarkTransformation) and ( NearbyEnemies >= 1 and Variables.StPlanning and ( IsPlayerSpell(ids.Apocalypse) and (ApocalypseRemaining > 0) or not IsPlayerSpell(ids.Apocalypse) ) or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Dark Transformation") return true end
+        
+        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( PlayerHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("player", ids.DarkTransformation) < 12 ) or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Unholy Assault") return true end
+        
+        if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
+            KTrig("Apocalypse") return true end
+        
+        if OffCooldown(ids.Outbreak) and ( TargetTimeToXPct(0, 60) > GetRemainingDebuffDuration("target", ids.VirulentPlague) and floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and ( IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Morbidity) and PlayerHasBuff(ids.InflictionOfSorrow) and IsPlayerSpell(ids.Superstrain) and IsAuraRefreshable(ids.FrostFever) and IsAuraRefreshable(ids.BloodPlague) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
+            KTrig("Outbreak") return true end
+        
+        if OffCooldown(ids.AbominationLimb) and ( NearbyEnemies >= 1 and Variables.StPlanning and not PlayerHasBuff(ids.GiftOfTheSanlayn) and not PlayerHasBuff(ids.SuddenDoom) and PlayerHasBuff(ids.Festermight) and GetTargetStacks(ids.FesteringWound) <= 2 or not PlayerHasBuff(ids.GiftOfTheSanlayn) and FightRemains(60, NearbyRange) < 12 ) then
+            KTrig("Abomination Limb") return true end
+    end
+    
+    -- Cleave
+    local Cleave = function()
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) ) then
+            KTrig("Death and Decay") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) < 4 or PlayerHasBuff(ids.FesteringScythe) ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming and GetTargetStacks(ids.FesteringWound) < 4 ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( Variables.PopWounds ) then
+            KTrig("Scourge Strike") return true end
+        
+    end
+    
+    -- San'layn Fishing
+    local SanFishing = function()
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike ) then
+            KTrig("Death and Decay") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( PlayerHasBuff(ids.SuddenDoom) and IsPlayerSpell(ids.DoomedBidding) ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and FightRemains(60, NearbyRange) > 5 ) then
+            KTrig("Soul Reaper") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( ( GetTargetStacks(ids.FesteringWound) >= 3 - (AbominationRemaining > 0 and 1 or 0) and GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 3 - (AbominationRemaining > 0 and 1 or 0) ) then
+            KTrig("Festering Strike") return true end
+    end
+    
+    -- Single Target San'layn
+    local SanSt = function()
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.UnholyGround) and GetRemainingSpellCooldown(ids.DarkTransformation) < 5 ) then
+            KTrig("Death and Decay") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( PlayerHasBuff(ids.SuddenDoom) and GetRemainingAuraDuration("player", ids.GiftOfTheSanlayn) and ( IsPlayerSpell(ids.DoomedBidding) or IsPlayerSpell(ids.RottenTouch) ) or CurrentRunes < 3 and not PlayerHasBuff(ids.RunicCorruption) ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike or IsPlayerSpell(ids.GiftOfTheSanlayn) and PlayerHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("player", ids.DarkTransformation) < WeakAuras.gcdDuration() ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and FightRemains(60, NearbyRange) > 5 ) then
+            KTrig("Soul Reaper") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike and GetTargetStacks(ids.FesteringWound) >= 1 ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( ( GetTargetStacks(ids.FesteringWound) == 0 and GetRemainingSpellCooldown(ids.Apocalypse) < Variables.ApocTiming ) or ( IsPlayerSpell(ids.GiftOfTheSanlayn) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) or not IsPlayerSpell(ids.GiftOfTheSanlayn) ) and ( PlayerHasBuff(ids.FesteringScythe) or GetTargetStacks(ids.FesteringWound) <= 1 ) ) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( ( not IsPlayerSpell(ids.Apocalypse) or GetRemainingSpellCooldown(ids.Apocalypse) > Variables.ApocTiming ) and ( GetTargetStacks(ids.FesteringWound) >= 3 - (AbominationRemaining > 0 and 1 or 0) or FindSpellOverrideByID(ids.ScourgeStrike) == ids.VampiricStrike ) ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and GetRemainingDebuffDuration("target", ids.DeathRot) < WeakAuras.gcdDuration() or ( PlayerHasBuff(ids.SuddenDoom) and GetTargetStacks(ids.FesteringWound) >= 1 or CurrentRunes < 2 ) ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( GetTargetStacks(ids.FesteringWound) > 4 ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower ) then
+            KTrig("Death Coil") return true end
+    end
+    
+    -- Single Taget Non-San'layn
+    local St = function()
+        if OffCooldown(ids.SoulReaper) and ( (UnitHealth("target")/UnitHealthMax("target")*100) <= 35 and FightRemains(60, NearbyRange) > 5 ) then
+            KTrig("Soul Reaper") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and (TargetHasDebuff(ids.ChainsOfIceTrollbaneSlow)) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathAndDecay) and ( IsPlayerSpell(ids.UnholyGround) and not PlayerHasBuff(ids.DeathAndDecayBuff) and ( ApocalypseRemaining > 0 or AbominationRemaining > 0 or GargoyleRemaining > 0 ) ) then
+            KTrig("Death and Decay") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and Variables.SpendRp or FightRemains(60, NearbyRange) < 10 ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.FesteringStrike) and ( GetTargetStacks(ids.FesteringWound) < 4 and (not Variables.PopWounds or PlayerHasBuff(ids.FesteringScythe))) then
+            KTrig("Festering Strike") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( Variables.PopWounds ) then
+            KTrig("Scourge Strike") return true end
+        
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower ) then
+            KTrig("Death Coil") return true end
+        
+        if OffCooldown(ids.ScourgeStrike) and ( not Variables.PopWounds and GetTargetStacks(ids.FesteringWound) >= 4 ) then
+            KTrig("Scourge Strike") return true end
+    end
+    
+    if IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies >= 2 then
+        if CdsAoeSan() then return true end end
+    
+    if not IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies >= 2 then
+        if CdsAoe() then return true end end
+    
+    if IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies == 1 then
+        if CdsSan() then return true end end
+    
+    if not IsPlayerSpell(ids.VampiricStrike) and NearbyEnemies == 1 then
+        if Cds() then return true end end
+    
+    if NearbyEnemies == 2 then
+        if Cleave() then return true end end
+    
+    if NearbyEnemies >= 3 and not PlayerHasBuff(ids.DeathAndDecayBuff) and GetRemainingSpellCooldown(ids.DeathAndDecay) < 10 then
+        if AoeSetup() then return true end end
+    
+    if NearbyEnemies >= 3 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecay) and TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) ) then
+        if AoeBurst() then return true end end
+    
+    if NearbyEnemies >= 3 and not PlayerHasBuff(ids.DeathAndDecayBuff) then
+        if Aoe() then return true end end
+    
+    if NearbyEnemies <= 1 and IsPlayerSpell(ids.GiftOfTheSanlayn) and not OffCooldown(ids.DarkTransformation) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and GetRemainingAuraDuration("player", ids.EssenceOfTheBloodQueen) < GetRemainingSpellCooldown(ids.DarkTransformation) + 3 then
+        SanFishing() return true end
+    
+    if NearbyEnemies <= 1 and IsPlayerSpell(ids.VampiricStrike) then
+        if SanSt() then return true end end
+    
+    if NearbyEnemies <= 1 and not IsPlayerSpell(ids.VampiricStrike) then
+        if St() then return true end end
+    
+    -- Kichi --
+    KTrig("Clear")
+    KTrigCD("Clear")
+    
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Trigger2----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
+    if sourceGUID ~= UnitGUID("player") then return false end
+    
+    if spellID == aura_env.ids.ArmyOfTheDead then
+        aura_env.ArmyExpiration = GetTime() + 30
+    elseif spellID == aura_env.ids.SummonGargoyle or spellID == aura_env.ids.DarkArbiter then
+        aura_env.GargoyleExpiration = GetTime() + 25
+    elseif spellID == aura_env.ids.Apocalypse then
+        aura_env.ApocalypseExpiration = GetTime() + 20
+    elseif spellID == aura_env.ids.RaiseAbomination then
+        aura_env.AbominationExpiration = GetTime() + 30
     end
 end
 
--- Main Function for populating keybind table
-function _G.kbTable_refresh(auraName)
-    -- If we haven't enabled Keybind Assistance, do nothing.
-    if _G.UseKeybindAssist == false then return end
+
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Load-----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+---- Spell IDs ------------------------------------------------------------------------------------------------
+---@class idsTable
+aura_env.ids = {
+    -- Abilities
+    RaiseAbomination = 455395,
+    AbominationLimb = 383269,
+    Apocalypse = 275699,
+    ArmyOfTheDead = 42650,
+    DarkArbiter = 207349,
+    DarkTransformation = 63560,
+    DeathAndDecay = 43265,
+    DeathCoil = 47541,
+    Defile = 152280,
+    Epidemic = 207317,
+    FesteringStrike = 85948, 
+    Outbreak = 77575, 
+    RaiseDead = 46584,
+    ScourgeStrike = 55090,
+    SoulReaper = 343294,
+    SummonGargoyle = 49206,
+    UnholyAssault = 207289,
+    VileContagion = 390279,
+    VampiricStrike = 433895,
     
-    -- Checks if master table is created before running
-    if not _G.kbTable_master then return end
+    -- Talents
+    VampiricStrikeTalent = 433901,
+    Morbidity = 377592,
+    DoomedBidding = 455386,
+    CoilOfDevastation = 390270,
+    ImprovedDeathCoil = 377580,
+    GiftOfTheSanlayn = 434152,
+    RottenTouch = 390275,
+    BurstingSores = 207264,
+    EbonFever = 207269,
+    Superstrain = 390283,
+    CommanderOfTheDead = 390259,
+    Plaguebringer = 390175,
+    ImprovedDeathStrike = 374277,
+    UnholyBlight = 460448,
+    UnholyGround = 374265,
+    MenacingMagusTalent = 455135,
+    FrenziedBloodthirstTalent = 434075,
+    HungeringThirstTalent = 444037,
+    HarbingerOfDoomTalent = 276023,
     
-    
-    -- Checks if same WA has been spamming and stops it
-    local spamResult, spamPrompt = spamCheck(auraName)
-    -- Console printout of check results
-    if spamOpt and spamPrompt then print (spamPrompt) end
-    if spamResult then return; end
-    
-    for slotID=1,180 do
-        local actionType, actionID, _ = GetActionInfo(slotID)
-        local noMouse = true        
-        
-        -- NIL check actionID then populate keybind table
-        -- Keybinds beyond #156 haven't been test yet
-        if actionID then
-            local action = slotID
-            local modact = 1+(action-1)%12
-            local bindstring = ""
-            if (action < 25 or action > 72) and (action <145) then
-                bindstring = 'ACTIONBUTTON'..modact
-            elseif action < 73 and action > 60 then
-                bindstring = 'MULTIACTIONBAR1BUTTON'..modact
-            elseif action < 61 and action > 48 then
-                bindstring = 'MULTIACTIONBAR2BUTTON'..modact
-            elseif action < 37 and action > 24 then
-                bindstring = 'MULTIACTIONBAR3BUTTON'..modact
-            elseif action < 49 and action > 36 then
-                bindstring = 'MULTIACTIONBAR4BUTTON'..modact
-            elseif action < 157 and action > 144 then
-                bindstring = 'MULTIACTIONBAR5BUTTON'..modact
-            end
-            local keyBind = GetBindingKey(bindstring)
-            
-            if keyBind then
-                
-                -- Truncates mouse button keybinds
-                local mouseMod, mouseBtn, btnNum = keyBind:match("(.*)(BUTTON)(.*)")
-                if mouseBtn then
-                    noMouse = false
-                    if custMouse then
-                        if mouseMod == 'SHIFT-' then
-                            mouseMod = shiftMouse
-                        elseif mouseMod == 'CTRL-' then
-                            mouseMod = ctrlMouse
-                        elseif mouseMod == 'ALT-'then
-                            mouseMod = altMouse
-                        end
-                        keyBind = mouseMod..btnMouse..btnNum
-                    end
-                end
-                
-                
-                -- Truncates other modifier keys
-                if custMod and noMouse then
-                    local keyMod,_,keyNum = keyBind:match("(.*)(-)(.*)")
-                    if keyMod then
-                        if keyMod == 'SHIFT' then
-                            keyMod = shiftMod
-                        elseif keyMod == 'CTRL' then
-                            keyMod = ctrlMod
-                        elseif keyMod == 'ALT'then
-                            keyMod = altMod
-                        end 
-                        keyBind = keyMod..keyNum
-                    end
-                end
-                
-                -- Custom string replace for uncommon keybinds
-                if crtog1 then
-                    local creplace = keyBind:gsub(creplace1, crwith1)
-                    keyBind = creplace
-                end
-                if crtog2 then
-                    local creplace = keyBind:gsub(creplace2, crwith2)
-                    keyBind = creplace
-                end
-                if crtog3 then
-                    local creplace = keyBind:gsub(creplace3, crwith3)
-                    keyBind = creplace
-                end
-                
-                -- Items are stored with item name as key to bypass inventory requirement
-                if actionType == 'item' then
-                    actionID = GetItemInfo(actionID)
-                end
-                
-                -- Check for nil, changed or empty keybinds before populating
-                if keyBind and actionID and kbTable_master[actionID] ~= keyBind then
-                    kbTable_master[actionID] = keyBind
-                    Updated = true                  
-                end
-            end
-        end
+    -- Buffs/Debuffs
+    AFeastOfSouls = 440861,
+    ChainsOfIceTrollbaneSlow = 444826,
+    VirulentPlague = 191587,
+    FesteringWound = 194310,
+    EssenceOfTheBloodQueen = 433925,
+    GiftOfTheSanlaynBuff = 434153,
+    RottenTouchDebuff = 390276,
+    CommanderOfTheDeadBuff = 390260,
+    InflictionOfSorrow = 460049,
+    DeathAndDecayBuff = 188290,
+    RunicCorruption = 51460,
+    FrostFever = 55095,
+    BloodPlague = 55078,
+    SuddenDoom = 81340,
+    Festermight = 377591,
+    DeathRot = 377540,
+    FesteringScythe = 458128,
+}
+
+aura_env.GetSpellCooldown = function(spellId)
+    local spellCD = C_Spell.GetSpellCooldown(spellId)
+    local spellCharges = C_Spell.GetSpellCharges(spellId)
+    if spellCharges then
+        local rechargeTime = (spellCharges.currentCharges < spellCharges.maxCharges) and (spellCharges.cooldownStartTime + spellCharges.cooldownDuration - GetTime()) or 0
+        return spellCharges.currentCharges, rechargeTime, spellCharges.maxCharges
+    elseif spellCD then
+        local remainingCD = (spellCD.startTime and spellCD.duration) and math.max(spellCD.startTime + spellCD.duration - GetTime(), 0) or 0
+        return 0, remainingCD, 0
+    else
+        return 0, 0, 0
     end
-    -- Clear spamcheck to allow WAs to check for updates
-    if Updated then 
-        SpamAura = ""
-        SpamCount = 0
+end
+
+aura_env.GetSafeSpellIcon = function(spellId)
+    if not spellId or spellId == 0 then
+        return 0  
     end
+    local spellInfo = C_Spell.GetSpellInfo(spellId)
+    return spellInfo and spellInfo.iconID or 0
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Trigger--------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+function(allstates, event, spellID, customData)
+    
+    local ids = aura_env.ids
+    local GetSpellCooldown = aura_env.GetSpellCooldown
+    local GetSafeSpellIcon = aura_env.GetSafeSpellIcon
+    local firstPriority = nil
+    local firstIcon = 0
+    local firstCharges, firstCD, firstMaxCharges = 0, 0, 0
+
+    if spellID == "Festering Strike" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Scourge Strike" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Death Coil" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Epidemic" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Death and Decay" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Soul Reaper" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Dark Transformation" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Unholy Assault" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Apocalypse" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Outbreak" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Abomination Limb" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+    if spellID == "Vile Contagion" then
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+
+    -- if spellID == "Festering Strike" then
+    --     firstPriority = ids.FesteringStrike
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Scourge Strike" then
+    --     firstPriority = ids.ScourgeStrike
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Death Coil" then
+    --     firstPriority = ids.DeathCoil
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Epidemic" then
+    --     firstPriority = ids.Epidemic
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Death and Decay" then
+    --     firstPriority = ids.DeathAndDecay
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Soul Reaper" then
+    --     firstPriority = ids.SoulReaper
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Dark Transformation" then
+    --     firstPriority = ids.DarkTransformation
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Unholy Assault" then
+    --     firstPriority = ids.UnholyAssault
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Apocalypse" then
+    --     firstPriority = ids.Apocalypse
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Outbreak" then
+    --     firstPriority = ids.Outbreak
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Abomination Limb" then
+    --     firstPriority = ids.AbominationLimb
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+    -- if spellID == "Vile Contagion" then
+    --     firstPriority = ids.VileContagion
+    --     firstIcon = GetSafeSpellIcon(firstPriority)
+    --     firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    -- end
+
+    if spellID == "Clear" then
+        firstIcon = 0
+        firstCharges, firstCD, firstMaxCharges = 0, 0, 0
+    end
+    -- 更新 allstates
+    allstates[1] = {
+        show = true,
+        changed = true,
+        icon = firstIcon,
+        spell = firstPriority,
+        cooldown = firstCD,
+        charges = firstCharges,
+        maxCharges = firstMaxCharges
+    }
+    
+    return true
 end
