@@ -1,0 +1,38 @@
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.config
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.manifest
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\bin\Debug\IB_Example_CS.application
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\bin\Debug\IB_Example_CS.exe
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\bin\Debug\IB_Example_CS.pdb
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.csprojResolveAssemblyReference.cache
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Exampls_CS.MainForm.resources
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.Properties.Resources.resources
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.csproj.GenerateResource.Cache
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe.manifest
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.application
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe
+C:\Qt\projects\NKTP_DLL\Examples\IBSampleCS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.pdb
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.config
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.pdb
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.manifest
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.application
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.pdb
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Exampls_CS.MainForm.resources
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.Properties.Resources.resources
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.csproj.GenerateResource.Cache
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe.manifest
+C:\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.application
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.config
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.pdb
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe.manifest
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.application
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.exe
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\bin\Debug\IB_Example_CS.pdb
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.csprojResolveAssemblyReference.cache
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Exampls_CS.MainForm.resources
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.Properties.Resources.resources
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.csproj.GenerateResource.Cache
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.exe.manifest
+V:\Engineering\Groups\System Development\QT\NKTP_SDK\Examples\IB_Example_CS\IB_Example_CS\obj\x86\Debug\IB_Example_CS.application
