@@ -1,0 +1,9 @@
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\bin\Debug\IB_Example_CS_Log.exe.config
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\bin\Debug\IB_Example_CS_Log.exe
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\bin\Debug\IB_Example_CS_Log.pdb
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.csprojResolveAssemblyReference.cache
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.MainForm.resources
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.Properties.Resources.resources
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.csproj.GenerateResource.Cache
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.exe
+C:\Users\Public\Documents\NKT Photonics\SDK\Examples\IB_Example_CS_Log\IB_Example_CS_Log\obj\Debug\IB_Example_CS_Log.pdb
