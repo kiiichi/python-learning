@@ -89,7 +89,9 @@ aura_env.OffCooldown = function(spellID)
     -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    if (not usable) and (not nomana) then return false end
+    -- Kichi --
+    -- Kichi --
+    if (not usable) or nomana then return false end
     
     local Duration = C_Spell.GetSpellCooldown(spellID).duration
     local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
@@ -200,20 +202,6 @@ aura_env.FightRemains = function(Default, NearbyRange)
     return HeroLib.FightRemains(HeroLib.Unit.Player:GetEnemiesInRange(NearbyRange))
 end
 
-aura_env.GetRemainingSpellCooldown = function(spellID)
-    if spellID == nil then
-        local c = a < b -- Throw an error
-    end
-    
-    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
-    if ChargeInfo and C_Spell.GetSpellCharges(spellID).currentCharges >= 1 then return 0 end
-    
-    local Cooldown = C_Spell.GetSpellCooldown(spellID)
-    local Remaining = Cooldown.startTime + Cooldown.duration - GetTime()
-    if (Cooldown.duration == 0 or Cooldown.duration == WeakAuras.gcdDuration()) then Remaining = 0 end
-    return Remaining
-end
-
 aura_env.IsAuraRefreshable = function(SpellID, Unit)
     local Filter = ""
     if Unit == nil then 
@@ -227,6 +215,20 @@ aura_env.IsAuraRefreshable = function(SpellID, Unit)
     local RemainingTime = ExpirationTime - GetTime()
     
     return (RemainingTime / Duration) < 0.3
+end
+
+aura_env.GetRemainingSpellCooldown = function(spellID)
+    if spellID == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    if ChargeInfo and C_Spell.GetSpellCharges(spellID).currentCharges >= 1 then return 0 end
+    
+    local Cooldown = C_Spell.GetSpellCooldown(spellID)
+    local Remaining = Cooldown.startTime + Cooldown.duration - GetTime()
+    if (Cooldown.duration == 0 or Cooldown.duration == WeakAuras.gcdDuration()) then Remaining = 0 end
+    return Remaining
 end
 
 aura_env.HasBloodlust = function()
