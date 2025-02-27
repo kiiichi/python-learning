@@ -1,4 +1,4 @@
-from NKTMethods import NKTP_DLL
+from NKTMethods.NKTP_DLL import *
 from ctypes import *
 
 portData = {}
