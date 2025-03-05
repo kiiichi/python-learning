@@ -15,18 +15,20 @@ class ControlCenterGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Control Center GUI")
-        self.frame = ttk.Frame(self, padding="10")
-        self.frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # 创建主容器
+        self.main_frame = ttk.Frame(self, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         self.init_variables()
-        self.create_widgets()
+        self.create_regions()  # 分区创建控件
         self.bind_shortcuts()
         
         # 定时更新 PID 数据
         self.after(100, self.update_pid_values)
         
     def init_variables(self):
-        # 各设备状态变量
+        # 设备状态变量
         self.pump_rp_state = tk.StringVar(value='pump_rp_state')
         self.local_rp_state = tk.StringVar(value='local_rp_state')
         self.MC_FL_rp_state = tk.StringVar(value='MC_FL_rp_state')
@@ -58,56 +60,79 @@ class ControlCenterGUI(tk.Tk):
         # 自动复位检查变量
         self.check_autolock_var = tk.StringVar(value='Manual Reset')
         
-    def create_widgets(self):
-        # 设备状态显示区
-        ttk.Label(self.frame, textvariable=self.pump_rp_state).grid(column=0, row=0, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.local_rp_state).grid(column=0, row=1, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.MC_FL_rp_state).grid(column=0, row=2, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.MC_SL_rp_state).grid(column=0, row=3, sticky=tk.W)
+    def create_regions(self):
+        """将界面分为多个区域：设备状态、PID 测量、波长参数、快捷键说明"""
+        # 设备状态区
+        self.status_frame = ttk.LabelFrame(self.main_frame, text="设备状态", padding="10")
+        self.status_frame.grid(row=0, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        ttk.Label(self.status_frame, text="Pump:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.status_frame, textvariable=self.pump_rp_state).grid(row=0, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.status_frame, text="Local:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self.status_frame, textvariable=self.local_rp_state).grid(row=0, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.status_frame, text="MC_FL:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(self.status_frame, textvariable=self.MC_FL_rp_state).grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.status_frame, text="MC_SL:").grid(row=1, column=2, sticky=tk.W)
+        ttk.Label(self.status_frame, textvariable=self.MC_SL_rp_state).grid(row=1, column=3, sticky=tk.W, padx=5)
         
-        # PID 测量值显示区
-        ttk.Label(self.frame, text="PID Ival").grid(column=1, row=0, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.p1_pid0_ival).grid(column=1, row=1, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.p1_pid1_ival).grid(column=1, row=2, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.p2_pid0_ival).grid(column=1, row=3, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.p2_pid1_ival).grid(column=1, row=4, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.p3_pid0_ival).grid(column=1, row=5, sticky=tk.W)
-        
-        # 波长及相关参数设置区
-        ttk.Label(self.frame, text="Wavelength (nm)").grid(column=2, row=0, sticky=tk.W)
-        ttk.Entry(self.frame, textvariable=self.pump_wl, width=9, justify="center").grid(column=2, row=1)
-        ttk.Label(self.frame, textvariable=self.band1_wl).grid(column=2, row=2, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.band2_wl).grid(column=2, row=3, sticky=tk.W)
-        ttk.Label(self.frame, textvariable=self.band_num).grid(column=2, row=4, sticky=tk.W)
-        
-        # 衰减设置区
-        ttk.Label(self.frame, text="Attenuation (dB)").grid(column=3, row=0, sticky=tk.W)
-        ttk.Entry(self.frame, textvariable=self.pump_att, width=9, justify="center").grid(column=3, row=1)
-        ttk.Entry(self.frame, textvariable=self.band1_att, width=9, justify="center").grid(column=3, row=2)
-        ttk.Entry(self.frame, textvariable=self.band2_att, width=9, justify="center").grid(column=3, row=3)
-        
-        # 相位设置区
-        ttk.Label(self.frame, text="Phase (degree)").grid(column=4, row=0, sticky=tk.W)
-        ttk.Entry(self.frame, textvariable=self.pump_degree, width=9, justify="center").grid(column=4, row=1)
-        ttk.Entry(self.frame, textvariable=self.band1_degree, width=9, justify="center").grid(column=4, row=2)
-        ttk.Entry(self.frame, textvariable=self.band2_degree, width=9, justify="center").grid(column=4, row=3)
-        
-        # 自动复位检查按钮
-        ttk.Checkbutton(self.frame, text="Auto Reset",
+        # PID 测量值区
+        self.pid_frame = ttk.LabelFrame(self.main_frame, text="PID 测量值", padding="10")
+        self.pid_frame.grid(row=1, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        ttk.Label(self.pid_frame, text="Pump PID:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.pid_frame, textvariable=self.p1_pid0_ival).grid(row=0, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.pid_frame, text="P_ref PID:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self.pid_frame, textvariable=self.p1_pid1_ival).grid(row=0, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.pid_frame, text="Local PID0:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(self.pid_frame, textvariable=self.p2_pid0_ival).grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.pid_frame, text="Local PID1:").grid(row=1, column=2, sticky=tk.W)
+        ttk.Label(self.pid_frame, textvariable=self.p2_pid1_ival).grid(row=1, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.pid_frame, text="MC PID:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(self.pid_frame, textvariable=self.p3_pid0_ival).grid(row=2, column=1, sticky=tk.W, padx=5)
+        # 自动复位复选框放在 PID 区
+        ttk.Checkbutton(self.pid_frame, text="Auto Reset",
                         variable=self.check_autolock_var,
-                        onvalue="Auto Reset", offvalue="Manual Reset").grid(column=0, row=4, sticky=tk.W)
+                        onvalue="Auto Reset", offvalue="Manual Reset").grid(row=2, column=2, sticky=tk.W, padx=5)
         
-        # 快捷键说明信息
-        info_texts = [
-            "------------------------------------------------ SHORT CUT -------------------------------------------------",
-            "default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
-            "Pump&Local rp: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
-            "MC rp: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock",
-            "PSG and WS: ctrl + shift + 1~9 (Toptica as local) | alt + 1~9 (EOcomb as local) = sideband 1-9"
+        # 波长及参数设置区
+        self.wave_frame = ttk.LabelFrame(self.main_frame, text="波长及参数设置", padding="10")
+        self.wave_frame.grid(row=2, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        # 泵浦波长输入
+        ttk.Label(self.wave_frame, text="泵浦波长 (nm):").grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_wl, width=9, justify="center").grid(row=0, column=1, sticky=tk.W, padx=5)
+        # 显示计算得到的中心波长
+        ttk.Label(self.wave_frame, text="Band1 波长:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band1_wl).grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band2 波长:").grid(row=1, column=2, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band2_wl).grid(row=1, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Sideband:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band_num).grid(row=2, column=1, sticky=tk.W, padx=5)
+        # 衰减设置
+        ttk.Label(self.wave_frame, text="泵衰减 (dB):").grid(row=3, column=0, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_att, width=9, justify="center").grid(row=3, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band1 衰减 (dB):").grid(row=3, column=2, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_att, width=9, justify="center").grid(row=3, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band2 衰减 (dB):").grid(row=3, column=4, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_att, width=9, justify="center").grid(row=3, column=5, sticky=tk.W, padx=5)
+        # 相位设置
+        ttk.Label(self.wave_frame, text="泵相位 (°):").grid(row=4, column=0, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_degree, width=9, justify="center").grid(row=4, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band1 相位 (°):").grid(row=4, column=2, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_degree, width=9, justify="center").grid(row=4, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band2 相位 (°):").grid(row=4, column=4, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_degree, width=9, justify="center").grid(row=4, column=5, sticky=tk.W, padx=5)
+        
+        # 快捷键说明区
+        self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
+        self.shortcut_frame.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        shortcut_texts = [
+            "默认 rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
+            "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
+            "MC: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock",
+            "PSG 和 WS: ctrl+shift+1~9 或 alt+1~9 = sideband 1-9",
+            "关闭程序: ctrl+q"
         ]
-        for i, text in enumerate(info_texts, start=6):
-            ttk.Label(self.frame, text=text).grid(column=0, row=i, columnspan=5, sticky=tk.W)
-            
+        for i, text in enumerate(shortcut_texts):
+            ttk.Label(self.shortcut_frame, text=text).grid(row=i, column=0, sticky=tk.W, pady=2)
+        
     def bind_shortcuts(self):
         # 关闭窗口
         self.bind('<Control-q>', lambda e: self.destroy())
@@ -131,7 +156,7 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-KeyPress-,>', lambda e: self.coarse_lock_mc())
         self.bind('<Control-KeyPress-.>', lambda e: self.fine_lock_mc())
         
-        # Sideband 快捷键（Alt 与 Control 修饰键分别对应不同的 PSG 设置）
+        # Sideband 快捷键（Alt 与 Control 修饰键对应不同的 PSG 设置）
         self.bind("<Alt-KeyPress-1>", lambda e: self.set_sideband(1, PSG_freq[0], PSG_power[1]))
         self.bind("<Alt-KeyPress-2>", lambda e: self.set_sideband(2, PSG_freq[0], PSG_power[2]))
         self.bind("<Alt-KeyPress-3>", lambda e: self.set_sideband(3, PSG_freq[0], PSG_power[3]))
