@@ -1,5 +1,5 @@
 import pyvisa as visa
-from parameter_table import HOSTNAME_PSG, HOSTNAME_DLCPRO1, HOSTNAME_DLCPRO2
+from parameter_table import HOSTNAME_PSG, HOSTNAME_DLCPRO1, HOSTNAME_DLCPRO2, HOSTNAME_RIGOLOSC
 from toptica.lasersdk.client import Client, NetworkConnection
 
 def ctrl_toptica1(wl):

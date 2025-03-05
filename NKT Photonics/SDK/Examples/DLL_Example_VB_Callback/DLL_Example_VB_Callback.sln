@@ -1,0 +1,22 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "DLL_Example_VB_Callback", "DLL_Example_VB_Callback\DLL_Example_VB_Callback.vbproj", "{2E2A5B47-850B-4584-B1CA-4CF0021E91E1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E2A5B47-850B-4584-B1CA-4CF0021E91E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E2A5B47-850B-4584-B1CA-4CF0021E91E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E2A5B47-850B-4584-B1CA-4CF0021E91E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E2A5B47-850B-4584-B1CA-4CF0021E91E1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
