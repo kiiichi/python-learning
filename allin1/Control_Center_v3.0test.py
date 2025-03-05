@@ -4,10 +4,10 @@ from tkinter import ttk
 import logging
 
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
-from pyrpl_rpctrl import *
+from laser_nkt_ctrl import *
 from http_instctrl import *
 from scpi_instctrl import *
-from laser_nkt_ctrl import *
+from pyrpl_rpctrl import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,7 +25,7 @@ class ControlCenterGUI(tk.Tk):
         self.bind_shortcuts()
         
         # 定时更新 PID 数据
-        self.after(100, self.update_pid_values)
+        self.after(100, self.update_gui)
         
     def init_variables(self):
         # 设备状态变量
@@ -61,7 +61,10 @@ class ControlCenterGUI(tk.Tk):
         self.check_autolock_var = tk.StringVar(value='Manual Reset')
 
         # 激光器控制变量
-        self.laser_nkt_wl = tk.DoubleVar(value=0)
+        self.laser_nkt_actwl = tk.DoubleVar(value=0)
+        self.laser_nkt_setwl = tk.DoubleVar(value=1549.7420)
+        self.check_emission_var = tk.StringVar(value='Emission OFF')
+        self.laser_nkt_status = tk.StringVar(value='Laser Status')
         
     def create_regions(self):
         """将界面分为多个区域：设备状态、PID 测量、波长参数、快捷键说明"""
@@ -121,17 +124,26 @@ class ControlCenterGUI(tk.Tk):
         # 激光器控制区
         self.laser_frame = ttk.LabelFrame(self.main_frame, text="激光器控制", padding="10")
         self.laser_frame.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        # 波长设置
         ttk.Label(self.laser_frame, text="NKT 实际波长 (nm):").grid(row=0, column=0, sticky=tk.W)
-        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_wl).grid(row=0, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_actwl, width=9).grid(row=0, column=1, sticky=tk.W)
+        ttk.Label(self.laser_frame, text="设定波长:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Entry(self.laser_frame, textvariable=self.laser_nkt_setwl, width=9, justify="center").grid(row=0, column=3, sticky=tk.W, padx=5)
+        # 功率设置
+        ttk.Checkbutton(self.laser_frame, text="Emission",
+                        variable=self.check_emission_var,
+                        onvalue="Emission ON", offvalue="Emission OFF").grid(row=1, column=0, sticky=tk.W, padx=5)
+        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status).grid(row=1, column=1, sticky=tk.W)
 
         # 快捷键说明区
         self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
         self.shortcut_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         shortcut_texts = [
-            "默认 rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
+            "Default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
             "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
             "MC: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock",
-            "PSG 和 WS: ctrl+shift+1~9 或 alt+1~9 = sideband 1-9",
+            "PSG & WS: ctrl+shift+1~9 或 alt+1~9 = sideband 1-9",
+            "NKT: ctrl+enter = set wl, crtl+(shift)+← = down wl, ctrl+(shift)+→ = up wl",
             "关闭程序: ctrl+q"
         ]
         for i, text in enumerate(shortcut_texts):
@@ -180,7 +192,35 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-KeyPress-&>', lambda e: self.set_sideband(7, PSG_freq[7], PSG_power[7]))
         self.bind('<Control-KeyPress-*>', lambda e: self.set_sideband(8, PSG_freq[8], PSG_power[8]))
         self.bind('<Control-KeyPress-(>', lambda e: self.set_sideband(9, PSG_freq[9], PSG_power[9]))
+
+        # NKT 激光器波长设置
+        self.bind('<Control-Return>', lambda e: self.set_laser_nkt_wavelength())
         
+    def update_gui(self):
+        """更新界面显示。"""
+        self.update_laser_status()
+        self.update_laser_wavelength()
+        self.update_pid_values()
+        self.after(100, self.update_gui)
+
+    def update_laser_status(self):
+        """更新 NKT 激光器状态显示。"""
+        try:
+            if self.check_emission_var.get() == 'Emission OFF':
+                self.laser_nkt_status.set(nkt_turn_off())
+            elif self.check_emission_var.get() == 'Emission ON':
+                self.laser_nkt_status.set(nkt_turn_on())
+            self.laser_nkt_status.set(nkt_read_status())
+        except Exception as e:
+            logging.error("Error updating NKT laser status: %s", e)
+
+    def update_laser_wavelength(self):
+        """更新 NKT 激光器波长显示。"""
+        try:
+            self.laser_nkt_actwl.set(nkt_read_wavelength())
+        except Exception as e:
+            logging.error("Error updating NKT laser wavelength: %s", e)
+
     def update_pid_values(self):
         """获取 PID 值并更新界面，同时检查是否需要自动复位。"""
         try:
@@ -207,7 +247,6 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error updating PID values: %s", e)
             
-        self.after(100, self.update_pid_values)
         
     def check_and_reset(self, pid_value, reset_func, channel):
         """当 PID 值超过阈值时进行复位。"""
@@ -217,7 +256,7 @@ class ControlCenterGUI(tk.Tk):
                 logging.info("Reset PID channel %d with value %.2f", channel, pid_value)
             except Exception as e:
                 logging.error("Failed to reset PID channel %d: %s", channel, e)
-                
+
     def ws_toptica_set(self, n):
         """根据 sideband 参数 n 设置波长，并更新界面显示。"""
         try:
@@ -360,13 +399,22 @@ class ControlCenterGUI(tk.Tk):
             logging.error("Error in MC fine lock: %s", e)
             
     def set_sideband(self, sideband, psg_frequency, psg_power):
-        """设置 PSG 与 WS 的 sideband，并更新显示。"""
+        """设置 PSG 与 WS 的 sideband, 并更新显示。"""
         try:
             ctrl_psg(psg_frequency, psg_power)
             self.ws_toptica_set(sideband)
             self.band_num.set(f'Side Band {sideband}')
         except Exception as e:
             logging.error("Error setting sideband %d: %s", sideband, e)
+
+    def set_laser_nkt_wavelength(self):
+        """设置 NKT 激光器波长。"""
+        try:
+            nkt_write_wl(self.laser_nkt_setwl.get())
+        except Exception as e:
+            logging.error("Error setting NKT laser wavelength: %s", e)
+
+
 
 if __name__ == "__main__":
     app = ControlCenterGUI()
