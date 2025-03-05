@@ -3,11 +3,11 @@ import tkinter as tk
 from tkinter import ttk
 import logging
 
-# 假定以下模块中的函数和变量已定义并可用
+from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 from pyrpl_rpctrl import *
 from http_instctrl import *
 from scpi_instctrl import *
-from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
+from laser_nkt_ctrl import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -59,6 +59,9 @@ class ControlCenterGUI(tk.Tk):
         
         # 自动复位检查变量
         self.check_autolock_var = tk.StringVar(value='Manual Reset')
+
+        # 激光器控制变量
+        self.laser_nkt_wl = tk.DoubleVar(value=0)
         
     def create_regions(self):
         """将界面分为多个区域：设备状态、PID 测量、波长参数、快捷键说明"""
@@ -77,9 +80,9 @@ class ControlCenterGUI(tk.Tk):
         # PID 测量值区
         self.pid_frame = ttk.LabelFrame(self.main_frame, text="PID 测量值", padding="10")
         self.pid_frame.grid(row=1, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
-        ttk.Label(self.pid_frame, text="Pump PID:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.pid_frame, text="Pump PID0:").grid(row=0, column=0, sticky=tk.W)
         ttk.Label(self.pid_frame, textvariable=self.p1_pid0_ival).grid(row=0, column=1, sticky=tk.W, padx=5)
-        ttk.Label(self.pid_frame, text="P_ref PID:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self.pid_frame, text="Pump PID1:").grid(row=0, column=2, sticky=tk.W)
         ttk.Label(self.pid_frame, textvariable=self.p1_pid1_ival).grid(row=0, column=3, sticky=tk.W, padx=5)
         ttk.Label(self.pid_frame, text="Local PID0:").grid(row=1, column=0, sticky=tk.W)
         ttk.Label(self.pid_frame, textvariable=self.p2_pid0_ival).grid(row=1, column=1, sticky=tk.W, padx=5)
@@ -92,37 +95,38 @@ class ControlCenterGUI(tk.Tk):
                         variable=self.check_autolock_var,
                         onvalue="Auto Reset", offvalue="Manual Reset").grid(row=2, column=2, sticky=tk.W, padx=5)
         
-        # 波长及参数设置区
-        self.wave_frame = ttk.LabelFrame(self.main_frame, text="波长及参数设置", padding="10")
+        # WaveShaper 设置区
+        self.wave_frame = ttk.LabelFrame(self.main_frame, text="WaveShaper 波长 (nm on OSA) 及参数设置", padding="10")
         self.wave_frame.grid(row=2, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
-        # 泵浦波长输入
-        ttk.Label(self.wave_frame, text="泵浦波长 (nm):").grid(row=0, column=0, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_wl, width=9, justify="center").grid(row=0, column=1, sticky=tk.W, padx=5)
-        # 显示计算得到的中心波长
-        ttk.Label(self.wave_frame, text="Band1 波长:").grid(row=1, column=0, sticky=tk.W)
-        ttk.Label(self.wave_frame, textvariable=self.band1_wl).grid(row=1, column=1, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band2 波长:").grid(row=1, column=2, sticky=tk.W)
-        ttk.Label(self.wave_frame, textvariable=self.band2_wl).grid(row=1, column=3, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Sideband:").grid(row=2, column=0, sticky=tk.W)
-        ttk.Label(self.wave_frame, textvariable=self.band_num).grid(row=2, column=1, sticky=tk.W, padx=5)
-        # 衰减设置
-        ttk.Label(self.wave_frame, text="泵衰减 (dB):").grid(row=3, column=0, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_att, width=9, justify="center").grid(row=3, column=1, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band1 衰减 (dB):").grid(row=3, column=2, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.band1_att, width=9, justify="center").grid(row=3, column=3, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band2 衰减 (dB):").grid(row=3, column=4, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.band2_att, width=9, justify="center").grid(row=3, column=5, sticky=tk.W, padx=5)
-        # 相位设置
-        ttk.Label(self.wave_frame, text="泵相位 (°):").grid(row=4, column=0, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_degree, width=9, justify="center").grid(row=4, column=1, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band1 相位 (°):").grid(row=4, column=2, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.band1_degree, width=9, justify="center").grid(row=4, column=3, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band2 相位 (°):").grid(row=4, column=4, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.band2_degree, width=9, justify="center").grid(row=4, column=5, sticky=tk.W, padx=5)
-        
+        # 标题行
+        ttk.Label(self.wave_frame, text="Sideband Number:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band_num).grid(row=0, column=1, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="WS 衰减 (dB):").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self.wave_frame, text="WS 相位 (°):").grid(row=0, column=3, sticky=tk.W)
+        # 泵浦波长输入, 衰减设置, 相位设置
+        ttk.Label(self.wave_frame, text="Center 波长:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_wl, width=9, justify="center").grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_att, width=9, justify="center").grid(row=1, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_degree, width=9, justify="center").grid(row=1, column=3, sticky=tk.W, padx=5)
+        # 显示计算得到的中心波长, 衰减设置, 相位设置
+        ttk.Label(self.wave_frame, text="Band1 波长:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band1_wl).grid(row=2, column=1, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_att, width=9, justify="center").grid(row=2, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_degree, width=9, justify="center").grid(row=2, column=3, sticky=tk.W, padx=5)
+        ttk.Label(self.wave_frame, text="Band2 波长").grid(row=3, column=0, sticky=tk.W)
+        ttk.Label(self.wave_frame, textvariable=self.band2_wl).grid(row=3, column=1, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_att, width=9, justify="center").grid(row=3, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_degree, width=9, justify="center").grid(row=3, column=3, sticky=tk.W, padx=5)
+
+        # 激光器控制区
+        self.laser_frame = ttk.LabelFrame(self.main_frame, text="激光器控制", padding="10")
+        self.laser_frame.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        ttk.Label(self.laser_frame, text="NKT 实际波长 (nm):").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_wl).grid(row=0, column=1, sticky=tk.W, padx=5)
+
         # 快捷键说明区
         self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
-        self.shortcut_frame.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.shortcut_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         shortcut_texts = [
             "默认 rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
             "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
