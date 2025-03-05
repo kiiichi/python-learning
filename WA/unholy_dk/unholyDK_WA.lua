@@ -398,7 +398,7 @@ function()
     -- Kichi --
     WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
-    WeakAuras.ScanEvents("NG_DEATH_STRIKE_UPDATE", aura_env.CalcDeathStrikeHeal())
+    -- WeakAuras.ScanEvents("NG_DEATH_STRIKE_UPDATE", aura_env.CalcDeathStrikeHeal())
     
     -- Kichi --
     -- Only recommend things when something's targeted
