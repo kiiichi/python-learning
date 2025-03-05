@@ -1252,10 +1252,10 @@ end
 
 
 
-function(event, TargetsWithFesteringWounds, customData)
-    if TargetsWithFesteringWounds then
-        print("TargetsWithFesteringWounds: ", TargetsWithFesteringWounds)
-        return true
-    end
-    return false
-end
+-- function(event, TargetsWithFesteringWounds, customData)
+--     if TargetsWithFesteringWounds then
+--         print("TargetsWithFesteringWounds: ", TargetsWithFesteringWounds)
+--         return true
+--     end
+--     return false
+-- end
