@@ -1,9 +1,3 @@
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Load--------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
 WeakAuras.WatchGCD()
 
 -- Death Strike Prediction
@@ -253,6 +247,10 @@ aura_env.PlayerHasBuff = function(spellID)
     return WA_GetUnitBuff("player", spellID) ~= nil
 end
 
+aura_env.PetHasBuff = function(spellID)
+    return WA_GetUnitBuff("pet", spellID) ~= nil
+end
+
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
@@ -300,11 +298,19 @@ aura_env.CalcDeathStrikeHeal = function()
     return TotalHeal
 end
 
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Trigger1----------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function()
     if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
@@ -325,6 +331,7 @@ function()
     local GetPlayerStacks = aura_env.GetPlayerStacks
     local GetTargetStacks = aura_env.GetTargetStacks
     local PlayerHasBuff = aura_env.PlayerHasBuff
+    local PetHasBuff = aura_env.PetHasBuff
     local TargetHasDebuff = aura_env.TargetHasDebuff
     local HasBloodlust = aura_env.HasBloodlust
     local GetSpellChargesFractional = aura_env.GetSpellChargesFractional
@@ -334,6 +341,7 @@ function()
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
     local NGSend = aura_env.NGSend
+
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -519,6 +527,7 @@ function()
             NGSend("Dark Transformation") return true end
         
         if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( GetRemainingSpellCooldown(ids.Apocalypse) < WeakAuras.gcdDuration() * 2 or not IsPlayerSpell(ids.Apocalypse) or NearbyEnemies >= 2 and PlayerHasBuff(ids.DarkTransformation) ) or FightRemains(60, NearbyRange) < 20 ) then
+            print("Cds Unholy Assault")
             NGSend("Unholy Assault") return true end
         
         if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
@@ -538,6 +547,7 @@ function()
             NGSend("Vile Contagion") return true end
         
         if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 3 or not IsPlayerSpell(ids.VileContagion) ) ) then
+            print("CdsAoe Unholy Assault")
             NGSend("Unholy Assault") return true end
         
         if OffCooldown(ids.DarkTransformation) and ( Variables.AddsRemain and ( GetRemainingSpellCooldown(ids.VileContagion) > 5 or not IsPlayerSpell(ids.VileContagion) or PlayerHasBuff(ids.DeathAndDecayBuff) or GetRemainingSpellCooldown(ids.DeathAndDecay) < 3 ) ) then
@@ -563,6 +573,7 @@ function()
             NGSend("Vile Contagion") return true end
         
         if OffCooldown(ids.UnholyAssault) and ( Variables.AddsRemain and ( GetTargetStacks(ids.FesteringWound) >= 2 and GetRemainingSpellCooldown(ids.VileContagion) < 6 or not IsPlayerSpell(ids.VileContagion) ) ) then
+            print("CdsAoeSan Unholy Assault")
             NGSend("Unholy Assault") return true end
         
         if OffCooldown(ids.Outbreak) and ( ( floor(GetRemainingDebuffDuration("target", ids.VirulentPlague) / 1.5) < 5 and IsAuraRefreshable(ids.VirulentPlague) or IsPlayerSpell(ids.Morbidity) and not PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and IsPlayerSpell(ids.Superstrain) and IsAuraRefreshable(ids.FrostFever) and IsAuraRefreshable(ids.BloodPlague) ) and ( not IsPlayerSpell(ids.UnholyBlight) or IsPlayerSpell(ids.UnholyBlight) and GetRemainingSpellCooldown(ids.DarkTransformation) > 0 ) and ( not IsPlayerSpell(ids.RaiseAbomination) or IsPlayerSpell(ids.RaiseAbomination) and GetRemainingSpellCooldown(ids.RaiseAbomination) > 0 ) ) then
@@ -580,7 +591,8 @@ function()
         if OffCooldown(ids.DarkTransformation) and ( NearbyEnemies >= 1 and Variables.StPlanning and ( IsPlayerSpell(ids.Apocalypse) and (ApocalypseRemaining > 0) or not IsPlayerSpell(ids.Apocalypse) ) or FightRemains(60, NearbyRange) < 20 ) then
             NGSend("Dark Transformation") return true end
         
-        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( PlayerHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("player", ids.DarkTransformation) < 12 ) or FightRemains(60, NearbyRange) < 20 ) then
+        if OffCooldown(ids.UnholyAssault) and ( Variables.StPlanning and ( PetHasBuff(ids.DarkTransformation) and GetRemainingAuraDuration("pet", ids.DarkTransformation) < 12 ) or FightRemains(60, NearbyRange) < 20 ) then
+            print("CdsSan Unholy Assault")
             NGSend("Unholy Assault") return true end
         
         if OffCooldown(ids.Apocalypse) and ( Variables.StPlanning or FightRemains(60, NearbyRange) < 20 ) then
@@ -694,15 +706,19 @@ function()
     end
     
     if IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies >= 2 then
+        print("1")
         if CdsAoeSan() then return true end end
     
     if not IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies >= 2 then
+        print("2")
         if CdsAoe() then return true end end
     
     if IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies == 1 then
+        print("3")
         if CdsSan() then return true end end
     
     if not IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies == 1 then
+        print("4")
         if Cds() then return true end end
     
     if NearbyEnemies == 2 then
@@ -728,3 +744,33 @@ function()
     
     WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", "Clear", nil)
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
