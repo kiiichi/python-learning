@@ -19,11 +19,15 @@ COMMON_UPDATE_INTERVAL = 50         # 最小更新间隔单位 ms
 UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔
 UPDATE_INTERVAL_LASER_WL = 200       # 激光器波长更新间隔
 UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔
+<<<<<<< Updated upstream
 
 UPDATE_INTERVAL_OSC_VAVG = 100      # 示波器 VAVG 更新间隔
 LOCK_VAVG_KP = 0.1
 LOCK_VAVG_KI = 0.1
 LOCK_VAVG_KD = 0.1
+=======
+UPDATE_INTERVAL_OSC_VAVG = 2000      # 示波器 VAVG 更新间隔
+>>>>>>> Stashed changes
 
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
