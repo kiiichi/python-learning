@@ -79,7 +79,7 @@ class ControlCenterGUI(tk.Tk):
         self.check_autolock_var = tk.StringVar(value='Manual Reset')
 
         # 激光器控制变量
-        self.laser_nkt_actwl = tk.DoubleVar(value=0)
+        self.laser_nkt_actwl = tk.StringVar(value='default')
         self.laser_nkt_setwl = tk.DoubleVar(value=1549.7420)
         self.check_emission_var = tk.StringVar(value='Emission OFF')
         self.laser_nkt_status = tk.StringVar(value='Laser Status')
@@ -298,7 +298,7 @@ class ControlCenterGUI(tk.Tk):
     def update_laser_wavelength(self) -> None:
         """更新 NKT 激光器波长显示。"""
         try:
-            self.laser_nkt_actwl.set(nkt_read_wavelength())
+            self.laser_nkt_actwl.set(f"{nkt_read_wavelength():.4f}")
         except Exception as e:
             logging.error("Error updating NKT laser wavelength: %s", e)
 
