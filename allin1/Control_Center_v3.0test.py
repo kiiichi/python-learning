@@ -51,11 +51,11 @@ class ControlCenterGUI(tk.Tk):
         self.MC_SL_rp_state = tk.StringVar(value='MC_SL_rp_state')
         
         # PID 测量值显示变量
-        self.p1_pid0_ival = tk.StringVar(value='Pump pid ival: 0')
-        self.p1_pid1_ival = tk.StringVar(value='P_ref pid ival: 0')
-        self.p2_pid0_ival = tk.StringVar(value='Local pid0 ival: 0')
-        self.p2_pid1_ival = tk.StringVar(value='Local pid1 ival: 0')
-        self.p3_pid0_ival = tk.StringVar(value='MC pid ival: 0')
+        self.p1_pid0_ival = tk.StringVar(value='default')
+        self.p1_pid1_ival = tk.StringVar(value='default')
+        self.p2_pid0_ival = tk.StringVar(value='default')
+        self.p2_pid1_ival = tk.StringVar(value='default')
+        self.p3_pid0_ival = tk.StringVar(value='default')
         
         # 波长及相关参数
         self.pump_wl = tk.DoubleVar(value=1550)
@@ -243,7 +243,7 @@ class ControlCenterGUI(tk.Tk):
         
         # 每 COMMON_UPDATE_INTERVAL 毫秒检查一次
         self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
-        
+
     def update_laser_status(self) -> None:
         """更新 NKT 激光器状态显示，仅在状态变化时调用开/关函数。"""
         try:
@@ -284,11 +284,11 @@ class ControlCenterGUI(tk.Tk):
             p3_val0 = p3_pid0.ival
             
             # 更新显示
-            self.p1_pid0_ival.set(f"Pump: {p1_val0:.2f}")
-            self.p1_pid1_ival.set(f"P_ref: {p1_val1:.2f}")
-            self.p2_pid0_ival.set(f"Local0: {p2_val0:.2f}")
-            self.p2_pid1_ival.set(f"Local1: {p2_val1:.2f}")
-            self.p3_pid0_ival.set(f"MC: {p3_val0:.2f}")
+            self.p1_pid0_ival.set(f"{p1_val0:.2f}")
+            self.p1_pid1_ival.set(f"{p1_val1:.2f}")
+            self.p2_pid0_ival.set(f"{p2_val0:.2f}")
+            self.p2_pid1_ival.set(f"{p2_val1:.2f}")
+            self.p3_pid0_ival.set(f"{p3_val0:.2f}")
             
             # 自动复位判断
             if self.check_autolock_var.get() == 'Auto Reset':
