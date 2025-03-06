@@ -154,6 +154,7 @@ class ControlCenterGUI(tk.Tk):
         ttk.Label(self.laser_frame, text="设定波长:").grid(row=0, column=2, sticky=tk.W)
         ttk.Entry(self.laser_frame, textvariable=self.laser_nkt_setwl, width=9, justify="center")\
              .grid(row=0, column=3, sticky=tk.W, padx=5)
+        self.laser_nkt_setwl.trace_add("write", lambda *args: self.laser_nkt_setwl.set(f"{self.laser_nkt_setwl.get():.4f}"))
         # 功率/Emission 控制
         ttk.Checkbutton(self.laser_frame, text="Emission",
                         variable=self.check_emission_var,
