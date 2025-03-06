@@ -13,10 +13,11 @@ logging.basicConfig(level=logging.INFO)
 
 # 定义常量
 THRESHOLD_AUTO_RESET = 0.6
-COMMON_UPDATE_INTERVAL = 50
-UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔250ms
-UPDATE_INTERVAL_LASER_WL = 100       # 激光器波长更新间隔500ms
-UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔100ms
+COMMON_UPDATE_INTERVAL = 50         # 最小更新间隔单位 ms
+UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔
+UPDATE_INTERVAL_LASER_WL = 200       # 激光器波长更新间隔
+UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔
+UPDATE_INTERVAL_OSC_VAVG = 100      # 示波器 VAVG 更新间隔
 
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
@@ -40,6 +41,7 @@ class ControlCenterGUI(tk.Tk):
         self.last_pid_update = 0
         self.last_laser_status_update = 0
         self.last_laser_wl_update = 0
+        self.last_osc_vavg_update = 0
         # 启动统一的更新函数
         self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
         
@@ -81,6 +83,11 @@ class ControlCenterGUI(tk.Tk):
         self.laser_nkt_setwl = tk.DoubleVar(value=1549.7420)
         self.check_emission_var = tk.StringVar(value='Emission OFF')
         self.laser_nkt_status = tk.StringVar(value='Laser Status')
+
+        # 示波器测量值
+        self.osc_vavg1 = tk.DoubleVar(value=0)
+        self.check_lockvavg_var = tk.StringVar(value='Unlock VAVG')
+        self.setpoint_vavg1 = tk.StringVar(value='Setpoint: default')
         
     def create_regions(self) -> None:
         """将界面分为多个区域：设备状态、PID 测量、波长参数、激光器控制、快捷键说明"""
@@ -162,10 +169,21 @@ class ControlCenterGUI(tk.Tk):
              .grid(row=1, column=0, sticky=tk.W, padx=5)
         ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status)\
              .grid(row=1, column=1, sticky=tk.W)
+        
+        # 示波器控制区
+        self.osc_frame = ttk.LabelFrame(self.main_frame, text="示波器控制", padding="10")
+        self.osc_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        ttk.Label(self.osc_frame, text="示波器 Channel 1 平均电压 (mV):").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.osc_frame, textvariable=self.osc_vavg1, width=9).grid(row=0, column=1, sticky=tk.W)
+        ttk.Checkbutton(self.osc_frame, text="锁定VAVG",
+                        variable=self.check_lockvavg_var,
+                        onvalue="Lock VAVG", offvalue="Unlock VAVG").grid(row=1, column=0, sticky=tk.W, padx=5)
+        ttk.Label(self.osc_frame, textvariable=self.setpoint_vavg1).grid(row=1, column=1, sticky=tk.W)
+
 
         # 快捷键说明区
         self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
-        self.shortcut_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.shortcut_frame.grid(row=5, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         shortcut_texts = [
             "Default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
             "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
@@ -241,9 +259,19 @@ class ControlCenterGUI(tk.Tk):
         if now - self.last_laser_wl_update >= UPDATE_INTERVAL_LASER_WL / 1000.0:
             self.update_laser_wavelength()
             self.last_laser_wl_update = now
+        if now - self.last_osc_vavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
+            self.update_osc_vavg()
+            self.last_osc_vavg_update = now
         
         # 每 COMMON_UPDATE_INTERVAL 毫秒检查一次
         self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
+
+    def update_osc_vavg(self) -> None:
+        """更新示波器 Channel 1 平均电压值。"""
+        try:
+            self.osc_vavg1.set(query_osc_vavg(1))
+        except Exception as e:
+            logging.error("Error updating oscilloscope vavg: %s", e)
 
     def update_laser_status(self) -> None:
         """更新 NKT 激光器状态显示，仅在状态变化时调用开/关函数。"""

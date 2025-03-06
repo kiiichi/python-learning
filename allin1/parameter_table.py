@@ -17,7 +17,7 @@ HOSTNAME_RP2 = '_FAKE_' # locallocker
 HOSTNAME_RP3 = '_FAKE_' # MClocker fast loop
 HOSTNAME_RP4 = '_FAKE_' # MClocker slow loop
 
-HOSTNAME_PSG = '192.168.1.8'
+HOSTNAME_PSG = 'TCPIP0::192.168.1.8::inst0::INSTR'
 HOSTNAME_WS  = '192.168.1.38'
 
 HOSTNAME_DLCPRO1 = '192.168.1.28'
