@@ -1,4 +1,4 @@
-from time import sleep
+import time
 import tkinter as tk
 from tkinter import ttk
 import logging
@@ -12,7 +12,11 @@ from pyrpl_rpctrl import *
 logging.basicConfig(level=logging.INFO)
 
 # 定义常量
-AUTO_RESET_THRESHOLD = 0.6
+THRESHOLD_AUTO_RESET = 0.6
+COMMON_UPDATE_INTERVAL = 50
+UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔250ms
+UPDATE_INTERVAL_LASER_WL = 100       # 激光器波长更新间隔500ms
+UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔100ms
 
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
@@ -32,8 +36,12 @@ class ControlCenterGUI(tk.Tk):
         self.create_regions()  # 分区创建控件
         self.bind_shortcuts()
         
-        # 定时更新 GUI（包括 PID、激光器状态、波长等）
-        self.after(100, self.update_gui)
+        # 初始化各个部分上次更新的时间
+        self.last_pid_update = 0
+        self.last_laser_status_update = 0
+        self.last_laser_wl_update = 0
+        # 启动统一的更新函数
+        self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
         
     def init_variables(self) -> None:
         # 设备状态变量
@@ -43,11 +51,11 @@ class ControlCenterGUI(tk.Tk):
         self.MC_SL_rp_state = tk.StringVar(value='MC_SL_rp_state')
         
         # PID 测量值显示变量
-        self.p1_pid0_ival = tk.StringVar(value='default')
-        self.p1_pid1_ival = tk.StringVar(value='default')
-        self.p2_pid0_ival = tk.StringVar(value='default')
-        self.p2_pid1_ival = tk.StringVar(value='default')
-        self.p3_pid0_ival = tk.StringVar(value='default')
+        self.p1_pid0_ival = tk.StringVar(value='Pump pid ival: 0')
+        self.p1_pid1_ival = tk.StringVar(value='P_ref pid ival: 0')
+        self.p2_pid0_ival = tk.StringVar(value='Local pid0 ival: 0')
+        self.p2_pid1_ival = tk.StringVar(value='Local pid1 ival: 0')
+        self.p3_pid0_ival = tk.StringVar(value='MC pid ival: 0')
         
         # 波长及相关参数
         self.pump_wl = tk.DoubleVar(value=1550)
@@ -106,8 +114,8 @@ class ControlCenterGUI(tk.Tk):
                         variable=self.check_autolock_var,
                         onvalue="Auto Reset", offvalue="Manual Reset").grid(row=2, column=2, sticky=tk.W, padx=5)
         
-        # WaveShaper 参数设置区
-        self.wave_frame = ttk.LabelFrame(self.main_frame, text="WaveShaper 波长及参数设置", padding="10")
+        # WaveShaper 设置区
+        self.wave_frame = ttk.LabelFrame(self.main_frame, text="WaveShaper 波长 (nm on OSA) 及参数设置", padding="10")
         self.wave_frame.grid(row=2, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         # 标题行与 Sideband 信息
         ttk.Label(self.wave_frame, text="Sideband Number:").grid(row=0, column=0, sticky=tk.W)
@@ -221,24 +229,42 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-Shift-Right>', lambda e: self.move_laser_nkt_setwl(0.001))
         
     def update_gui(self) -> None:
-        """更新界面显示，包括激光器状态、波长及 PID 数值。"""
-        self.update_laser_status()
-        self.update_laser_wavelength()
-        self.update_pid_values()
-        self.after(100, self.update_gui)
-
+        """统一更新界面，依据各部分的不同更新时间间隔执行各自更新操作。"""
+        now = time.time()
+        if now - self.last_pid_update >= UPDATE_INTERVAL_AUTO_RESET / 1000.0:
+            self.update_pid_values()
+            self.last_pid_update = now
+        if now - self.last_laser_status_update >= UPDATE_INTERVAL_LASER_STATUS / 1000.0:
+            self.update_laser_status()
+            self.last_laser_status_update = now
+        if now - self.last_laser_wl_update >= UPDATE_INTERVAL_LASER_WL / 1000.0:
+            self.update_laser_wavelength()
+            self.last_laser_wl_update = now
+        
+        # 每 COMMON_UPDATE_INTERVAL 毫秒检查一次
+        self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
+        
     def update_laser_status(self) -> None:
-        """更新 NKT 激光器状态显示。"""
+        """更新 NKT 激光器状态显示，仅在状态变化时调用开/关函数。"""
         try:
-            # 根据复选框状态执行开/关操作
-            if self.check_emission_var.get() == 'Emission ON':
-                nkt_turn_on()
-            else:
-                nkt_turn_off()
-            # 读取最新状态信息
+            current_emission = self.check_emission_var.get()
+            # 如果不存在 _last_emission 属性，则初始化它
+            if not hasattr(self, '_last_emission'):
+                self._last_emission = None
+
+            # 只有当状态发生变化时才调用相应的函数
+            if current_emission != self._last_emission:
+                if current_emission == 'Emission ON':
+                    nkt_turn_on()
+                else:
+                    nkt_turn_off()
+                self._last_emission = current_emission
+
+            # 始终更新状态显示
             self.laser_nkt_status.set(nkt_read_status())
         except Exception as e:
             logging.error("Error updating NKT laser status: %s", e)
+
 
     def update_laser_wavelength(self) -> None:
         """更新 NKT 激光器波长显示。"""
@@ -258,11 +284,11 @@ class ControlCenterGUI(tk.Tk):
             p3_val0 = p3_pid0.ival
             
             # 更新显示
-            self.p1_pid0_ival.set(f"{p1_val0:.2f}")
-            self.p1_pid1_ival.set(f"{p1_val1:.2f}")
-            self.p2_pid0_ival.set(f"{p2_val0:.2f}")
-            self.p2_pid1_ival.set(f"{p2_val1:.2f}")
-            self.p3_pid0_ival.set(f"{p3_val0:.2f}")
+            self.p1_pid0_ival.set(f"Pump: {p1_val0:.2f}")
+            self.p1_pid1_ival.set(f"P_ref: {p1_val1:.2f}")
+            self.p2_pid0_ival.set(f"Local0: {p2_val0:.2f}")
+            self.p2_pid1_ival.set(f"Local1: {p2_val1:.2f}")
+            self.p3_pid0_ival.set(f"MC: {p3_val0:.2f}")
             
             # 自动复位判断
             if self.check_autolock_var.get() == 'Auto Reset':
@@ -275,7 +301,7 @@ class ControlCenterGUI(tk.Tk):
             
     def check_and_reset(self, pid_value: float, reset_func, channel: int) -> None:
         """当 PID 值超过设定阈值时进行复位。"""
-        if abs(pid_value) > AUTO_RESET_THRESHOLD:
+        if abs(pid_value) > THRESHOLD_AUTO_RESET:
             try:
                 reset_func(channel)
                 logging.info("Reset PID channel %d with value %.2f", channel, pid_value)
