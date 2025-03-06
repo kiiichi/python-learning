@@ -11,23 +11,31 @@ from pyrpl_rpctrl import *
 
 logging.basicConfig(level=logging.INFO)
 
+# 定义常量
+AUTO_RESET_THRESHOLD = 0.6
+
 class ControlCenterGUI(tk.Tk):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.title("Control Center GUI")
         
+        # 设置窗口自适应布局
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        
         # 创建主容器
         self.main_frame = ttk.Frame(self, padding="10")
-        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.main_frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
+        self.main_frame.columnconfigure(0, weight=1)
         
         self.init_variables()
         self.create_regions()  # 分区创建控件
         self.bind_shortcuts()
         
-        # 定时更新 PID 数据
+        # 定时更新 GUI（包括 PID、激光器状态、波长等）
         self.after(100, self.update_gui)
         
-    def init_variables(self):
+    def init_variables(self) -> None:
         # 设备状态变量
         self.pump_rp_state = tk.StringVar(value='pump_rp_state')
         self.local_rp_state = tk.StringVar(value='local_rp_state')
@@ -66,8 +74,8 @@ class ControlCenterGUI(tk.Tk):
         self.check_emission_var = tk.StringVar(value='Emission OFF')
         self.laser_nkt_status = tk.StringVar(value='Laser Status')
         
-    def create_regions(self):
-        """将界面分为多个区域：设备状态、PID 测量、波长参数、快捷键说明"""
+    def create_regions(self) -> None:
+        """将界面分为多个区域：设备状态、PID 测量、波长参数、激光器控制、快捷键说明"""
         # 设备状态区
         self.status_frame = ttk.LabelFrame(self.main_frame, text="设备状态", padding="10")
         self.status_frame.grid(row=0, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
@@ -98,42 +106,53 @@ class ControlCenterGUI(tk.Tk):
                         variable=self.check_autolock_var,
                         onvalue="Auto Reset", offvalue="Manual Reset").grid(row=2, column=2, sticky=tk.W, padx=5)
         
-        # WaveShaper 设置区
-        self.wave_frame = ttk.LabelFrame(self.main_frame, text="WaveShaper 波长 (nm on OSA) 及参数设置", padding="10")
+        # WaveShaper 参数设置区
+        self.wave_frame = ttk.LabelFrame(self.main_frame, text="WaveShaper 波长及参数设置", padding="10")
         self.wave_frame.grid(row=2, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
-        # 标题行
+        # 标题行与 Sideband 信息
         ttk.Label(self.wave_frame, text="Sideband Number:").grid(row=0, column=0, sticky=tk.W)
         ttk.Label(self.wave_frame, textvariable=self.band_num).grid(row=0, column=1, sticky=tk.W, padx=5)
         ttk.Label(self.wave_frame, text="WS 衰减 (dB):").grid(row=0, column=2, sticky=tk.W)
         ttk.Label(self.wave_frame, text="WS 相位 (°):").grid(row=0, column=3, sticky=tk.W)
-        # 泵浦波长输入, 衰减设置, 相位设置
+        # 泵浦波长、衰减、相位设置
         ttk.Label(self.wave_frame, text="Center 波长:").grid(row=1, column=0, sticky=tk.W)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_wl, width=9, justify="center").grid(row=1, column=1, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_att, width=9, justify="center").grid(row=1, column=2, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.pump_degree, width=9, justify="center").grid(row=1, column=3, sticky=tk.W, padx=5)
-        # 显示计算得到的中心波长, 衰减设置, 相位设置
+        ttk.Entry(self.wave_frame, textvariable=self.pump_wl, width=9, justify="center")\
+             .grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_att, width=9, justify="center")\
+             .grid(row=1, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.pump_degree, width=9, justify="center")\
+             .grid(row=1, column=3, sticky=tk.W, padx=5)
+        # Band1 设置
         ttk.Label(self.wave_frame, text="Band1 波长:").grid(row=2, column=0, sticky=tk.W)
         ttk.Label(self.wave_frame, textvariable=self.band1_wl).grid(row=2, column=1, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.band1_att, width=9, justify="center").grid(row=2, column=2, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.band1_degree, width=9, justify="center").grid(row=2, column=3, sticky=tk.W, padx=5)
-        ttk.Label(self.wave_frame, text="Band2 波长").grid(row=3, column=0, sticky=tk.W)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_att, width=9, justify="center")\
+             .grid(row=2, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band1_degree, width=9, justify="center")\
+             .grid(row=2, column=3, sticky=tk.W, padx=5)
+        # Band2 设置
+        ttk.Label(self.wave_frame, text="Band2 波长:").grid(row=3, column=0, sticky=tk.W)
         ttk.Label(self.wave_frame, textvariable=self.band2_wl).grid(row=3, column=1, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.band2_att, width=9, justify="center").grid(row=3, column=2, sticky=tk.W, padx=5)
-        ttk.Entry(self.wave_frame, textvariable=self.band2_degree, width=9, justify="center").grid(row=3, column=3, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_att, width=9, justify="center")\
+             .grid(row=3, column=2, sticky=tk.W, padx=5)
+        ttk.Entry(self.wave_frame, textvariable=self.band2_degree, width=9, justify="center")\
+             .grid(row=3, column=3, sticky=tk.W, padx=5)
 
         # 激光器控制区
         self.laser_frame = ttk.LabelFrame(self.main_frame, text="激光器控制", padding="10")
         self.laser_frame.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
-        # 波长设置
         ttk.Label(self.laser_frame, text="NKT 实际波长 (nm):").grid(row=0, column=0, sticky=tk.W)
-        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_actwl, width=9).grid(row=0, column=1, sticky=tk.W)
+        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_actwl, width=9)\
+             .grid(row=0, column=1, sticky=tk.W)
         ttk.Label(self.laser_frame, text="设定波长:").grid(row=0, column=2, sticky=tk.W)
-        ttk.Entry(self.laser_frame, textvariable=self.laser_nkt_setwl, width=9, justify="center").grid(row=0, column=3, sticky=tk.W, padx=5)
-        # 功率设置
+        ttk.Entry(self.laser_frame, textvariable=self.laser_nkt_setwl, width=9, justify="center")\
+             .grid(row=0, column=3, sticky=tk.W, padx=5)
+        # 功率/Emission 控制
         ttk.Checkbutton(self.laser_frame, text="Emission",
                         variable=self.check_emission_var,
-                        onvalue="Emission ON", offvalue="Emission OFF").grid(row=1, column=0, sticky=tk.W, padx=5)
-        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status).grid(row=1, column=1, sticky=tk.W)
+                        onvalue="Emission ON", offvalue="Emission OFF")\
+             .grid(row=1, column=0, sticky=tk.W, padx=5)
+        ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status)\
+             .grid(row=1, column=1, sticky=tk.W)
 
         # 快捷键说明区
         self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
@@ -143,13 +162,14 @@ class ControlCenterGUI(tk.Tk):
             "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
             "MC: ctrl+n = ramp, ctrl+m = reset, ctrl+, = coarselock, ctrl+. = finelock",
             "PSG & WS: ctrl+shift+1~9 或 alt+1~9 = sideband 1-9",
-            "NKT: ctrl+enter = set wl, crtl+(shift)+← = down wl, ctrl+(shift)+→ = up wl",
+            "NKT: ctrl+enter = set wl, ctrl+(shift)+← = down wl, ctrl+(shift)+→ = up wl",
             "关闭程序: ctrl+q"
         ]
         for i, text in enumerate(shortcut_texts):
-            ttk.Label(self.shortcut_frame, text=text).grid(row=i, column=0, sticky=tk.W, pady=2)
+            ttk.Label(self.shortcut_frame, text=text)\
+                 .grid(row=i, column=0, sticky=tk.W, pady=2)
         
-    def bind_shortcuts(self):
+    def bind_shortcuts(self) -> None:
         # 关闭窗口
         self.bind('<Control-q>', lambda e: self.destroy())
         
@@ -193,39 +213,41 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-KeyPress-*>', lambda e: self.set_sideband(8, PSG_freq[8], PSG_power[8]))
         self.bind('<Control-KeyPress-(>', lambda e: self.set_sideband(9, PSG_freq[9], PSG_power[9]))
 
-        # NKT 激光器波长设置
+        # NKT 激光器波长设置及微调
         self.bind('<Control-Return>', lambda e: self.set_laser_nkt_wavelength())
         self.bind('<Control-Left>', lambda e: self.move_laser_nkt_setwl(-0.0001))
         self.bind('<Control-Right>', lambda e: self.move_laser_nkt_setwl(0.0001))
         self.bind('<Control-Shift-Left>', lambda e: self.move_laser_nkt_setwl(-0.001))
         self.bind('<Control-Shift-Right>', lambda e: self.move_laser_nkt_setwl(0.001))
         
-    def update_gui(self):
-        """更新界面显示。"""
+    def update_gui(self) -> None:
+        """更新界面显示，包括激光器状态、波长及 PID 数值。"""
         self.update_laser_status()
         self.update_laser_wavelength()
         self.update_pid_values()
         self.after(100, self.update_gui)
 
-    def update_laser_status(self):
+    def update_laser_status(self) -> None:
         """更新 NKT 激光器状态显示。"""
         try:
-            if self.check_emission_var.get() == 'Emission OFF':
-                self.laser_nkt_status.set(nkt_turn_off())
-            elif self.check_emission_var.get() == 'Emission ON':
-                self.laser_nkt_status.set(nkt_turn_on())
+            # 根据复选框状态执行开/关操作
+            if self.check_emission_var.get() == 'Emission ON':
+                nkt_turn_on()
+            else:
+                nkt_turn_off()
+            # 读取最新状态信息
             self.laser_nkt_status.set(nkt_read_status())
         except Exception as e:
             logging.error("Error updating NKT laser status: %s", e)
 
-    def update_laser_wavelength(self):
+    def update_laser_wavelength(self) -> None:
         """更新 NKT 激光器波长显示。"""
         try:
             self.laser_nkt_actwl.set(nkt_read_wavelength())
         except Exception as e:
             logging.error("Error updating NKT laser wavelength: %s", e)
 
-    def update_pid_values(self):
+    def update_pid_values(self) -> None:
         """获取 PID 值并更新界面，同时检查是否需要自动复位。"""
         try:
             # 读取各 PID 当前的值
@@ -251,17 +273,16 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error updating PID values: %s", e)
             
-        
-    def check_and_reset(self, pid_value, reset_func, channel):
-        """当 PID 值超过阈值时进行复位。"""
-        if abs(pid_value) > 0.6:
+    def check_and_reset(self, pid_value: float, reset_func, channel: int) -> None:
+        """当 PID 值超过设定阈值时进行复位。"""
+        if abs(pid_value) > AUTO_RESET_THRESHOLD:
             try:
                 reset_func(channel)
                 logging.info("Reset PID channel %d with value %.2f", channel, pid_value)
             except Exception as e:
                 logging.error("Failed to reset PID channel %d: %s", channel, e)
 
-    def ws_toptica_set(self, n):
+    def ws_toptica_set(self, n: int) -> None:
         """根据 sideband 参数 n 设置波长，并更新界面显示。"""
         try:
             center_wl_1, center_wl_2 = ws_dualband_setup(
@@ -276,7 +297,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error in ws_toptica_set: %s", e)
             
-    def setup_device(self, device_number):
+    def setup_device(self, device_number: int) -> None:
         """根据 device_number 设置对应设备的默认状态。"""
         try:
             if device_number == 1:
@@ -294,7 +315,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error setting up device %d: %s", device_number, e)
             
-    def setup_all_devices(self):
+    def setup_all_devices(self) -> None:
         """设置所有设备为默认状态。"""
         self.setup_device(1)
         self.setup_device(2)
@@ -305,7 +326,7 @@ class ControlCenterGUI(tk.Tk):
         self.MC_FL_rp_state.set('MC_FL Default')
         self.MC_SL_rp_state.set('MC_SL Default')
         
-    def reset_all_pid(self):
+    def reset_all_pid(self) -> None:
         """复位 Pump 与 Local 的所有 PID 通道。"""
         try:
             p1_pid_reset(0)
@@ -315,7 +336,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error resetting all PID: %s", e)
             
-    def start_ramp_all(self):
+    def start_ramp_all(self) -> None:
         """开始 Pump 与 Local 的 ramping 操作。"""
         try:
             p1_pid_paused(0)
@@ -335,7 +356,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error starting ramp: %s", e)
             
-    def lock_all(self):
+    def lock_all(self) -> None:
         """关闭 ramping 并解锁 Pump 与 Local 的 PID。"""
         try:
             p1_ramp_off(0)
@@ -351,7 +372,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error locking PID: %s", e)
             
-    def miniramp_local(self):
+    def miniramp_local(self) -> None:
         """对 Local PID 进行 miniramp 操作。"""
         try:
             p1_pid_paused(0)
@@ -371,7 +392,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error in miniramp for local: %s", e)
             
-    def start_mc_ramp(self):
+    def start_mc_ramp(self) -> None:
         """开始 MC PID 的 ramping 操作。"""
         try:
             p3_pid_paused(0)
@@ -382,7 +403,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error starting MC ramp: %s", e)
             
-    def coarse_lock_mc(self):
+    def coarse_lock_mc(self) -> None:
         """MC PID 进行 coarse locking。"""
         try:
             p3_ramp_off(0)
@@ -392,7 +413,7 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error in MC coarse lock: %s", e)
             
-    def fine_lock_mc(self):
+    def fine_lock_mc(self) -> None:
         """MC PID 进行 fine locking。"""
         try:
             slow_ramp('off')
@@ -402,8 +423,8 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error in MC fine lock: %s", e)
             
-    def set_sideband(self, sideband, psg_frequency, psg_power):
-        """设置 PSG 与 WS 的 sideband, 并更新显示。"""
+    def set_sideband(self, sideband: int, psg_frequency, psg_power) -> None:
+        """设置 PSG 与 WS 的 sideband，并更新显示。"""
         try:
             ctrl_psg(psg_frequency, psg_power)
             self.ws_toptica_set(sideband)
@@ -411,21 +432,17 @@ class ControlCenterGUI(tk.Tk):
         except Exception as e:
             logging.error("Error setting sideband %d: %s", sideband, e)
 
-    def set_laser_nkt_wavelength(self):
+    def set_laser_nkt_wavelength(self) -> None:
         """设置 NKT 激光器波长。"""
         try:
             nkt_write_wl(self.laser_nkt_setwl.get())
         except Exception as e:
             logging.error("Error setting NKT laser wavelength: %s", e)
 
-    def move_laser_nkt_setwl(self, value=0.001):
-        """NKT 激光器波长移动 0.001 nm。"""
+    def move_laser_nkt_setwl(self, value: float = 0.001) -> None:
+        """调整 NKT 激光器的设定波长，并应用新设置。"""
         self.laser_nkt_setwl.set(self.laser_nkt_setwl.get() + value)
         self.set_laser_nkt_wavelength()
-
-
-    
-
 
 
 if __name__ == "__main__":
