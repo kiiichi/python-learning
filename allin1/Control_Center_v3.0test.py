@@ -19,15 +19,8 @@ COMMON_UPDATE_INTERVAL = 50         # 最小更新间隔单位 ms
 UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔
 UPDATE_INTERVAL_LASER_WL = 200       # 激光器波长更新间隔
 UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔
-<<<<<<< Updated upstream
 
-UPDATE_INTERVAL_OSC_VAVG = 100      # 示波器 VAVG 更新间隔
-LOCK_VAVG_KP = 0.1
-LOCK_VAVG_KI = 0.1
-LOCK_VAVG_KD = 0.1
-=======
-UPDATE_INTERVAL_OSC_VAVG = 2000      # 示波器 VAVG 更新间隔
->>>>>>> Stashed changes
+UPDATE_INTERVAL_OSC_VAVG = 2000     # 示波器 VAVG 更新间隔
 
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
@@ -47,14 +40,12 @@ class ControlCenterGUI(tk.Tk):
         self.create_regions()  # 分区创建控件
         self.bind_shortcuts()
         
-        # 初始化
-        self.last_pid_update = 0
-        self.last_laser_status_update = 0
-        self.last_laser_wl_update = 0
-        self.last_osc_vavg_update = 0
-        self.last_lockvavg_update = 0
-        self.lockvavg_integral = 0
-        self.lockvavg_last_error = 0
+        # # 初始化
+        # self.last_pid_update = 0
+        # self.last_laser_status_update = 0
+        # self.last_laser_wl_update = 0
+        # self.last_osc_vavg_update = 0
+        # self.last_lockvavg_update = 0
 
         # 启动统一的更新函数
         self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
@@ -72,6 +63,7 @@ class ControlCenterGUI(tk.Tk):
         self.p2_pid0_ival = tk.StringVar(value='default')
         self.p2_pid1_ival = tk.StringVar(value='default')
         self.p3_pid0_ival = tk.StringVar(value='default')
+        self.last_pid_update = 0
         
         # 波长及相关参数
         self.pump_wl = tk.DoubleVar(value=1550)
@@ -97,11 +89,20 @@ class ControlCenterGUI(tk.Tk):
         self.laser_nkt_setwl = tk.DoubleVar(value=1549.7420)
         self.check_emission_var = tk.StringVar(value='Emission OFF')
         self.laser_nkt_status = tk.StringVar(value='Laser Status')
+        self.last_laser_status_update = 0
+        self.last_laser_wl_update = 0
 
-        # 示波器测量值
+        # 示波器控制变量
         self.osc_vavg1 = tk.DoubleVar(value=0)
         self.check_lockvavg_var = tk.StringVar(value='Unlock VAVG')
         self.setpoint_vavg1 = tk.DoubleVar(value=0)
+        self.lockvavg_kp = tk.DoubleVar(value=0.1)
+        self.lockvavg_ki = tk.DoubleVar(value=0.1)
+        self.lockvavg_kd = tk.DoubleVar(value=0.1)
+        self.lockvavg_integral = 0
+        self.lockvavg_last_error = 0
+        self.last_osc_vavg_update = 0
+        self.last_lockvavg_update = 0
         
     def create_regions(self) -> None:
         """将界面分为多个区域：设备状态、PID 测量、波长参数、激光器控制、快捷键说明"""
@@ -187,13 +188,22 @@ class ControlCenterGUI(tk.Tk):
         # 示波器控制区
         self.osc_frame = ttk.LabelFrame(self.main_frame, text="示波器控制", padding="10")
         self.osc_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
-        ttk.Label(self.osc_frame, text="示波器 Channel 1 平均电压 (mV):").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.osc_frame, text="CH1 VAVG (mV):").grid(row=0, column=0, sticky=tk.W)
         ttk.Label(self.osc_frame, textvariable=self.osc_vavg1, width=9).grid(row=0, column=1, sticky=tk.W)
-        ttk.Checkbutton(self.osc_frame, text="锁定VAVG",
+        ttk.Checkbutton(self.osc_frame, text="锁定 VAVG",
                         variable=self.check_lockvavg_var,
                         onvalue="Lock VAVG", offvalue="Unlock VAVG").grid(row=1, column=0, sticky=tk.W, padx=5)
-        ttk.Label(self.osc_frame, text="Setpoint:").grid(row=2, column=0, sticky=tk.W)
-        ttk.Label(self.osc_frame, textvariable=self.setpoint_vavg1, width=9).grid(row=2, column=1, sticky=tk.W)
+        ttk.Label(self.osc_frame, text="Setpoint:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self.osc_frame, textvariable=self.setpoint_vavg1, width=9).grid(row=0, column=3, sticky=tk.W)
+        ttk.Label(self.osc_frame, text="Kp").grid(row=1, column=1)
+        ttk.Label(self.osc_frame, text="Ki").grid(row=1, column=2)
+        ttk.Label(self.osc_frame, text="Kd").grid(row=1, column=3)
+        ttk.Entry(self.osc_frame, textvariable=self.lockvavg_kp, width=5, justify="center")\
+             .grid(row=2, column=1, sticky=tk.EW, padx=5)
+        ttk.Entry(self.osc_frame, textvariable=self.lockvavg_ki, width=5, justify="center")\
+             .grid(row=2, column=2, sticky=tk.EW, padx=5)
+        ttk.Entry(self.osc_frame, textvariable=self.lockvavg_kd, width=5, justify="center")\
+             .grid(row=2, column=3, sticky=tk.EW, padx=5)
 
 
         # 快捷键说明区
@@ -277,7 +287,7 @@ class ControlCenterGUI(tk.Tk):
         if now - self.last_osc_vavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
             self.update_osc_vavg()
             self.last_osc_vavg_update = now
-        if now - self.last_lockvavg_update >= COMMON_UPDATE_INTERVAL / 1000.0:
+        if now - self.last_lockvavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
             self.update_pid_vavg()
             self.last_lockvavg_update = now
         
@@ -290,7 +300,7 @@ class ControlCenterGUI(tk.Tk):
             if not hasattr(self, '_last_lockvavg'):
                 self._last_lockvavg = None
             if current_lockvavg != self._last_lockvavg:
-                if current_lockvavg == 'lock VAVG':
+                if current_lockvavg == 'Lock VAVG':
                     self.lockvavg_integral = 0
                     self.lockvavg_last_error = 0
                     self.setpoint_vavg1.set(self.osc_vavg1.get())
@@ -299,7 +309,7 @@ class ControlCenterGUI(tk.Tk):
                 error = self.setpoint_vavg1.get() - self.osc_vavg1.get()
                 self.lockvavg_integral += error * UPDATE_INTERVAL_OSC_VAVG / 1000.0
                 derivative = (error - self.lockvavg_last_error) / (UPDATE_INTERVAL_OSC_VAVG / 1000.0)
-                output = LOCK_VAVG_KP * error + LOCK_VAVG_KI * self.lockvavg_integral + LOCK_VAVG_KD * derivative
+                output = self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative
                 max_output = 0.1
                 output = max(min(output, max_output), -max_output)
                 # self.move_laser_nkt_setwl(output)
