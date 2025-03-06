@@ -195,6 +195,10 @@ class ControlCenterGUI(tk.Tk):
 
         # NKT 激光器波长设置
         self.bind('<Control-Return>', lambda e: self.set_laser_nkt_wavelength())
+        self.bind('<Control-Left>', lambda e: self.move_laser_nkt_setwl(-0.0001))
+        self.bind('<Control-Right>', lambda e: self.move_laser_nkt_setwl(0.0001))
+        self.bind('<Control-Shift-Left>', lambda e: self.move_laser_nkt_setwl(-0.001))
+        self.bind('<Control-Shift-Right>', lambda e: self.move_laser_nkt_setwl(0.001))
         
     def update_gui(self):
         """更新界面显示。"""
@@ -413,6 +417,14 @@ class ControlCenterGUI(tk.Tk):
             nkt_write_wl(self.laser_nkt_setwl.get())
         except Exception as e:
             logging.error("Error setting NKT laser wavelength: %s", e)
+
+    def move_laser_nkt_setwl(self, value=0.001):
+        """NKT 激光器波长移动 0.001 nm。"""
+        self.laser_nkt_setwl.set(self.laser_nkt_setwl.get() + value)
+        self.set_laser_nkt_wavelength()
+
+
+    
 
 
 
