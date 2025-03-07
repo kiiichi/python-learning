@@ -130,10 +130,14 @@ class TextHandler(logging.Handler):
         msg = self.format(record)
         def append():
             self.text_widget.configure(state='normal')
-            self.text_widget.insert(tk.END, msg + '\n')
+            if record.levelno >= logging.ERROR:
+                self.text_widget.insert(tk.END, msg + '\n', 'error')
+            elif record.levelno >= logging.WARNING:
+                self.text_widget.insert(tk.END, msg + '\n', 'warning')
+            else:
+                self.text_widget.insert(tk.END, msg + '\n', 'info')
             self.text_widget.configure(state='disabled')
             self.text_widget.yview(tk.END)
-        # 在UI线程中更新文本
         self.text_widget.after(0, append)
 
 class ControlCenterGUI(tk.Tk):
@@ -370,9 +374,13 @@ class ControlCenterGUI(tk.Tk):
         self.log_frame.grid(row=7, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         self.log_text = tk.Text(self.log_frame, height=8, width=80)
         self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.log_text.configure(state='disabled')
         self.log_scroll = ttk.Scrollbar(self.log_frame, orient="vertical", command=self.log_text.yview)
         self.log_scroll.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.log_text.configure(yscrollcommand=self.log_scroll.set)
+        self.log_text.tag_configure('error', foreground='red')
+        self.log_text.tag_configure('warning', foreground='orange')
+        self.log_text.tag_configure('info', foreground='black')
         
     def bind_shortcuts(self) -> None:
         # 设备默认设置快捷键
