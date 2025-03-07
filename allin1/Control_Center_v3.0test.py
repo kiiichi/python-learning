@@ -345,17 +345,10 @@ class ControlCenterGUI(tk.Tk):
         ttk.Entry(self.osc_frame, textvariable=self.lockvavg_kd, width=5, justify="center")\
              .grid(row=2, column=3, sticky=tk.EW, padx=5)
 
-        # 添加线程状态显示区
-        self.thread_frame = ttk.LabelFrame(self.main_frame, text="多线程状态", padding="10")
-        self.thread_frame.grid(row=0, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
-        self.thread_status = tk.StringVar(value="线程池: 活动")
-        ttk.Label(self.thread_frame, textvariable=self.thread_status).grid(row=0, column=0, sticky=tk.W)
-        self.task_count = tk.StringVar(value="任务数: 0")
-        ttk.Label(self.thread_frame, textvariable=self.task_count).grid(row=0, column=1, sticky=tk.W, padx=10)
 
         # 快捷键说明区
         self.shortcut_frame = ttk.LabelFrame(self.main_frame, text="快捷键说明", padding="10")
-        self.shortcut_frame.grid(row=1, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.shortcut_frame.grid(row=5, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         shortcut_texts = [
             "Default rp: ctrl + ( 1 = pump, 2 = local, 3 = MC_FL, 4 = MC_SL, 0 = ALL)",
             "Pump&Local: ctrl+z = ramp, ctrl+r = reset, ctrl+f = lock, ctrl+c = miniramp",
@@ -368,9 +361,17 @@ class ControlCenterGUI(tk.Tk):
             ttk.Label(self.shortcut_frame, text=text)\
                  .grid(row=i, column=0, sticky=tk.W, pady=2)
         
+        # 添加线程状态显示区
+        self.thread_frame = ttk.LabelFrame(self.main_frame, text="多线程状态", padding="10")
+        self.thread_frame.grid(row=6, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.thread_status = tk.StringVar(value="线程池: 活动")
+        ttk.Label(self.thread_frame, textvariable=self.thread_status).grid(row=0, column=0, sticky=tk.W)
+        self.task_count = tk.StringVar(value="任务数: 0")
+        ttk.Label(self.thread_frame, textvariable=self.task_count).grid(row=0, column=1, sticky=tk.W, padx=10)
+
         # 日志区
         self.log_frame = ttk.LabelFrame(self.main_frame, text="日志", padding="10")
-        self.log_frame.grid(row=2, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.log_frame.grid(row=7, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         self.log_text = tk.Text(self.log_frame, height=8, width=80)
         self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
         self.log_text.configure(state='disabled')
@@ -551,6 +552,7 @@ class ControlCenterGUI(tk.Tk):
     def on_lockvavg_changed(self):
         """VAVG锁定状态变化处理"""
         current_lockvavg = self.check_lockvavg_var.get()
+        
         if current_lockvavg != self._last_lockvavg:
             logging.info(f"VAVG lock status changed to: {current_lockvavg}")
             if current_lockvavg == 'Lock VAVG':
@@ -569,7 +571,6 @@ class ControlCenterGUI(tk.Tk):
                 output = self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative
                 max_output = 0.1
                 output = max(min(output, max_output), -max_output)
-                print(f"VAVG: error={error:.2f}, integral={self.lockvavg_integral:.2f}, derivative={derivative:.2f}, output={output:.2f}")
                 self.move_laser_nkt_setwl(output)
                 self.lockvavg_last_error = error
                 logging.info("Locking VAVG: error=%.2f, integral=%.2f, derivative=%.2f, output=%.2f", 
