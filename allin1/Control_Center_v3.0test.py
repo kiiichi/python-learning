@@ -553,6 +553,7 @@ class ControlCenterGUI(tk.Tk):
         """VAVG锁定状态变化处理"""
         current_lockvavg = self.check_lockvavg_var.get()
         if current_lockvavg != self._last_lockvavg:
+            logging.info(f"VAVG lock status changed to: {current_lockvavg}")
             if current_lockvavg == 'Lock VAVG':
                 self.lockvavg_integral = 0
                 self.lockvavg_last_error = 0
