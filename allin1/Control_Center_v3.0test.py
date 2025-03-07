@@ -2,6 +2,10 @@ import time
 import tkinter as tk
 from tkinter import ttk
 import logging
+import threading
+import queue
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 from Ctrl_LaserNkt import *
@@ -9,7 +13,8 @@ from Ctrl_HttpInstr import *
 from Ctrl_ScpiInstr import *
 from Ctrl_PyrplInstr import *
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
 
 # 定义常量
 THRESHOLD_AUTO_RESET = 0.6
@@ -21,6 +26,99 @@ UPDATE_INTERVAL_LASER_WL = 200       # 激光器波长更新间隔
 UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔
 
 UPDATE_INTERVAL_OSC_VAVG = 2000     # 示波器 VAVG 更新间隔
+
+# 线程池大小
+MAX_WORKERS = 5
+
+class ThreadSafeObject:
+    """线程安全对象的基类，提供基本的锁机制"""
+    def __init__(self):
+        self._lock = threading.RLock()
+    
+    def with_lock(self, func, *args, **kwargs):
+        """使用锁执行函数"""
+        with self._lock:
+            return func(*args, **kwargs)
+
+class DeviceManager(ThreadSafeObject):
+    """设备管理器，处理所有硬件通信，确保线程安全"""
+    def __init__(self, result_queue):
+        super().__init__()
+        self.result_queue = result_queue
+        self.executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+        self.running = True
+        
+    def shutdown(self):
+        """关闭线程池"""
+        self.running = False
+        self.executor.shutdown(wait=False)
+    
+    def async_execute(self, task_id, func, *args, **kwargs):
+        """异步执行任务并将结果放入队列"""
+        if not self.running:
+            return
+            
+        future = self.executor.submit(self._safe_execute, func, *args, **kwargs)
+        future.add_done_callback(
+            lambda f: self.result_queue.put((task_id, f.result())) if not f.exception() else 
+            self.result_queue.put((task_id, None, f.exception()))
+        )
+        return future
+    
+    def _safe_execute(self, func, *args, **kwargs):
+        """安全执行函数，确保异常被捕获"""
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"Error executing {func.__name__}: {e}")
+            raise
+
+    # 特定设备功能封装
+    def get_pid_values(self):
+        """获取所有PID值"""
+        return {
+            'p1_pid0': p1_pid0.ival,
+            'p1_pid1': p1_pid1.ival,
+            'p2_pid0': p2_pid0.ival,
+            'p2_pid1': p2_pid1.ival,
+            'p3_pid0': p3_pid0.ival
+        }
+    
+    def get_laser_wavelength(self):
+        """获取激光器波长"""
+        return LaserNkt.read_wavelength()
+    
+    def get_laser_status(self):
+        """获取激光器状态"""
+        return LaserNkt.read_status()
+    
+    def set_laser_wavelength(self, wavelength):
+        """设置激光器波长"""
+        return LaserNkt.write_wl(wavelength)
+    
+    def get_osc_vavg(self, channel):
+        """获取示波器平均电压"""
+        return ScpiInstr.query_osc_vavg(channel)
+    
+    def set_emission(self, on=True):
+        """设置激光器发射状态"""
+        if on:
+            return LaserNkt.turn_on()
+        else:
+            return LaserNkt.turn_off()
+    
+    def setup_waveshaper(self, pump_wl, fsr_n, bandwidth, attenuation, phase):
+        """设置WaveShaper"""
+        return HttpInstr.ws_dualband_setup(pump_wl, fsr_n, bandwidth, attenuation=attenuation, phase=phase)
+    
+    def setup_psg(self, frequency, power):
+        """设置PSG"""
+        return ScpiInstr.ctrl_psg(frequency, power)
+    
+    def set_toptica(self, wl1, wl2):
+        """设置Toptica"""
+        ScpiInstr.ctrl_toptica1(wl1)
+        ScpiInstr.ctrl_toptica2(wl2)
 
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
@@ -36,19 +134,35 @@ class ControlCenterGUI(tk.Tk):
         self.main_frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
         self.main_frame.columnconfigure(0, weight=1)
         
+        # 创建通信队列和设备管理器
+        self.result_queue = queue.Queue()
+        self.device_manager = DeviceManager(self.result_queue)
+        
+        # 初始化定期任务状态
+        self.update_tasks = {}
+        self.update_tasks_lock = threading.Lock()
+        
         self.init_variables()
         self.create_regions()  # 分区创建控件
         self.bind_shortcuts()
         
-        # # 初始化
-        # self.last_pid_update = 0
-        # self.last_laser_status_update = 0
-        # self.last_laser_wl_update = 0
-        # self.last_osc_vavg_update = 0
-        # self.last_lockvavg_update = 0
-
-        # 启动统一的更新函数
-        self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
+        # 启动队列处理和UI更新
+        self.after(COMMON_UPDATE_INTERVAL, self.process_queue)
+        self.start_periodic_updates()
+        
+        # 窗口关闭时清理资源
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+    def on_closing(self):
+        """窗口关闭时，停止所有线程"""
+        logging.info("Shutting down application...")
+        # 停止所有更新任务
+        with self.update_tasks_lock:
+            for task_id in self.update_tasks:
+                self.update_tasks[task_id] = False
+        # 关闭设备管理器
+        self.device_manager.shutdown()
+        self.destroy()
         
     def init_variables(self) -> None:
         # 设备状态变量
@@ -63,7 +177,6 @@ class ControlCenterGUI(tk.Tk):
         self.p2_pid0_ival = tk.StringVar(value='default')
         self.p2_pid1_ival = tk.StringVar(value='default')
         self.p3_pid0_ival = tk.StringVar(value='default')
-        self.last_pid_update = 0
         
         # 波长及相关参数
         self.pump_wl = tk.DoubleVar(value=1550)
@@ -89,9 +202,7 @@ class ControlCenterGUI(tk.Tk):
         self.laser_nkt_setwl = tk.DoubleVar(value=1549.7420)
         self.check_emission_var = tk.StringVar(value='Emission OFF')
         self.laser_nkt_status = tk.StringVar(value='Laser Status')
-        self.last_laser_status_update = 0
-        self.last_laser_wl_update = 0
-
+        
         # 示波器控制变量
         self.osc_vavg1 = tk.DoubleVar(value=0)
         self.check_lockvavg_var = tk.StringVar(value='Unlock VAVG')
@@ -101,8 +212,10 @@ class ControlCenterGUI(tk.Tk):
         self.lockvavg_kd = tk.DoubleVar(value=0.1)
         self.lockvavg_integral = 0
         self.lockvavg_last_error = 0
-        self.last_osc_vavg_update = 0
-        self.last_lockvavg_update = 0
+        
+        # 添加线程安全的状态跟踪
+        self._last_emission = None
+        self._last_lockvavg = None
         
     def create_regions(self) -> None:
         """将界面分为多个区域：设备状态、PID 测量、波长参数、激光器控制、快捷键说明"""
@@ -180,7 +293,8 @@ class ControlCenterGUI(tk.Tk):
         # 功率/Emission 控制
         ttk.Checkbutton(self.laser_frame, text="Emission",
                         variable=self.check_emission_var,
-                        onvalue="Emission ON", offvalue="Emission OFF")\
+                        onvalue="Emission ON", offvalue="Emission OFF",
+                        command=self.on_emission_changed)\
              .grid(row=1, column=0, sticky=tk.W, padx=5)
         ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status)\
              .grid(row=1, column=1, sticky=tk.W)
@@ -192,7 +306,8 @@ class ControlCenterGUI(tk.Tk):
         ttk.Label(self.osc_frame, textvariable=self.osc_vavg1, width=9).grid(row=0, column=1, sticky=tk.W)
         ttk.Checkbutton(self.osc_frame, text="锁定 VAVG",
                         variable=self.check_lockvavg_var,
-                        onvalue="Lock VAVG", offvalue="Unlock VAVG").grid(row=1, column=0, sticky=tk.W, padx=5)
+                        onvalue="Lock VAVG", offvalue="Unlock VAVG",
+                        command=self.on_lockvavg_changed).grid(row=1, column=0, sticky=tk.W, padx=5)
         ttk.Label(self.osc_frame, text="Setpoint:").grid(row=0, column=2, sticky=tk.W)
         ttk.Label(self.osc_frame, textvariable=self.setpoint_vavg1, width=9).grid(row=0, column=3, sticky=tk.W)
         ttk.Label(self.osc_frame, text="Kp").grid(row=1, column=1)
@@ -221,11 +336,18 @@ class ControlCenterGUI(tk.Tk):
             ttk.Label(self.shortcut_frame, text=text)\
                  .grid(row=i, column=0, sticky=tk.W, pady=2)
         
-    def bind_shortcuts(self) -> None:
-        # 关闭窗口
-        self.bind('<Control-q>', lambda e: self.destroy())
+        # 添加线程状态显示区
+        self.thread_frame = ttk.LabelFrame(self.main_frame, text="多线程状态", padding="10")
+        self.thread_frame.grid(row=6, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.thread_status = tk.StringVar(value="线程池: 活动")
+        ttk.Label(self.thread_frame, textvariable=self.thread_status).grid(row=0, column=0, sticky=tk.W)
+        self.task_count = tk.StringVar(value="任务数: 0")
+        ttk.Label(self.thread_frame, textvariable=self.task_count).grid(row=0, column=1, sticky=tk.W, padx=10)
         
+    def bind_shortcuts(self) -> None:
         # 设备默认设置快捷键
+        self.bind('<Control-KeyPress-q>', lambda e: self.on_closing())
+
         self.bind('<Control-KeyPress-1>', lambda e: self.setup_device(1))
         self.bind('<Control-KeyPress-2>', lambda e: self.setup_device(2))
         self.bind('<Control-KeyPress-3>', lambda e: self.setup_device(3))
@@ -239,7 +361,7 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-KeyPress-c>', lambda e: self.miniramp_local())
         
         # MC PID 操作
-        self.bind('<Control-KeyPress-m>', lambda e: PyrplInstr.p3_pid_reset(0))
+        self.bind('<Control-KeyPress-m>', lambda e: self.async_task('reset_mc_pid', PyrplInstr.p3_pid_reset, 0))
         self.bind('<Control-KeyPress-n>', lambda e: self.start_mc_ramp())
         self.bind('<Control-KeyPress-,>', lambda e: self.coarse_lock_mc())
         self.bind('<Control-KeyPress-.>', lambda e: self.fine_lock_mc())
@@ -272,283 +394,365 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-Shift-Left>', lambda e: self.move_laser_nkt_setwl(-0.001))
         self.bind('<Control-Shift-Right>', lambda e: self.move_laser_nkt_setwl(0.001))
         
-    def update_gui(self) -> None:
-        """统一更新界面，依据各部分的不同更新时间间隔执行各自更新操作。"""
-        now = time.time()
-        if now - self.last_pid_update >= UPDATE_INTERVAL_AUTO_RESET / 1000.0:
-            self.update_pid_values()
-            self.last_pid_update = now
-        if now - self.last_laser_status_update >= UPDATE_INTERVAL_LASER_STATUS / 1000.0:
-            self.update_laser_status()
-            self.last_laser_status_update = now
-        if now - self.last_laser_wl_update >= UPDATE_INTERVAL_LASER_WL / 1000.0:
-            self.update_laser_wavelength()
-            self.last_laser_wl_update = now
-        if now - self.last_osc_vavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
-            self.update_osc_vavg()
-            self.last_osc_vavg_update = now
-        if now - self.last_lockvavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
-            self.update_pid_vavg()
-            self.last_lockvavg_update = now
-        
-        # 每 COMMON_UPDATE_INTERVAL 毫秒检查一次
-        self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
-
-    def update_pid_vavg(self) -> None: 
+    def process_queue(self):
+        """处理任务结果队列"""
         try:
-            current_lockvavg = self.check_lockvavg_var.get()
-            if not hasattr(self, '_last_lockvavg'):
-                self._last_lockvavg = None
-            if current_lockvavg != self._last_lockvavg:
-                if current_lockvavg == 'Lock VAVG':
-                    self.lockvavg_integral = 0
-                    self.lockvavg_last_error = 0
-                    self.setpoint_vavg1.set(self.osc_vavg1.get())
-                self._last_lockvavg = current_lockvavg
+            # 更新任务计数
+            self.task_count.set(f"任务数: {self.result_queue.qsize()}")
+            
+            # 处理队列中的所有消息，但最多处理10个，避免UI阻塞
+            for _ in range(min(10, self.result_queue.qsize())):
+                message = self.result_queue.get_nowait()
+                self.handle_task_result(message)
+                self.result_queue.task_done()
+        except queue.Empty:
+            pass
+        finally:
+            # 继续处理队列
+            self.after(COMMON_UPDATE_INTERVAL, self.process_queue)
+    
+    def handle_task_result(self, message):
+        """处理任务结果"""
+        if len(message) == 3:  # 包含异常
+            task_id, result, exception = message
+            logging.error(f"Task {task_id} failed: {exception}")
+            return
+            
+        task_id, result = message
+        
+        # 根据任务ID处理结果
+        if task_id == 'pid_values':
+            self.update_pid_display(result)
+        elif task_id == 'laser_wavelength':
+            self.laser_nkt_actwl.set(f"{result:.4f}")
+        elif task_id == 'laser_status':
+            self.laser_nkt_status.set(result)
+        elif task_id == 'osc_vavg':
+            self.osc_vavg1.set(result)
+            # 如果锁定VAVG，则在这里处理PID计算
+            if self.check_lockvavg_var.get() == 'Lock VAVG':
+                self.update_pid_vavg()
+        elif task_id == 'ws_setup':
+            center_wl_1, center_wl_2 = result
+            self.band1_wl.set(f"{center_wl_1:.5f} nm")
+            self.band2_wl.set(f"{center_wl_2:.5f} nm")
+            # 更新toptica设置
+            self.async_task('set_toptica', 
+                            self.device_manager.set_toptica,
+                            center_wl_2 + toptica1_wl_bias, 
+                            center_wl_1 + toptica2_wl_bias)
+    
+    def update_pid_display(self, pid_values):
+        """更新PID值显示"""
+        self.p1_pid0_ival.set(f"{pid_values['p1_pid0']:.2f}")
+        self.p1_pid1_ival.set(f"{pid_values['p1_pid1']:.2f}")
+        self.p2_pid0_ival.set(f"{pid_values['p2_pid0']:.2f}")
+        self.p2_pid1_ival.set(f"{pid_values['p2_pid1']:.2f}")
+        self.p3_pid0_ival.set(f"{pid_values['p3_pid0']:.2f}")
+        
+        # 自动复位判断
+        if self.check_autolock_var.get() == 'Auto Reset':
+            self.check_and_reset(pid_values['p1_pid0'], PyrplInstr.p1_pid_reset, 0)
+            self.check_and_reset(pid_values['p1_pid1'], PyrplInstr.p1_pid_reset, 1)
+            self.check_and_reset(pid_values['p2_pid0'], PyrplInstr.p2_pid_reset, 0)
+            self.check_and_reset(pid_values['p2_pid1'], PyrplInstr.p2_pid_reset, 1)
+    
+    def start_periodic_updates(self):
+        """启动所有定期更新任务"""
+        # PID值更新
+        self.start_periodic_task('pid_values', 
+                                 UPDATE_INTERVAL_AUTO_RESET,
+                                 self.device_manager.get_pid_values)
+        
+        # 激光器状态更新
+        self.start_periodic_task('laser_status', 
+                                 UPDATE_INTERVAL_LASER_STATUS,
+                                 self.device_manager.get_laser_status)
+        
+        # 激光器波长更新
+        self.start_periodic_task('laser_wavelength', 
+                                 UPDATE_INTERVAL_LASER_WL,
+                                 self.device_manager.get_laser_wavelength)
+        
+        # 示波器电压更新
+        self.start_periodic_task('osc_vavg', 
+                                 UPDATE_INTERVAL_OSC_VAVG,
+                                 self.device_manager.get_osc_vavg, 1)
+    
+    def start_periodic_task(self, task_id, interval, func, *args, **kwargs):
+        """启动周期性任务"""
+        with self.update_tasks_lock:
+            self.update_tasks[task_id] = True
+        
+        def task_loop():
+            with self.update_tasks_lock:
+                if not self.update_tasks.get(task_id, False):
+                    return
+            
+            self.device_manager.async_execute(task_id, func, *args, **kwargs)
+            
+            # 继续循环
+            self.after(interval, task_loop)
+        
+        # 启动第一次任务
+        self.after(interval, task_loop)
+    
+    def async_task(self, task_id, func, *args, **kwargs):
+        """异步执行任务"""
+        return self.device_manager.async_execute(task_id, func, *args, **kwargs)
+    
+    def on_emission_changed(self):
+        """激光器发射状态变化处理"""
+        current_emission = self.check_emission_var.get()
+        if current_emission != self._last_emission:
+            if current_emission == 'Emission ON':
+                self.async_task('set_emission_on', self.device_manager.set_emission, True)
+            else:
+                self.async_task('set_emission_off', self.device_manager.set_emission, False)
+            self._last_emission = current_emission
+    
+    def on_lockvavg_changed(self):
+        """VAVG锁定状态变化处理"""
+        current_lockvavg = self.check_lockvavg_var.get()
+        if current_lockvavg != self._last_lockvavg:
             if current_lockvavg == 'Lock VAVG':
+                self.lockvavg_integral = 0
+                self.lockvavg_last_error = 0
+                self.setpoint_vavg1.set(self.osc_vavg1.get())
+            self._last_lockvavg = current_lockvavg
+    
+    def update_pid_vavg(self):
+        """更新VAVG PID控制逻辑"""
+        try:
+            if self.check_lockvavg_var.get() == 'Lock VAVG':
                 error = self.setpoint_vavg1.get() - self.osc_vavg1.get()
                 self.lockvavg_integral += error * UPDATE_INTERVAL_OSC_VAVG / 1000.0
                 derivative = (error - self.lockvavg_last_error) / (UPDATE_INTERVAL_OSC_VAVG / 1000.0)
                 output = self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative
                 max_output = 0.1
                 output = max(min(output, max_output), -max_output)
-                # self.move_laser_nkt_setwl(output)
-                print(output)
+                self.move_laser_nkt_setwl(output)
                 self.lockvavg_last_error = error
-                logging.info("Locking VAVG: error=%.2f, integral=%.2f, derivative=%.2f, output=%.2f", error, self.lockvavg_integral, derivative, output)
+                logging.info("Locking VAVG: error=%.2f, integral=%.2f, derivative=%.2f, output=%.2f", 
+                             error, self.lockvavg_integral, derivative, output)
         except Exception as e:
             logging.error("Error updating PID VAVG: %s", e)
-
-    def update_osc_vavg(self) -> None:
-        """更新示波器 Channel 1 平均电压值。"""
-        try:
-            self.osc_vavg1.set(ScpiInstr.query_osc_vavg(1))
-        except Exception as e:
-            logging.error("Error updating oscilloscope vavg: %s", e)
-
-    def update_laser_status(self) -> None:
-        """更新 NKT 激光器状态显示，仅在状态变化时调用开/关函数。"""
-        try:
-            current_emission = self.check_emission_var.get()
-            # 如果不存在 _last_emission 属性，则初始化它
-            if not hasattr(self, '_last_emission'):
-                self._last_emission = None
-
-            # 只有当状态发生变化时才调用相应的函数
-            if current_emission != self._last_emission:
-                if current_emission == 'Emission ON':
-                    LaserNkt.turn_on()
-                else:
-                    LaserNkt.turn_off()
-                self._last_emission = current_emission
-
-            # 始终更新状态显示
-            self.laser_nkt_status.set(LaserNkt.read_status())
-        except Exception as e:
-            logging.error("Error updating NKT laser status: %s", e)
-
-
-    def update_laser_wavelength(self) -> None:
-        """更新 NKT 激光器波长显示。"""
-        try:
-            self.laser_nkt_actwl.set(f"{LaserNkt.read_wavelength():.4f}")
-        except Exception as e:
-            logging.error("Error updating NKT laser wavelength: %s", e)
-
-    def update_pid_values(self) -> None:
-        """获取 PID 值并更新界面，同时检查是否需要自动复位。"""
-        try:
-            # 读取各 PID 当前的值
-            p1_val0 = p1_pid0.ival
-            p1_val1 = p1_pid1.ival
-            p2_val0 = p2_pid0.ival
-            p2_val1 = p2_pid1.ival
-            p3_val0 = p3_pid0.ival
             
-            # 更新显示
-            self.p1_pid0_ival.set(f"{p1_val0:.2f}")
-            self.p1_pid1_ival.set(f"{p1_val1:.2f}")
-            self.p2_pid0_ival.set(f"{p2_val0:.2f}")
-            self.p2_pid1_ival.set(f"{p2_val1:.2f}")
-            self.p3_pid0_ival.set(f"{p3_val0:.2f}")
-            
-            # 自动复位判断
-            if self.check_autolock_var.get() == 'Auto Reset':
-                self.check_and_reset(p1_val0, PyrplInstr.p1_pid_reset, 0)
-                self.check_and_reset(p1_val1, PyrplInstr.p1_pid_reset, 1)
-                self.check_and_reset(p2_val0, PyrplInstr.p2_pid_reset, 0)
-                self.check_and_reset(p2_val1, PyrplInstr.p2_pid_reset, 1)
-        except Exception as e:
-            logging.error("Error updating PID values: %s", e)
-            
-    def check_and_reset(self, pid_value: float, reset_func, channel: int) -> None:
-        """当 PID 值超过设定阈值时进行复位。"""
+    def check_and_reset(self, pid_value, reset_func, channel):
+        """当PID值超过阈值时进行复位"""
         if abs(pid_value) > THRESHOLD_AUTO_RESET:
             try:
-                reset_func(channel)
+                self.async_task(f'reset_pid_{channel}', reset_func, channel)
                 logging.info("Reset PID channel %d with value %.2f", channel, pid_value)
             except Exception as e:
                 logging.error("Failed to reset PID channel %d: %s", channel, e)
-
-    def ws_toptica_set(self, n: int) -> None:
-        """根据 sideband 参数 n 设置波长，并更新界面显示。"""
+    
+    def ws_toptica_set(self, n):
+        """设置WaveShaper和Toptica"""
         try:
-            center_wl_1, center_wl_2 = HttpInstr.ws_dualband_setup(
-                self.pump_wl.get(), FSR * n, 40,
-                attenuation=[self.band1_att.get(), self.pump_att.get(), self.band2_att.get()],
-                phase=[self.band1_degree.get(), self.pump_degree.get(), self.band2_degree.get()]
-            )
-            ScpiInstr.ctrl_toptica1(center_wl_2 + toptica1_wl_bias)
-            ScpiInstr.ctrl_toptica2(center_wl_1 + toptica2_wl_bias)
-            self.band1_wl.set(f"{center_wl_1:.5f} nm")
-            self.band2_wl.set(f"{center_wl_2:.5f} nm")
+            # 异步执行WaveShaper设置
+            self.async_task('ws_setup', 
+                           self.device_manager.setup_waveshaper,
+                           self.pump_wl.get(), FSR * n, 40,
+                           [self.band1_att.get(), self.pump_att.get(), self.band2_att.get()],
+                           [self.band1_degree.get(), self.pump_degree.get(), self.band2_degree.get()])
+            
         except Exception as e:
             logging.error("Error in ws_toptica_set: %s", e)
             
-    def setup_device(self, device_number: int) -> None:
-        """根据 device_number 设置对应设备的默认状态。"""
+    def setup_device(self, device_number):
+        """根据设备号设置对应设备"""
         try:
             if device_number == 1:
-                PyrplInstr.p1_setup()
+                self.async_task('setup_p1', PyrplInstr.p1_setup)
                 self.pump_rp_state.set('Pump&P_ref Default')
             elif device_number == 2:
-                PyrplInstr.p2_setup()
+                self.async_task('setup_p2', PyrplInstr.p2_setup)
                 self.local_rp_state.set('Local Default')
             elif device_number == 3:
-                PyrplInstr.p3_setup()
+                self.async_task('setup_p3', PyrplInstr.p3_setup)
                 self.MC_FL_rp_state.set('MC_FL Default')
             elif device_number == 4:
-                PyrplInstr.p4_setup()
+                self.async_task('setup_p4', PyrplInstr.p4_setup)
                 self.MC_SL_rp_state.set('MC_SL Default')
         except Exception as e:
             logging.error("Error setting up device %d: %s", device_number, e)
             
-    def setup_all_devices(self) -> None:
-        """设置所有设备为默认状态。"""
+    def setup_all_devices(self):
+        """设置所有设备为默认状态"""
         self.setup_device(1)
         self.setup_device(2)
         self.setup_device(3)
         self.setup_device(4)
-        self.pump_rp_state.set('Pump&P_ref Default')
-        self.local_rp_state.set('Local Default')
-        self.MC_FL_rp_state.set('MC_FL Default')
-        self.MC_SL_rp_state.set('MC_SL Default')
         
-    def reset_all_pid(self) -> None:
-        """复位 Pump 与 Local 的所有 PID 通道。"""
+    def reset_all_pid(self):
+        """复位所有PID"""
         try:
-            PyrplInstr.p1_pid_reset(0)
-            PyrplInstr.p1_pid_reset(1)
-            PyrplInstr.p2_pid_reset(0)
-            PyrplInstr.p2_pid_reset(1)
+            self.async_task('reset_p1_pid0', PyrplInstr.p1_pid_reset, 0)
+            self.async_task('reset_p1_pid1', PyrplInstr.p1_pid_reset, 1)
+            self.async_task('reset_p2_pid0', PyrplInstr.p2_pid_reset, 0)
+            self.async_task('reset_p2_pid1', PyrplInstr.p2_pid_reset, 1)
         except Exception as e:
             logging.error("Error resetting all PID: %s", e)
             
-    def start_ramp_all(self) -> None:
-        """开始 Pump 与 Local 的 ramping 操作。"""
+    def start_ramp_all(self):
+        """启动所有设备的ramping"""
         try:
-            PyrplInstr.p1_pid_paused(0)
-            PyrplInstr.p1_pid_paused(1)
-            PyrplInstr.p2_pid_paused(0)
-            PyrplInstr.p2_pid_paused(1)
-            PyrplInstr.p1_pid_reset(0)
-            PyrplInstr.p1_pid_reset(1)
-            PyrplInstr.p2_pid_reset(0)
-            PyrplInstr.p2_pid_reset(1)
-            PyrplInstr.p1_ramp_on(0)
-            PyrplInstr.p1_ramp_on(1)
-            PyrplInstr.p2_ramp_on(0)
-            PyrplInstr.p2_ramp_on(1)
+            # 使用多个异步任务并行执行
+            tasks = [
+                ('p1_pid_paused0', PyrplInstr.p1_pid_paused, 0),
+                ('p1_pid_paused1', PyrplInstr.p1_pid_paused, 1),
+                ('p2_pid_paused0', PyrplInstr.p2_pid_paused, 0),
+                ('p2_pid_paused1', PyrplInstr.p2_pid_paused, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
+            tasks = [
+                ('p1_pid_reset0', PyrplInstr.p1_pid_reset, 0),
+                ('p1_pid_reset1', PyrplInstr.p1_pid_reset, 1),
+                ('p2_pid_reset0', PyrplInstr.p2_pid_reset, 0),
+                ('p2_pid_reset1', PyrplInstr.p2_pid_reset, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
+            tasks = [
+                ('p1_ramp_on0', PyrplInstr.p1_ramp_on, 0),
+                ('p1_ramp_on1', PyrplInstr.p1_ramp_on, 1),
+                ('p2_ramp_on0', PyrplInstr.p2_ramp_on, 0),
+                ('p2_ramp_on1', PyrplInstr.p2_ramp_on, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
             self.pump_rp_state.set('Pump&P_ref Ramping')
             self.local_rp_state.set('Local Ramping')
         except Exception as e:
             logging.error("Error starting ramp: %s", e)
             
-    def lock_all(self) -> None:
-        """关闭 ramping 并解锁 Pump 与 Local 的 PID。"""
+    def lock_all(self):
+        """锁定所有PID"""
         try:
-            PyrplInstr.p1_ramp_off(0)
-            PyrplInstr.p1_ramp_off(1)
-            PyrplInstr.p2_ramp_off(0)
-            PyrplInstr.p2_ramp_off(1)
-            PyrplInstr.p1_pid_unpaused(0)
-            PyrplInstr.p1_pid_unpaused(1)
-            PyrplInstr.p2_pid_unpaused(0)
-            PyrplInstr.p2_pid_unpaused(1)
+            tasks = [
+                ('p1_ramp_off0', PyrplInstr.p1_ramp_off, 0),
+                ('p1_ramp_off1', PyrplInstr.p1_ramp_off, 1),
+                ('p2_ramp_off0', PyrplInstr.p2_ramp_off, 0),
+                ('p2_ramp_off1', PyrplInstr.p2_ramp_off, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
+            tasks = [
+                ('p1_pid_unpaused0', PyrplInstr.p1_pid_unpaused, 0),
+                ('p1_pid_unpaused1', PyrplInstr.p1_pid_unpaused, 1),
+                ('p2_pid_unpaused0', PyrplInstr.p2_pid_unpaused, 0),
+                ('p2_pid_unpaused1', PyrplInstr.p2_pid_unpaused, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
             self.pump_rp_state.set('Pump&P_ref Locked')
             self.local_rp_state.set('Local Locked')
         except Exception as e:
             logging.error("Error locking PID: %s", e)
             
-    def miniramp_local(self) -> None:
-        """对 Local PID 进行 miniramp 操作。"""
+    def miniramp_local(self):
+        """Local PID的miniramp操作"""
         try:
-            PyrplInstr.p1_pid_paused(0)
-            PyrplInstr.p1_pid_paused(1)
-            PyrplInstr.p2_pid_paused(0)
-            PyrplInstr.p2_pid_paused(1)
-            PyrplInstr.p1_pid_reset(0)
-            PyrplInstr.p1_pid_reset(1)
-            PyrplInstr.p2_pid_reset(0)
-            PyrplInstr.p2_pid_reset(1)
-            PyrplInstr.p1_ramp_on(0)
-            PyrplInstr.p1_ramp_on(1)
-            PyrplInstr.p2_miniramp_on(0)
-            PyrplInstr.p2_ramp_off(1)
+            tasks = [
+                ('p1_pid_paused0', PyrplInstr.p1_pid_paused, 0),
+                ('p1_pid_paused1', PyrplInstr.p1_pid_paused, 1),
+                ('p2_pid_paused0', PyrplInstr.p2_pid_paused, 0),
+                ('p2_pid_paused1', PyrplInstr.p2_pid_paused, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
+            tasks = [
+                ('p1_pid_reset0', PyrplInstr.p1_pid_reset, 0),
+                ('p1_pid_reset1', PyrplInstr.p1_pid_reset, 1),
+                ('p2_pid_reset0', PyrplInstr.p2_pid_reset, 0),
+                ('p2_pid_reset1', PyrplInstr.p2_pid_reset, 1)
+            ]
+            
+            for task_id, func, arg in tasks:
+                self.async_task(task_id, func, arg)
+                
+            self.async_task('p1_ramp_on0', PyrplInstr.p1_ramp_on, 0)
+            self.async_task('p1_ramp_on1', PyrplInstr.p1_ramp_on, 1)
+            self.async_task('p2_miniramp_on', PyrplInstr.p2_miniramp_on, 0)
+            self.async_task('p2_ramp_off1', PyrplInstr.p2_ramp_off, 1)
+            
             self.pump_rp_state.set('Pump&P_ref Ramping')
             self.local_rp_state.set('Local1 Miniramping')
         except Exception as e:
             logging.error("Error in miniramp for local: %s", e)
             
-    def start_mc_ramp(self) -> None:
-        """开始 MC PID 的 ramping 操作。"""
+    def start_mc_ramp(self):
+        """启动MC PID的ramping"""
         try:
-            PyrplInstr.p3_pid_paused(0)
-            PyrplInstr.p3_pid_reset(0)
-            PyrplInstr.p3_ramp_on(0)
-            PyrplInstr.p3_ramp_off(1)
+            self.async_task('p3_pid_paused', PyrplInstr.p3_pid_paused, 0)
+            self.async_task('p3_pid_reset', PyrplInstr.p3_pid_reset, 0)
+            self.async_task('p3_ramp_on', PyrplInstr.p3_ramp_on, 0)
+            self.async_task('p3_ramp_off', PyrplInstr.p3_ramp_off, 1)
             self.MC_FL_rp_state.set('MC Ramping')
         except Exception as e:
             logging.error("Error starting MC ramp: %s", e)
             
-    def coarse_lock_mc(self) -> None:
-        """MC PID 进行 coarse locking。"""
+    def coarse_lock_mc(self):
+        """MC PID的coarse locking"""
         try:
-            PyrplInstr.p3_ramp_off(0)
-            PyrplInstr.slow_ramp('on')
-            PyrplInstr.p3_pid_unpaused(0)
+            self.async_task('p3_ramp_off', PyrplInstr.p3_ramp_off, 0)
+            self.async_task('slow_ramp_on', PyrplInstr.slow_ramp, 'on')
+            self.async_task('p3_pid_unpaused', PyrplInstr.p3_pid_unpaused, 0)
             self.MC_FL_rp_state.set('MC Coarse Locking')
         except Exception as e:
             logging.error("Error in MC coarse lock: %s", e)
             
-    def fine_lock_mc(self) -> None:
-        """MC PID 进行 fine locking。"""
+    def fine_lock_mc(self):
+        """MC PID的fine locking"""
         try:
-            PyrplInstr.slow_ramp('off')
-            PyrplInstr.p3_pid_reset(0)
-            PyrplInstr.p3_pid_unpaused(0)
+            self.async_task('slow_ramp_off', PyrplInstr.slow_ramp, 'off')
+            self.async_task('p3_pid_reset', PyrplInstr.p3_pid_reset, 0)
+            self.async_task('p3_pid_unpaused', PyrplInstr.p3_pid_unpaused, 0)
             self.MC_FL_rp_state.set('MC Fine Locking')
         except Exception as e:
             logging.error("Error in MC fine lock: %s", e)
             
-    def set_sideband(self, sideband: int, psg_frequency, psg_power) -> None:
-        """设置 PSG 与 WS 的 sideband，并更新显示。"""
+    def set_sideband(self, sideband, psg_frequency, psg_power):
+        """设置PSG与WS的sideband"""
         try:
-            ScpiInstr.ctrl_psg(psg_frequency, psg_power)
+            # 异步执行PSG设置
+            self.async_task('set_psg', 
+                           self.device_manager.setup_psg,
+                           psg_frequency, psg_power)
+            
+            # 异步执行WS设置
             self.ws_toptica_set(sideband)
+            
+            # 更新界面显示
             self.band_num.set(f'Side Band {sideband}')
         except Exception as e:
             logging.error("Error setting sideband %d: %s", sideband, e)
 
-    def set_laser_nkt_wavelength(self) -> None:
-        """设置 NKT 激光器波长。"""
+    def set_laser_nkt_wavelength(self):
+        """设置NKT激光器波长"""
         try:
-            LaserNkt.write_wl(self.laser_nkt_setwl.get())
+            self.async_task('set_laser_wavelength', 
+                           self.device_manager.set_laser_wavelength,
+                           self.laser_nkt_setwl.get())
         except Exception as e:
             logging.error("Error setting NKT laser wavelength: %s", e)
 
-    def move_laser_nkt_setwl(self, value: float = 0.001) -> None:
-        """调整 NKT 激光器的设定波长，并应用新设置。"""
+    def move_laser_nkt_setwl(self, value=0.001):
+        """调整NKT激光器波长"""
         self.laser_nkt_setwl.set(self.laser_nkt_setwl.get() + value)
         self.set_laser_nkt_wavelength()
 
@@ -556,3 +760,4 @@ class ControlCenterGUI(tk.Tk):
 if __name__ == "__main__":
     app = ControlCenterGUI()
     app.mainloop()
+    
