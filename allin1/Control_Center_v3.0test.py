@@ -569,10 +569,10 @@ class ControlCenterGUI(tk.Tk):
                 output = self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative
                 max_output = 0.1
                 output = max(min(output, max_output), -max_output)
-                print(f"VAVG: error={error:.2f}, integral={self.lockvavg_integral:.2f}, derivative={derivative:.2f}, output={output:.2f}")
+                print(f"VAVG: error={error:.5f}, integral={self.lockvavg_integral:.5f}, derivative={derivative:.5f}, output={output:.5f}")
                 self.move_laser_nkt_setwl(output)
                 self.lockvavg_last_error = error
-                logging.info("Locking VAVG: error=%.2f, integral=%.2f, derivative=%.2f, output=%.2f", 
+                logging.info("Locking VAVG: error=%.5f, integral=%.5f, derivative=%.5f, output=%.5f", 
                              error, self.lockvavg_integral, derivative, output)
         except Exception as e:
             logging.error("Error updating PID VAVG: %s", e)
