@@ -120,6 +120,22 @@ class DeviceManager(ThreadSafeObject):
         ScpiInstr.ctrl_toptica1(wl1)
         ScpiInstr.ctrl_toptica2(wl2)
 
+# 日志处理
+class TextHandler(logging.Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+        
+    def emit(self, record):
+        msg = self.format(record)
+        def append():
+            self.text_widget.configure(state='normal')
+            self.text_widget.insert(tk.END, msg + '\n')
+            self.text_widget.configure(state='disabled')
+            self.text_widget.yview(tk.END)
+        # 在UI线程中更新文本
+        self.text_widget.after(0, append)
+
 class ControlCenterGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -149,6 +165,11 @@ class ControlCenterGUI(tk.Tk):
         # 启动队列处理和UI更新
         self.after(COMMON_UPDATE_INTERVAL, self.process_queue)
         self.start_periodic_updates()
+
+        # 添加日志处理
+        text_handler = TextHandler(self.log_text)
+        text_handler.setFormatter(logging.Formatter('%(asctime)s - %(threadName)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(text_handler)
         
         # 窗口关闭时清理资源
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -343,6 +364,15 @@ class ControlCenterGUI(tk.Tk):
         ttk.Label(self.thread_frame, textvariable=self.thread_status).grid(row=0, column=0, sticky=tk.W)
         self.task_count = tk.StringVar(value="任务数: 0")
         ttk.Label(self.thread_frame, textvariable=self.task_count).grid(row=0, column=1, sticky=tk.W, padx=10)
+
+        # 日志区
+        self.log_frame = ttk.LabelFrame(self.main_frame, text="日志", padding="10")
+        self.log_frame.grid(row=7, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
+        self.log_text = tk.Text(self.log_frame, height=8, width=80)
+        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.log_scroll = ttk.Scrollbar(self.log_frame, orient="vertical", command=self.log_text.yview)
+        self.log_scroll.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.log_text.configure(yscrollcommand=self.log_scroll.set)
         
     def bind_shortcuts(self) -> None:
         # 设备默认设置快捷键
