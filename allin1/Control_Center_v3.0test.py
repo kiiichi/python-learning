@@ -322,7 +322,7 @@ class ControlCenterGUI(tk.Tk):
     def update_osc_vavg(self) -> None:
         """更新示波器 Channel 1 平均电压值。"""
         try:
-            self.osc_vavg1.set(query_osc_vavg(1))
+            self.osc_vavg1.set(ScpiInstr.query_osc_vavg(1))
         except Exception as e:
             logging.error("Error updating oscilloscope vavg: %s", e)
 
@@ -393,13 +393,13 @@ class ControlCenterGUI(tk.Tk):
     def ws_toptica_set(self, n: int) -> None:
         """根据 sideband 参数 n 设置波长，并更新界面显示。"""
         try:
-            center_wl_1, center_wl_2 = ws_dualband_setup(
+            center_wl_1, center_wl_2 = HttpInstr.ws_dualband_setup(
                 self.pump_wl.get(), FSR * n, 40,
                 attenuation=[self.band1_att.get(), self.pump_att.get(), self.band2_att.get()],
                 phase=[self.band1_degree.get(), self.pump_degree.get(), self.band2_degree.get()]
             )
-            ctrl_toptica1(center_wl_2 + toptica1_wl_bias)
-            ctrl_toptica2(center_wl_1 + toptica2_wl_bias)
+            ScpiInstr.ctrl_toptica1(center_wl_2 + toptica1_wl_bias)
+            ScpiInstr.ctrl_toptica2(center_wl_1 + toptica2_wl_bias)
             self.band1_wl.set(f"{center_wl_1:.5f} nm")
             self.band2_wl.set(f"{center_wl_2:.5f} nm")
         except Exception as e:
@@ -534,7 +534,7 @@ class ControlCenterGUI(tk.Tk):
     def set_sideband(self, sideband: int, psg_frequency, psg_power) -> None:
         """设置 PSG 与 WS 的 sideband，并更新显示。"""
         try:
-            ctrl_psg(psg_frequency, psg_power)
+            ScpiInstr.ctrl_psg(psg_frequency, psg_power)
             self.ws_toptica_set(sideband)
             self.band_num.set(f'Side Band {sideband}')
         except Exception as e:
