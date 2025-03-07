@@ -1,9 +1,9 @@
 from time import sleep
 import tkinter as tk
 from tkinter import ttk
-from pyrpl_rpctrl import *
-from http_instctrl import *
-from scpi_instctrl import *
+from Ctrl_PyrplInstr import *
+from Ctrl_HttpInstr import *
+from Ctrl_ScpiInstr import *
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 
 def get_ival():

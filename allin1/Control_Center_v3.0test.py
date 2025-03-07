@@ -5,9 +5,9 @@ import logging
 
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 from laser_nkt_ctrl import *
-from http_instctrl import *
-from scpi_instctrl import *
-from pyrpl_rpctrl import *
+from Ctrl_HttpInstr import *
+from Ctrl_ScpiInstr import *
+from Ctrl_PyrplInstr import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -337,13 +337,13 @@ class ControlCenterGUI(tk.Tk):
             # 只有当状态发生变化时才调用相应的函数
             if current_emission != self._last_emission:
                 if current_emission == 'Emission ON':
-                    nkt_turn_on()
+                    LaserNkt.turn_on()
                 else:
-                    nkt_turn_off()
+                    LaserNkt.turn_off()
                 self._last_emission = current_emission
 
             # 始终更新状态显示
-            self.laser_nkt_status.set(nkt_read_status())
+            self.laser_nkt_status.set(LaserNkt.read_status())
         except Exception as e:
             logging.error("Error updating NKT laser status: %s", e)
 
@@ -351,7 +351,7 @@ class ControlCenterGUI(tk.Tk):
     def update_laser_wavelength(self) -> None:
         """更新 NKT 激光器波长显示。"""
         try:
-            self.laser_nkt_actwl.set(f"{nkt_read_wavelength():.4f}")
+            self.laser_nkt_actwl.set(f"{LaserNkt.read_wavelength():.4f}")
         except Exception as e:
             logging.error("Error updating NKT laser wavelength: %s", e)
 
@@ -543,7 +543,7 @@ class ControlCenterGUI(tk.Tk):
     def set_laser_nkt_wavelength(self) -> None:
         """设置 NKT 激光器波长。"""
         try:
-            nkt_write_wl(self.laser_nkt_setwl.get())
+            LaserNkt.write_wl(self.laser_nkt_setwl.get())
         except Exception as e:
             logging.error("Error setting NKT laser wavelength: %s", e)
 

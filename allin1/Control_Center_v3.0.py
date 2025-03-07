@@ -7,9 +7,9 @@ import logging
 # 设备控制相关导入
 from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
 from laser_nkt_ctrl import *
-from http_instctrl import *
-from scpi_instctrl import *
-from pyrpl_rpctrl import *
+from Ctrl_HttpInstr import *
+from Ctrl_ScpiInstr import *
+from Ctrl_PyrplInstr import *
 
 logging.basicConfig(level=logging.INFO)
 
