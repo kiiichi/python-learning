@@ -5,7 +5,7 @@ import logging
 import threading
 import queue
 
-from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias
+from parameter_table import FSR, PSG_freq, PSG_power, toptica1_wl_bias, toptica2_wl_bias, PORTNAME_NKT
 from Ctrl_LaserNkt import *
 from Ctrl_HttpInstr import *
 from Ctrl_ScpiInstr import *
@@ -17,11 +17,8 @@ logging.basicConfig(level=logging.INFO)
 THRESHOLD_AUTO_RESET = 0.6
 
 COMMON_UPDATE_INTERVAL = 50         # 最小更新间隔单位 ms
-
 UPDATE_INTERVAL_LASER_STATUS = 200   # 激光器状态更新间隔
-UPDATE_INTERVAL_LASER_WL = 100       # 激光器波长更新间隔
 UPDATE_INTERVAL_AUTO_RESET = 100      # PID 更新间隔
-
 UPDATE_INTERVAL_OSC_VAVG = 2000     # 示波器 VAVG 更新间隔
 
 class ControlCenterGUI(tk.Tk):
@@ -38,14 +35,16 @@ class ControlCenterGUI(tk.Tk):
         self.main_frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
         self.main_frame.columnconfigure(0, weight=1)
         
-        # # 为激光器通信创建队列和线程
-        # self.laser_queue = queue.Queue()
-        # self.laser_thread_running = True
-        # self.laser_thread = threading.Thread(target=self.laser_worker_thread, daemon=True)
-        # self.laser_thread.start()
+        # 为NKT通信创建队列和线程
+        self.nkt_emission_queue = queue.Queue()
+        self.nkt_wl_queue = queue.Queue()
+        self.nkt_thread_running = True
+        self.nkt_thread = threading.Thread(target=self.nkt_worker_thread, daemon=True)
+        self.nkt_thread.start()
 
         # 为示波器通信创建队列和线程
         self.osc_queue = queue.Queue()
+        self.avag_queue = queue.Queue()
         self.osc_thread_running = True
         self.osc_thread = threading.Thread(target=self.osc_worker_thread, daemon=True)
         self.osc_thread.start()
@@ -64,21 +63,6 @@ class ControlCenterGUI(tk.Tk):
         # 启动统一的更新函数
         self.after(COMMON_UPDATE_INTERVAL, self.update_gui)
         
-    def osc_worker_thread(self):
-        """示波器通信工作线程，在后台持续运行获取示波器数据"""
-        while self.osc_thread_running:
-            try:
-                # 获取示波器数据
-                vavg_value = ScpiInstr.query_osc_vavg(1)
-                # 将结果放入队列
-                self.osc_queue.put(vavg_value)
-                # 线程休眠一段时间
-                time.sleep(UPDATE_INTERVAL_OSC_VAVG / 1000.0)
-            except Exception as e:
-                logging.error("Error in oscilloscope worker thread: %s", e)
-                # 出错后稍微等待一下再重试
-                time.sleep(1)
-
     def init_variables(self) -> None:
         # 设备状态变量
         self.pump_rp_state = tk.StringVar(value='pump_rp_state')
@@ -128,6 +112,7 @@ class ControlCenterGUI(tk.Tk):
         self.lockvavg_kp = tk.DoubleVar(value=0.1)
         self.lockvavg_ki = tk.DoubleVar(value=0.1)
         self.lockvavg_kd = tk.DoubleVar(value=0.1)
+        self.lockvavg_ctrlsignal = tk.StringVar(value="default")
         self.lockvavg_integral = 0
         self.lockvavg_last_error = 0
         self.last_osc_vavg_update = 0
@@ -206,13 +191,14 @@ class ControlCenterGUI(tk.Tk):
         ttk.Entry(self.laser_frame, textvariable=self.laser_nkt_setwl, width=9, justify="center")\
              .grid(row=0, column=3, sticky=tk.W, padx=5)
         self.laser_nkt_setwl.trace_add("write", lambda *args: self.laser_nkt_setwl.set(f"{self.laser_nkt_setwl.get():.4f}"))
-        # 功率/Emission 控制
         ttk.Checkbutton(self.laser_frame, text="Emission",
                         variable=self.check_emission_var,
                         onvalue="Emission ON", offvalue="Emission OFF")\
              .grid(row=1, column=0, sticky=tk.W, padx=5)
         ttk.Label(self.laser_frame, textvariable=self.laser_nkt_status)\
              .grid(row=1, column=1, sticky=tk.W)
+        ttk.Label(self.laser_frame, text="波长移动 (pm):").grid(row=1, column=2, sticky=tk.W)
+        ttk.Label(self.laser_frame, textvariable=self.lockvavg_ctrlsignal, width=9).grid(row=1, column=3, sticky=tk.E)
         
         # 示波器控制区
         self.osc_frame = ttk.LabelFrame(self.main_frame, text="示波器控制", padding="10")
@@ -249,6 +235,44 @@ class ControlCenterGUI(tk.Tk):
         for i, text in enumerate(shortcut_texts):
             ttk.Label(self.shortcut_frame, text=text)\
                  .grid(row=i, column=0, sticky=tk.W, pady=2)
+    
+    def nkt_worker_thread(self):
+        """NKT 激光器通信工作线程，在后台持续运行获取激光器数据"""
+        while self.nkt_thread_running:
+            try:
+                now = time.time()
+                # 获取激光器数据
+                status = LaserNkt.read_status()
+                act_wl = LaserNkt.read_wavelength()
+                # 将结果放入队列
+                self.nkt_emission_queue.put(status)
+                self.nkt_wl_queue.put(act_wl)
+                if not self.avag_queue.empty():
+                    ctrlsignal = self.avag_queue.get()
+                    self.lockvavg_ctrlsignal.set(f"{ctrlsignal*1000:.6f}")
+                    self.move_laser_nkt_setwl(ctrlsignal)
+                # 线程休眠一段时间
+                time.sleep(UPDATE_INTERVAL_LASER_STATUS / 1000.0)
+
+            except Exception as e:
+                logging.error("Error in NKT laser wavelength worker thread: %s", e)
+                # 出错后稍微等待一下再重试
+                time.sleep(1)
+
+    def osc_worker_thread(self):
+        """示波器通信工作线程，在后台持续运行获取示波器数据"""
+        while self.osc_thread_running:
+            try:
+                # 获取示波器数据
+                vavg_value = ScpiInstr.query_osc_vavg(1)
+                # 将结果放入队列
+                self.osc_queue.put(vavg_value)
+                # 线程休眠一段时间
+                time.sleep(UPDATE_INTERVAL_OSC_VAVG / 1000.0)
+            except Exception as e:
+                logging.error("Error in oscilloscope worker thread: %s", e)
+                # 出错后稍微等待一下再重试
+                time.sleep(1)
         
     def bind_shortcuts(self) -> None:
         # 关闭窗口
@@ -305,20 +329,15 @@ class ControlCenterGUI(tk.Tk):
         """统一更新界面，依据各部分的不同更新时间间隔执行各自更新操作。"""
         now = time.time()
         if now - self.last_pid_update >= UPDATE_INTERVAL_AUTO_RESET / 1000.0:
-            self.update_pid_values()
+            self.update_pid_rp()
             self.last_pid_update = now
         if now - self.last_laser_status_update >= UPDATE_INTERVAL_LASER_STATUS / 1000.0:
-            self.update_laser_status()
+            self.emission_laser_nkt()
+            self.update_laser_status() # 多线程获取激光器数据
             self.last_laser_status_update = now
-        if now - self.last_laser_wl_update >= UPDATE_INTERVAL_LASER_WL / 1000.0:
-            self.update_laser_wavelength()
-            self.last_laser_wl_update = now
-            
-        # 示波器数据更新 - 使用队列获取工作线程的数据
         if now - self.last_osc_vavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
-            self.update_osc_vavg()
+            self.update_osc_vavg() # 多线程获取示波器数据
             self.last_osc_vavg_update = now
-            
         if now - self.last_lockvavg_update >= UPDATE_INTERVAL_OSC_VAVG / 1000.0:
             self.update_pid_vavg()
             self.last_lockvavg_update = now
@@ -341,11 +360,11 @@ class ControlCenterGUI(tk.Tk):
                 error = self.setpoint_vavg1.get() - self.osc_vavg1.get()
                 self.lockvavg_integral += error * UPDATE_INTERVAL_OSC_VAVG / 1000.0
                 derivative = (error - self.lockvavg_last_error) / (UPDATE_INTERVAL_OSC_VAVG / 1000.0)
-                output = self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative
-                max_output = 0.1
-                output = max(min(output, max_output), -max_output)
-                # self.move_laser_nkt_setwl(output)
+                output = (self.lockvavg_kp.get() * error + self.lockvavg_ki.get() * self.lockvavg_integral + self.lockvavg_kp.get() * derivative)
+                max_output = 1
+                output = max(min(output, max_output), -max_output) / 1000.0
                 print(output)
+                self.avag_queue.put(output)
                 self.lockvavg_last_error = error
                 logging.info("Locking VAVG: error=%.2f, integral=%.2f, derivative=%.2f, output=%.2f", error, self.lockvavg_integral, derivative, output)
         except Exception as e:
@@ -360,11 +379,12 @@ class ControlCenterGUI(tk.Tk):
                 vavg_value = self.osc_queue.get()
                 # 更新界面显示
                 self.osc_vavg1.set(vavg_value)
+                # print(vavg_value)
         except Exception as e:
-            logging.error("Error updating oscilloscope vavg: %s", e)
+            logging.error("Error updating oscilloscope vavg: %s", e) 
 
-    def update_laser_status(self) -> None:
-        """更新 NKT 激光器状态显示，仅在状态变化时调用开/关函数。"""
+    def emission_laser_nkt(self) -> None:
+        """更新 NKT 激光器激发状态"""
         try:
             current_emission = self.check_emission_var.get()
             # 如果不存在 _last_emission 属性，则初始化它
@@ -380,19 +400,27 @@ class ControlCenterGUI(tk.Tk):
                 self._last_emission = current_emission
 
             # 始终更新状态显示
-            self.laser_nkt_status.set(LaserNkt.read_status())
+            # self.laser_nkt_status.set(LaserNkt.read_status())
         except Exception as e:
             logging.error("Error updating NKT laser status: %s", e)
 
 
-    def update_laser_wavelength(self) -> None:
-        """更新 NKT 激光器波长显示。"""
+    def update_laser_status(self) -> None:
+        """更新 NKT 激光器信息显示。"""
         try:
-            self.laser_nkt_actwl.set(f"{LaserNkt.read_wavelength():.4f}")
+            # 检查队列中是否有数据
+            if not self.nkt_emission_queue.empty():
+                # 从队列获取最新的激光器状态数据
+                status = self.nkt_emission_queue.get()
+                # 更新界面显示
+                self.laser_nkt_status.set(status)
+            if not self.nkt_wl_queue.empty():
+                act_wl = self.nkt_wl_queue.get()
+                self.laser_nkt_actwl.set(f"{act_wl:.4f}")
         except Exception as e:
             logging.error("Error updating NKT laser wavelength: %s", e)
 
-    def update_pid_values(self) -> None:
+    def update_pid_rp(self) -> None:
         """获取 PID 值并更新界面，同时检查是否需要自动复位。"""
         try:
             # 读取各 PID 当前的值
@@ -591,6 +619,10 @@ class ControlCenterGUI(tk.Tk):
         
     def destroy(self):
         """重写 destroy 方法，确保正确关闭工作线程"""
+        # 停止激光器工作线程
+        self.nkt_thread_running = False
+        if hasattr(self, 'nkt_thread') and self.nkt_thread.is_alive():
+            self.nkt_thread.join(1.0)  # 等待线程最多1秒钟完成
         # 停止示波器工作线程
         self.osc_thread_running = False
         if hasattr(self, 'osc_thread') and self.osc_thread.is_alive():

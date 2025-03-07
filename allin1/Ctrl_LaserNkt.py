@@ -12,7 +12,9 @@ print('[Laser NKT] Standard wavelength:', NKTStandardWl, RegisterResultTypes(rdR
 class LaserNkt:
     def read_wavelength(portname=PORTNAME_NKT):
         rdResult, OffsetWl = registerReadS32(portname, 1, 0x72, -1)
+        # print('[Laser NKT] Offset wavelength:', OffsetWl, NKTStandardWl)
         return (NKTStandardWl + OffsetWl)/10000
+
 
     def turn_on(portname=PORTNAME_NKT):
         wrResult = registerWriteU8(portname, 1, 0x30, 1, -1)

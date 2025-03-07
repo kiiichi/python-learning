@@ -18,9 +18,10 @@ class ScpiInstr:
         PSG.write(':OUTPut:STATe ON')
         PSG.close()
     def query_osc_vavg(channel, ip=HOSTNAME_RIGOLOSC):
+        """Query the average voltage of the oscilloscope channel in mV"""
         rm = visa.ResourceManager()
         oscilloscope = rm.open_resource(ip)
-        vavg = float(oscilloscope.query(':MEASure:ITEM? VAVG,CHAN' + str(channel)))
+        vavg = float(oscilloscope.query(':MEASure:ITEM? VAVG,CHAN' + str(channel))) * 1000
         oscilloscope.close()
         return vavg
 with Client(NetworkConnection(HOSTNAME_DLCPRO1)) as client:

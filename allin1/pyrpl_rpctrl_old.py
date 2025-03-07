@@ -1,15 +1,15 @@
 import pyrpl
-from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_RP4
+from parameter_table import HOSTNAME_RP1, HOSTNAME_RP2, HOSTNAME_RP3, HOSTNAME_RP4, GUI_RP1, GUI_RP2, GUI_RP3, GUI_RP4
 
 #Connect to the Red Pitaya
 p1 = pyrpl.Pyrpl(config='',  # do not use a config file 
-                hostname=HOSTNAME_RP1, gui=True)
+                hostname=HOSTNAME_RP1, gui=GUI_RP1)
 p2 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP2, gui=True)
+                hostname=HOSTNAME_RP2, gui=GUI_RP2)
 p3 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP3, gui=True)
+                hostname=HOSTNAME_RP3, gui=GUI_RP3)
 p4 = pyrpl.Pyrpl(config='',  # do not use a config file
-                hostname=HOSTNAME_RP4, gui=False)
+                hostname=HOSTNAME_RP4, gui=GUI_RP4)
 
 # Make shortcuts for the modules to be used
 p1_asg0=p1.rp.asg0
