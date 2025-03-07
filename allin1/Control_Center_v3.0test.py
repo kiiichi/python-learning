@@ -239,7 +239,7 @@ class ControlCenterGUI(tk.Tk):
         self.bind('<Control-KeyPress-c>', lambda e: self.miniramp_local())
         
         # MC PID 操作
-        self.bind('<Control-KeyPress-m>', lambda e: p3_pid_reset(0))
+        self.bind('<Control-KeyPress-m>', lambda e: PyrplInstr.p3_pid_reset(0))
         self.bind('<Control-KeyPress-n>', lambda e: self.start_mc_ramp())
         self.bind('<Control-KeyPress-,>', lambda e: self.coarse_lock_mc())
         self.bind('<Control-KeyPress-.>', lambda e: self.fine_lock_mc())
@@ -374,10 +374,10 @@ class ControlCenterGUI(tk.Tk):
             
             # 自动复位判断
             if self.check_autolock_var.get() == 'Auto Reset':
-                self.check_and_reset(p1_val0, p1_pid_reset, 0)
-                self.check_and_reset(p1_val1, p1_pid_reset, 1)
-                self.check_and_reset(p2_val0, p2_pid_reset, 0)
-                self.check_and_reset(p2_val1, p2_pid_reset, 1)
+                self.check_and_reset(p1_val0, PyrplInstr.p1_pid_reset, 0)
+                self.check_and_reset(p1_val1, PyrplInstr.p1_pid_reset, 1)
+                self.check_and_reset(p2_val0, PyrplInstr.p2_pid_reset, 0)
+                self.check_and_reset(p2_val1, PyrplInstr.p2_pid_reset, 1)
         except Exception as e:
             logging.error("Error updating PID values: %s", e)
             
@@ -409,16 +409,16 @@ class ControlCenterGUI(tk.Tk):
         """根据 device_number 设置对应设备的默认状态。"""
         try:
             if device_number == 1:
-                p1_setup()
+                PyrplInstr.p1_setup()
                 self.pump_rp_state.set('Pump&P_ref Default')
             elif device_number == 2:
-                p2_setup()
+                PyrplInstr.p2_setup()
                 self.local_rp_state.set('Local Default')
             elif device_number == 3:
-                p3_setup()
+                PyrplInstr.p3_setup()
                 self.MC_FL_rp_state.set('MC_FL Default')
             elif device_number == 4:
-                p4_setup()
+                PyrplInstr.p4_setup()
                 self.MC_SL_rp_state.set('MC_SL Default')
         except Exception as e:
             logging.error("Error setting up device %d: %s", device_number, e)
@@ -437,28 +437,28 @@ class ControlCenterGUI(tk.Tk):
     def reset_all_pid(self) -> None:
         """复位 Pump 与 Local 的所有 PID 通道。"""
         try:
-            p1_pid_reset(0)
-            p1_pid_reset(1)
-            p2_pid_reset(0)
-            p2_pid_reset(1)
+            PyrplInstr.p1_pid_reset(0)
+            PyrplInstr.p1_pid_reset(1)
+            PyrplInstr.p2_pid_reset(0)
+            PyrplInstr.p2_pid_reset(1)
         except Exception as e:
             logging.error("Error resetting all PID: %s", e)
             
     def start_ramp_all(self) -> None:
         """开始 Pump 与 Local 的 ramping 操作。"""
         try:
-            p1_pid_paused(0)
-            p1_pid_paused(1)
-            p2_pid_paused(0)
-            p2_pid_paused(1)
-            p1_pid_reset(0)
-            p1_pid_reset(1)
-            p2_pid_reset(0)
-            p2_pid_reset(1)
-            p1_ramp_on(0)
-            p1_ramp_on(1)
-            p2_ramp_on(0)
-            p2_ramp_on(1)
+            PyrplInstr.p1_pid_paused(0)
+            PyrplInstr.p1_pid_paused(1)
+            PyrplInstr.p2_pid_paused(0)
+            PyrplInstr.p2_pid_paused(1)
+            PyrplInstr.p1_pid_reset(0)
+            PyrplInstr.p1_pid_reset(1)
+            PyrplInstr.p2_pid_reset(0)
+            PyrplInstr.p2_pid_reset(1)
+            PyrplInstr.p1_ramp_on(0)
+            PyrplInstr.p1_ramp_on(1)
+            PyrplInstr.p2_ramp_on(0)
+            PyrplInstr.p2_ramp_on(1)
             self.pump_rp_state.set('Pump&P_ref Ramping')
             self.local_rp_state.set('Local Ramping')
         except Exception as e:
@@ -467,14 +467,14 @@ class ControlCenterGUI(tk.Tk):
     def lock_all(self) -> None:
         """关闭 ramping 并解锁 Pump 与 Local 的 PID。"""
         try:
-            p1_ramp_off(0)
-            p1_ramp_off(1)
-            p2_ramp_off(0)
-            p2_ramp_off(1)
-            p1_pid_unpaused(0)
-            p1_pid_unpaused(1)
-            p2_pid_unpaused(0)
-            p2_pid_unpaused(1)
+            PyrplInstr.p1_ramp_off(0)
+            PyrplInstr.p1_ramp_off(1)
+            PyrplInstr.p2_ramp_off(0)
+            PyrplInstr.p2_ramp_off(1)
+            PyrplInstr.p1_pid_unpaused(0)
+            PyrplInstr.p1_pid_unpaused(1)
+            PyrplInstr.p2_pid_unpaused(0)
+            PyrplInstr.p2_pid_unpaused(1)
             self.pump_rp_state.set('Pump&P_ref Locked')
             self.local_rp_state.set('Local Locked')
         except Exception as e:
@@ -483,18 +483,18 @@ class ControlCenterGUI(tk.Tk):
     def miniramp_local(self) -> None:
         """对 Local PID 进行 miniramp 操作。"""
         try:
-            p1_pid_paused(0)
-            p1_pid_paused(1)
-            p2_pid_paused(0)
-            p2_pid_paused(1)
-            p1_pid_reset(0)
-            p1_pid_reset(1)
-            p2_pid_reset(0)
-            p2_pid_reset(1)
-            p1_ramp_on(0)
-            p1_ramp_on(1)
-            p2_miniramp_on(0)
-            p2_ramp_off(1)
+            PyrplInstr.p1_pid_paused(0)
+            PyrplInstr.p1_pid_paused(1)
+            PyrplInstr.p2_pid_paused(0)
+            PyrplInstr.p2_pid_paused(1)
+            PyrplInstr.p1_pid_reset(0)
+            PyrplInstr.p1_pid_reset(1)
+            PyrplInstr.p2_pid_reset(0)
+            PyrplInstr.p2_pid_reset(1)
+            PyrplInstr.p1_ramp_on(0)
+            PyrplInstr.p1_ramp_on(1)
+            PyrplInstr.p2_miniramp_on(0)
+            PyrplInstr.p2_ramp_off(1)
             self.pump_rp_state.set('Pump&P_ref Ramping')
             self.local_rp_state.set('Local1 Miniramping')
         except Exception as e:
@@ -503,10 +503,10 @@ class ControlCenterGUI(tk.Tk):
     def start_mc_ramp(self) -> None:
         """开始 MC PID 的 ramping 操作。"""
         try:
-            p3_pid_paused(0)
-            p3_pid_reset(0)
-            p3_ramp_on(0)
-            p3_ramp_off(1)
+            PyrplInstr.p3_pid_paused(0)
+            PyrplInstr.p3_pid_reset(0)
+            PyrplInstr.p3_ramp_on(0)
+            PyrplInstr.p3_ramp_off(1)
             self.MC_FL_rp_state.set('MC Ramping')
         except Exception as e:
             logging.error("Error starting MC ramp: %s", e)
@@ -514,9 +514,9 @@ class ControlCenterGUI(tk.Tk):
     def coarse_lock_mc(self) -> None:
         """MC PID 进行 coarse locking。"""
         try:
-            p3_ramp_off(0)
-            slow_ramp('on')
-            p3_pid_unpaused(0)
+            PyrplInstr.p3_ramp_off(0)
+            PyrplInstr.slow_ramp('on')
+            PyrplInstr.p3_pid_unpaused(0)
             self.MC_FL_rp_state.set('MC Coarse Locking')
         except Exception as e:
             logging.error("Error in MC coarse lock: %s", e)
@@ -524,9 +524,9 @@ class ControlCenterGUI(tk.Tk):
     def fine_lock_mc(self) -> None:
         """MC PID 进行 fine locking。"""
         try:
-            slow_ramp('off')
-            p3_pid_reset(0)
-            p3_pid_unpaused(0)
+            PyrplInstr.slow_ramp('off')
+            PyrplInstr.p3_pid_reset(0)
+            PyrplInstr.p3_pid_unpaused(0)
             self.MC_FL_rp_state.set('MC Fine Locking')
         except Exception as e:
             logging.error("Error in MC fine lock: %s", e)
