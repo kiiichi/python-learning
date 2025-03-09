@@ -342,7 +342,7 @@ function()
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     local Cooldowns = function()
-        if OffCooldown(ids.ExecutionSentence) and ( ( not PlayerHasBuff(ids.CrusadeBuff) and CrusadeRemainingCooldown > 15 or GetPlayerStacks(ids.CrusadeBuff) == 10 or AvengingWrathRemainingCooldown < 0.75 or AvengingWrathRemainingCooldown > 15 or IsPlayerSpell(ids.RadiantGloryTalent) ) and ( CurrentHolyPower >= 3 or CurrentHolyPower >= 2 and ( IsPlayerSpell(ids.DivineAuxiliaryTalent) or IsPlayerSpell(ids.RadiantGloryTalent) ) ) and ( GetRemainingSpellCooldown(ids.DivineHammer) > 5 or PlayerHasBuff(ids.DivineHammerBuff) or not IsPlayerSpell(ids.DivineHammer)) and ( TargetTimeToXPct(0, 60) > 8 and not IsPlayerSpell(ids.ExecutionersWillTalent) or TargetTimeToXPct(0, 60) > 12 ) and GetRemainingSpellCooldown(ids.WakeOfAshes) < WeakAuras.gcdDuration() ) then
+        if OffCooldown(ids.ExecutionSentence) and ( ( not PlayerHasBuff(ids.CrusadeBuff) and CrusadeRemainingCooldown > 15 or GetPlayerStacks(ids.CrusadeBuff) == 10 or AvengingWrathRemainingCooldown < 0.75 or AvengingWrathRemainingCooldown > 15 or IsPlayerSpell(ids.RadiantGloryTalent) ) and ( CurrentHolyPower >= 3 or CurrentHolyPower >= 2 and ( IsPlayerSpell(ids.DivineAuxiliaryTalent) or IsPlayerSpell(ids.RadiantGloryTalent) ) ) and ( GetRemainingSpellCooldown(ids.DivineHammer) > 5 or PlayerHasBuff(ids.DivineHammerBuff) or not IsPlayerSpell(ids.DivineHammer)) and ( TargetTimeToXPct(0, 60) > 8 and not IsPlayerSpell(ids.ExecutionersWillTalent) or TargetTimeToXPct(0, 60) > 12 ) and GetRemainingSpellCooldown(ids.WakeOfAshes) <= WeakAuras.gcdDuration() ) then
             -- KTrig("Execution Sentence") return true end
             if aura_env.config[tostring(ids.ExecutionSentence)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Execution Sentence")
@@ -352,7 +352,7 @@ function()
             end
         end
         
-        if OffCooldown(ids.FinalReckoning) and ( ( CurrentHolyPower >= 3 or CurrentHolyPower >= 2 and ( IsPlayerSpell(ids.DivineAuxiliaryTalent) or IsPlayerSpell(ids.RadiantGloryTalent) ) ) and ( not IsPlayerSpell(ids.Crusade) and AvengingWrathRemainingCooldown > 10 or CrusadeRemainingCooldown > 0 and ( not PlayerHasBuff(ids.CrusadeBuff) or GetPlayerStacks(ids.CrusadeBuff) >= 10 ) or IsPlayerSpell(ids.RadiantGloryTalent) and ( PlayerHasBuff(ids.AvengingWrathBuff) or IsPlayerSpell(ids.Crusade) and GetRemainingSpellCooldown(ids.WakeOfAshes) < WeakAuras.gcdDuration() ) ) ) then
+        if OffCooldown(ids.FinalReckoning) and ( ( CurrentHolyPower >= 3 or CurrentHolyPower >= 2 and ( IsPlayerSpell(ids.DivineAuxiliaryTalent) or IsPlayerSpell(ids.RadiantGloryTalent) ) ) and ( not IsPlayerSpell(ids.Crusade) and AvengingWrathRemainingCooldown > 10 or CrusadeRemainingCooldown > 0 and ( not PlayerHasBuff(ids.CrusadeBuff) or GetPlayerStacks(ids.CrusadeBuff) >= 10 ) or IsPlayerSpell(ids.RadiantGloryTalent) and ( PlayerHasBuff(ids.AvengingWrathBuff) or IsPlayerSpell(ids.Crusade) and GetRemainingSpellCooldown(ids.WakeOfAshes) <= WeakAuras.gcdDuration() ) ) ) then
             -- KTrig("Final Reckoning") return true end
             if aura_env.config[tostring(ids.FinalReckoning)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Final Reckoning")
@@ -388,6 +388,16 @@ function()
         
         if OffCooldown(ids.TemplarsVerdict) and ( ( not IsPlayerSpell(ids.Crusade) or GetRemainingSpellCooldown(ids.Crusade) > WeakAuras.gcdDuration() * 3 or PlayerHasBuff(ids.CrusadeBuff) and GetPlayerStacks(ids.CrusadeBuff) < 10 or IsPlayerSpell(ids.RadiantGloryTalent) ) and FindSpellOverrideByID(ids.WakeOfAshes) ~= ids.HammerOfLight and (GetRemainingSpellCooldown(ids.DivineHammer) > 0 or PlayerHasBuff(ids.DivineHammerBuff) or not IsPlayerSpell(ids.DivineHammer)) ) then
             KTrig("Templars Verdict") return true end
+
+        -- Kichi 3.9 for save cd
+        if OffCooldown(ids.DivineStorm) and ( Variables.DsCastable and FindSpellOverrideByID(ids.WakeOfAshes) ~= ids.HammerOfLight and ( not IsPlayerSpell(ids.Crusade) or GetRemainingSpellCooldown(ids.Crusade) > WeakAuras.gcdDuration() * 3 or PlayerHasBuff(ids.CrusadeBuff) and GetPlayerStacks(ids.CrusadeBuff) < 10 or IsPlayerSpell(ids.RadiantGloryTalent) ) ) then
+            KTrig("Divine Storm", "Not Good") return true end
+        -- Kichi 3.9 for save cd
+        if OffCooldown(ids.JusticarsVengeance) and ( ( not IsPlayerSpell(ids.Crusade) or GetRemainingSpellCooldown(ids.Crusade) > WeakAuras.gcdDuration() * 3 or PlayerHasBuff(ids.CrusadeBuff) and GetPlayerStacks(ids.CrusadeBuff) < 10 or IsPlayerSpell(ids.RadiantGloryTalent) ) and FindSpellOverrideByID(ids.WakeOfAshes) ~= ids.HammerOfLight ) then
+            KTrig("Justicars Vengeance", "Not Good") return true end
+        -- Kichi 3.9 for save cd
+        if OffCooldown(ids.TemplarsVerdict) and ( ( not IsPlayerSpell(ids.Crusade) or GetRemainingSpellCooldown(ids.Crusade) > WeakAuras.gcdDuration() * 3 or PlayerHasBuff(ids.CrusadeBuff) and GetPlayerStacks(ids.CrusadeBuff) < 10 or IsPlayerSpell(ids.RadiantGloryTalent) ) and FindSpellOverrideByID(ids.WakeOfAshes) ~= ids.HammerOfLight ) then
+            KTrig("Templars Verdict", "Not Good") return true end
     end
     
     local Generators = function()
