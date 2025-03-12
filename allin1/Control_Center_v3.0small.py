@@ -45,7 +45,7 @@ class ControlCenterGUI(tk.Tk):
         # 为示波器通信创建队列和线程
         self.osc_queue = queue.Queue()
         self.avag_queue = queue.Queue()
-        self.osc_thread_running = True
+        self.osc_thread_running = False
         self.osc_thread = threading.Thread(target=self.osc_worker_thread, daemon=True)
         self.osc_thread.start()
         
@@ -265,7 +265,7 @@ class ControlCenterGUI(tk.Tk):
 
     def osc_worker_thread(self):
         """示波器通信工作线程，在后台持续运行获取示波器数据"""
-        while self.osc_thread_running and self.oscmeas_var.get() == 'ON':
+        while self.osc_thread_running:
             try:
                 # 获取示波器数据
                 vavg_value = ScpiInstr.query_osc_vavg(1)
@@ -377,6 +377,12 @@ class ControlCenterGUI(tk.Tk):
     def update_osc_vavg(self) -> None:
         """更新示波器 Channel 1 平均电压值，现在从队列获取多线程获取的数据。"""
         try:
+            osc_measure = self.oscmeas_var.get()
+            if osc_measure == 'ON':
+                self.osc_thread_running = True
+            else:
+                self.osc_thread_running = False
+
             # 检查队列中是否有数据
             if not self.osc_queue.empty():
                 # 从队列获取最新的示波器数据
