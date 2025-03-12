@@ -46,8 +46,9 @@ class ControlCenterGUI(tk.Tk):
         self.osc_queue = queue.Queue()
         self.avag_queue = queue.Queue()
         self.osc_thread_running = False
-        self.osc_thread = threading.Thread(target=self.osc_worker_thread, daemon=True)
-        self.osc_thread.start()
+        # self.osc_thread = threading.Thread(target=self.osc_worker_thread, daemon=True)
+        # self.osc_thread.start()
+        self.osc_thread = None  # 初始无线程
         
         self.init_variables()
         self.create_regions()  # 分区创建控件
@@ -205,8 +206,8 @@ class ControlCenterGUI(tk.Tk):
         self.osc_frame = ttk.LabelFrame(self.main_frame, text="示波器控制", padding="10")
         self.osc_frame.grid(row=4, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
         ttk.Checkbutton(self.osc_frame, text="测量值读取",
-        variable=self.oscmeas_var,
-        onvalue="ON", offvalue="OFF").grid(row=0, column=0, sticky=tk.W, padx=5)
+                        variable=self.oscmeas_var,
+                        onvalue="ON", offvalue="OFF").grid(row=0, column=0, sticky=tk.W, padx=5)
         ttk.Label(self.osc_frame, text="CH1 VAVG (mV):").grid(row=1, column=0, sticky=tk.W)
         ttk.Label(self.osc_frame, textvariable=self.osc_vavg1, width=9).grid(row=1, column=1, sticky=tk.W)
         ttk.Checkbutton(self.osc_frame, text="锁定 VAVG",
@@ -264,18 +265,13 @@ class ControlCenterGUI(tk.Tk):
                 time.sleep(1)
 
     def osc_worker_thread(self):
-        """示波器通信工作线程，在后台持续运行获取示波器数据"""
         while self.osc_thread_running:
             try:
-                # 获取示波器数据
                 vavg_value = ScpiInstr.query_osc_vavg(1)
-                # 将结果放入队列
                 self.osc_queue.put(vavg_value)
-                # 线程休眠一段时间
                 time.sleep(UPDATE_INTERVAL_OSC_VAVG / 1000.0)
             except Exception as e:
                 logging.error("Error in oscilloscope worker thread: %s", e)
-                # 出错后稍微等待一下再重试
                 time.sleep(1)
         
     def bind_shortcuts(self) -> None:
@@ -375,23 +371,22 @@ class ControlCenterGUI(tk.Tk):
             logging.error("Error updating PID VAVG: %s", e)
 
     def update_osc_vavg(self) -> None:
-        """更新示波器 Channel 1 平均电压值，现在从队列获取多线程获取的数据。"""
         try:
             osc_measure = self.oscmeas_var.get()
             if osc_measure == 'ON':
-                self.osc_thread_running = True
+                if not self.osc_thread or not self.osc_thread.is_alive():
+                    self.osc_thread_running = True
+                    self.osc_thread = threading.Thread(target=self.osc_worker_thread, daemon=True)
+                    self.osc_thread.start()
             else:
-                self.osc_thread_running = False
+                self.osc_thread_running = False  # 触发线程退出循环
 
-            # 检查队列中是否有数据
+            # 更新数据
             if not self.osc_queue.empty():
-                # 从队列获取最新的示波器数据
                 vavg_value = self.osc_queue.get()
-                # 更新界面显示
                 self.osc_vavg1.set(vavg_value)
-                # print(vavg_value)
         except Exception as e:
-            logging.error("Error updating oscilloscope vavg: %s", e) 
+            logging.error("Error updating oscilloscope vavg: %s", e)
 
     def emission_laser_nkt(self) -> None:
         """更新 NKT 激光器激发状态"""
