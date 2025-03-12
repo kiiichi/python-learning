@@ -469,7 +469,7 @@ class ControlCenterGUI(tk.Tk):
             self.band2_wl.set(f"{center_wl_2:.5f} nm")
         except Exception as e:
             logging.error("Error in ws_toptica_set: %s", e)
-            
+
     def setup_device(self, device_number: int) -> None:
         """根据 device_number 设置对应设备的默认状态。"""
         try:
@@ -487,7 +487,7 @@ class ControlCenterGUI(tk.Tk):
                 self.MC_SL_rp_state.set('MC_SL Default')
         except Exception as e:
             logging.error("Error setting up device %d: %s", device_number, e)
-            
+
     def setup_all_devices(self) -> None:
         """设置所有设备为默认状态。"""
         self.setup_device(1)
@@ -498,7 +498,7 @@ class ControlCenterGUI(tk.Tk):
         self.local_rp_state.set('Local Default')
         self.MC_FL_rp_state.set('MC_FL Default')
         self.MC_SL_rp_state.set('MC_SL Default')
-        
+
     def reset_all_pid(self) -> None:
         """复位 Pump 与 Local 的所有 PID 通道。"""
         try:
@@ -508,7 +508,7 @@ class ControlCenterGUI(tk.Tk):
             PyrplInstr.p2_pid_reset(1)
         except Exception as e:
             logging.error("Error resetting all PID: %s", e)
-            
+
     def start_ramp_all(self) -> None:
         """开始 Pump 与 Local 的 ramping 操作。"""
         try:
@@ -544,7 +544,7 @@ class ControlCenterGUI(tk.Tk):
             self.local_rp_state.set('Local Locked')
         except Exception as e:
             logging.error("Error locking PID: %s", e)
-            
+
     def miniramp_local(self) -> None:
         """对 Local PID 进行 miniramp 操作。"""
         try:
