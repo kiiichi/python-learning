@@ -474,7 +474,7 @@ actions.aoe_open+=/stormstrike
 
 # Multi target action priority list for the Totemic hero talent tree
 actions.aoe_totemic=surging_totem
-actions.aoe_totemic+=/run_action_list,name=aoe_totemic_open,if=(cooldown.doom_winds.remains=0|cooldown.sundering.remains=0|!buff.hot_hand.up)&cooldown.feral_spirit.remains=0
+actions.aoe_totemic+=/run_action_list,name=aoe_totemic_open,if=(cooldown.doom_winds.remains=0|cooldown.sundering.remains=0|!buff.hot_hand.up)&(cooldown.feral_spirit.remains=0|buff.maelstrom_weapon.stack=10)&(cooldown.doom_winds.remains=0|cooldown.doom_winds.remains>42)&(cooldown.primordial_wave.remains=0|cooldown.primordial_wave.remains>15)
 actions.aoe_totemic+=/ascendance,if=ti_chain_lightning
 actions.aoe_totemic+=/flame_shock,if=!ticking&(talent.ashen_catalyst.enabled|talent.primordial_wave.enabled)
 actions.aoe_totemic+=/crash_lightning,if=talent.crashing_storms.enabled&(active_enemies>=15-5*talent.unruly_winds.enabled)
