@@ -120,21 +120,9 @@ aura_env.WindstrikeLastUsed = 0
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
--- Kichi --
--- Kichi --
-aura_env.KTrig = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    if aura_env.FlagKTrigCD then
-        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
-    end
-    aura_env.FlagKTrigCD = flase
-end
-
-aura_env.KTrigCD = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    aura_env.FlagKTrigCD = false
+aura_env.NGSend = function(Name, ...)
+    WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", Name, ...)
+    WeakAuras.ScanEvents("NG_OUT_OF_RANGE", aura_env.OutOfRange)
 end
 
 aura_env.OffCooldown = function(spellID)
@@ -143,8 +131,7 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    -- Kichi --
-    -- if aura_env.config[tostring(spellID)] == false then return false end
+    if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
     if (not usable) and (not nomana) then return false end
@@ -294,13 +281,174 @@ end
 aura_env.PlayerHasBuff = function(spellID)
     return WA_GetUnitBuff("player", spellID) ~= nil
 end
-aura_env.PetHasBuff = function(spellID)
-    return WA_GetUnitBuff("pet", spellID) ~= nil
-end
 
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
+
+---- Keybind Assistance ----------------------------------------------------------------------------------------
+-- Based on https://wago.io/7bcXDdPqi
+-- Initilize setup
+_G.kbTable_master = {}
+_G.UseKeybindAssistance = aura_env.config.UseKeybindAssistance
+local SpamAura = ""
+local SpamCount = 0
+local Updated = false
+
+-- Load custom options
+local custMod = aura_env.config.KeybindSettings.custMod
+local shiftMod = aura_env.config.KeybindSettings.shiftMod
+local ctrlMod = aura_env.config.KeybindSettings.ctrlMod
+local altMod = aura_env.config.KeybindSettings.altMod
+local custMouse = aura_env.config.KeybindSettings.custMouse
+local btnMouse = aura_env.config.KeybindSettings.btnMouse
+local shiftMouse = aura_env.config.KeybindSettings.shiftMouse
+local ctrlMouse = aura_env.config.KeybindSettings.ctrlMouse
+local altMouse = aura_env.config.KeybindSettings.altMouse
+local spamOpt = aura_env.config.KeybindSettings.spamOpt
+local crtog1 = aura_env.config.KeybindSettings.crtog1
+local creplace1 = aura_env.config.KeybindSettings.creplace1
+local crwith1 = aura_env.config.KeybindSettings.crwith1
+local crtog2 = aura_env.config.KeybindSettings.crtog2
+local creplace2 = aura_env.config.KeybindSettings.creplace2
+local crwith2 = aura_env.config.KeybindSettings.crwith2
+local crtog3 = aura_env.config.KeybindSettings.crtog3
+local creplace3 = aura_env.config.KeybindSettings.creplace3
+local crwith3 = aura_env.config.KeybindSettings.crwith3
+
+-- Function to check for WA causing spam
+local function spamCheck(checkAura)
+    local lastAura = SpamAura
+    local prompt = ""
+    if not checkAura then
+        prompt = "Global update initiated"
+        return false, prompt
+    elseif (lastAura and checkAura == lastAura) then
+        if SpamCount > 3 then
+            return true
+        elseif SpamCount == 3 then
+            prompt = checkAura.." is spamming and will be ignored"
+            SpamCount = SpamCount +1
+            return true, prompt
+        end
+    else 
+        prompt = checkAura.." triggered an update"
+        SpamAura = checkAura
+        SpamCount = SpamCount +1
+        return false , prompt
+    end
+end
+
+-- Main Function for populating keybind table
+function _G.kbTable_refresh(auraName)
+    -- If we haven't enabled Keybind Assistance, do nothing.
+    if _G.UseKeybindAssist == false then return end
+    
+    -- Checks if master table is created before running
+    if not _G.kbTable_master then return end
+    
+    -- Checks if same WA has been spamming and stops it
+    local spamResult, spamPrompt = spamCheck(auraName)
+    -- Console printout of check results
+    if spamOpt and spamPrompt then print (spamPrompt) end
+    if spamResult then return; end
+    
+    for slotID=1,180 do
+        local actionType, actionID, _ = GetActionInfo(slotID)
+        local noMouse = true        
+        
+        -- NIL check actionID then populate keybind table
+        -- Keybinds beyond #156 haven't been test yet
+        if actionID then
+            local action = slotID
+            local modact = 1+(action-1)%12
+            local bindstring = ""
+            if (action < 25 or action > 72) and (action <145) then
+                bindstring = 'ACTIONBUTTON'..modact
+            elseif action < 73 and action > 60 then
+                bindstring = 'MULTIACTIONBAR1BUTTON'..modact
+            elseif action < 61 and action > 48 then
+                bindstring = 'MULTIACTIONBAR2BUTTON'..modact
+            elseif action < 37 and action > 24 then
+                bindstring = 'MULTIACTIONBAR3BUTTON'..modact
+            elseif action < 49 and action > 36 then
+                bindstring = 'MULTIACTIONBAR4BUTTON'..modact
+            elseif action < 157 and action > 144 then
+                bindstring = 'MULTIACTIONBAR5BUTTON'..modact
+            end
+            local keyBind = GetBindingKey(bindstring)
+            
+            if keyBind then
+                
+                -- Truncates mouse button keybinds
+                local mouseMod, mouseBtn, btnNum = keyBind:match("(.*)(BUTTON)(.*)")
+                if mouseBtn then
+                    noMouse = false
+                    if custMouse then
+                        if mouseMod == 'SHIFT-' then
+                            mouseMod = shiftMouse
+                        elseif mouseMod == 'CTRL-' then
+                            mouseMod = ctrlMouse
+                        elseif mouseMod == 'ALT-'then
+                            mouseMod = altMouse
+                        end
+                        keyBind = mouseMod..btnMouse..btnNum
+                    end
+                end
+                
+                
+                -- Truncates other modifier keys
+                if custMod and noMouse then
+                    local keyMod,_,keyNum = keyBind:match("(.*)(-)(.*)")
+                    if keyMod then
+                        if keyMod == 'SHIFT' then
+                            keyMod = shiftMod
+                        elseif keyMod == 'CTRL' then
+                            keyMod = ctrlMod
+                        elseif keyMod == 'ALT'then
+                            keyMod = altMod
+                        end 
+                        keyBind = keyMod..keyNum
+                    end
+                end
+                
+                -- Custom string replace for uncommon keybinds
+                if crtog1 then
+                    local creplace = keyBind:gsub(creplace1, crwith1)
+                    keyBind = creplace
+                end
+                if crtog2 then
+                    local creplace = keyBind:gsub(creplace2, crwith2)
+                    keyBind = creplace
+                end
+                if crtog3 then
+                    local creplace = keyBind:gsub(creplace3, crwith3)
+                    keyBind = creplace
+                end
+                
+                -- Items are stored with item name as key to bypass inventory requirement
+                if actionType == 'item' then
+                    actionID = GetItemInfo(actionID)
+                end
+                
+                -- Check for nil, changed or empty keybinds before populating
+                if keyBind and actionID and kbTable_master[actionID] ~= keyBind then
+                    kbTable_master[actionID] = keyBind
+                    Updated = true                  
+                end
+            end
+        end
+    end
+    -- Clear spamcheck to allow WAs to check for updates
+    if Updated then 
+        SpamAura = ""
+        SpamCount = 0
+    end
+end
+
+
+
+
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -329,7 +477,6 @@ function()
     local GetPlayerStacks = aura_env.GetPlayerStacks
     local GetTargetStacks = aura_env.GetTargetStacks
     local PlayerHasBuff = aura_env.PlayerHasBuff
-    local PetHasBuff = aura_env.PetHasBuff
     local TargetHasDebuff = aura_env.TargetHasDebuff
     local HasBloodlust = aura_env.HasBloodlust
     local GetSpellChargesFractional = aura_env.GetSpellChargesFractional
@@ -338,10 +485,7 @@ function()
     local TargetTimeToXPct = aura_env.TargetTimeToXPct
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
-    -- Kichi --
-    local KTrig = aura_env.KTrig
-    local KTrigCD = aura_env.KTrigCD
-    aura_env.FlagKTrigCD = true
+    local NGSend = aura_env.NGSend
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -372,10 +516,6 @@ function()
         end
     end
     
-    -- Kichi --
-    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
-    WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
-
     local MaxMaelstromStacks = IsPlayerSpell(ids.RagingMaelstromTalent) and 10 or 5
     local WolvesOut = 0
     local EarthenWeaponBuffs = 0
@@ -401,19 +541,14 @@ function()
     local MinAlphaWolfRemains = max(aura_env.MinAlphaWolf - GetTime(), 0)
     
     -- Only recommend things when something's targeted
-    if aura_env.config["NeedTarget"] then
-        if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
-            WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
-            KTrig("Clear", nil)
-            KTrigCD("Clear", nil) 
-            return end
-    end
+    if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
+        WeakAuras.ScanEvents("NG_GLOW_EXTRAS", {})
+        NGSend("Clear", nil) return end
     
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
     local ExtraGlows = {}
     
-    -- Kichi --
-    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+    WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows)
     
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
@@ -426,843 +561,591 @@ function()
     -- Multi target action priority list
     local Aoe = function()
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and (IsPlayerSpell(ids.ElementalSpiritsTalent) or IsPlayerSpell(ids.AlphaWolfTalent)) then
-            KTrig("Feral Spirit") return true end
-        --     if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-        --         KTrigCD("Feral Spirit")
-        --     elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-        --         KTrig("Feral Spirit")
-        --         return true
-        --     end
-        -- end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.FlameShock) and ( IsPlayerSpell(ids.MoltenAssaultTalent) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.Ascendance) and ( ( TargetHasDebuff(ids.FlameShockDebuff) or not IsPlayerSpell(ids.MoltenAssaultTalent) ) and aura_env.LastTISpell == ids.ChainLightning ) then
-            -- KTrig("Ascendance") return true end
-            if aura_env.config[tostring(ids.Ascendance)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Ascendance")
-            elseif aura_env.config[tostring(ids.Ascendance)] ~= true then
-                KTrig("Ascendance")
-                return true
-            end
-        end
+            NGSend("Ascendance") return true end
         
         if PlayerHasBuff(ids.TempestBuff) and ( GetPlayerStacks(ids.ArcDischargeBuff) < 1 and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks and not IsPlayerSpell(ids.RagingMaelstromTalent) ) or ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) ) or ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and ( aura_env.TempestMaelstromCount > 30 ) ) ) then
-            KTrig("Tempest") return true end
-
+            NGSend("Tempest") return true end
+        
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and ( GetRemainingSpellCooldown(ids.DoomWinds) > 30 or GetRemainingSpellCooldown(ids.DoomWinds) < 7 ) then
-            KTrig("Feral Spirit") return true end
-        --     if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-        --         KTrigCD("Feral Spirit")
-        --     elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-        --         KTrig("Feral Spirit")
-        --         return true
-        --     end
-        -- end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.DoomWinds) then
-            -- KTrig("Doom Winds") return true end
-            if aura_env.config[tostring(ids.DoomWinds)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Doom Winds")
-            elseif aura_env.config[tostring(ids.DoomWinds)] ~= true then
-                KTrig("Doom Winds")
-                return true
-            end
-        end
+            NGSend("Doom Winds") return true end
         
         if OffCooldown(ids.PrimordialWave) and ( TargetHasDebuff(ids.FlameShockDebuff) and ( FlameShockedEnemies == NearbyEnemies or FlameShockedEnemies == 6 ) ) then
-            -- KTrig("Primordial Wave") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Wave")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Wave")
-                return true
-            end
-        end
+            NGSend("Primordial Wave") return true end
         
         if PlayerHasBuff(ids.PrimordialStormBuff) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) and ( PlayerHasBuff(ids.DoomWindsBuff) or GetRemainingSpellCooldown(ids.DoomWinds) > 15 or GetRemainingAuraDuration("player", ids.PrimordialStormBuff) < 3 ) ) then
-            -- KTrig("Primordial Storm") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Storm")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Storm")
-                return true
-            end
-        end
+            NGSend("Primordial Storm") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.ConvergingStormsTalent) and GetPlayerStacks(ids.ElectrostaticWagerBuff) > 6 or not PlayerHasBuff(ids.CrashLightningBuff) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) and ( IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 and aura_env.LastTISpell == ids.ChainLightning ) then  
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.ConvergingStormsTalent) and IsPlayerSpell(ids.AlphaWolfTalent) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and ( GetPlayerStacks(ids.ConvergingStormsBuff) == 6 and GetPlayerStacks(ids.StormblastBuff) > 0 and PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) and GetPlayerStacks(ids.MaelstromWeaponBuff) <= 8 ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.CrashLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) <= 8 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze and ( GetPlayerStacks(ids.MaelstromWeaponBuff) <= 8 ) then
-            KTrig("Voltaic Blaze") return true end
+            NGSend("Voltaic Blaze") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and not PlayerHasBuff(ids.PrimordialStormBuff) and ( GetRemainingSpellCooldown(ids.CrashLightning) >= 1 or not IsPlayerSpell(ids.AlphaWolfTalent) ) ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies == 6 or ( FlameShockedEnemies >= 4 and FlameShockedEnemies == NearbyEnemies ) ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.Stormstrike) and ( IsPlayerSpell(ids.StormblastTalent) and IsPlayerSpell(ids.StormflurryTalent) ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze then
-            KTrig("Voltaic Blaze") return true end
+            NGSend("Voltaic Blaze") return true end
         
         if OffCooldown(ids.LavaLash) and ( IsPlayerSpell(ids.LashingFlamesTalent) or IsPlayerSpell(ids.MoltenAssaultTalent) and TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike and ( IsPlayerSpell(ids.HailstormTalent) and not PlayerHasBuff(ids.IceStrikeBuff) ) then 
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.FrostShock) and ( IsPlayerSpell(ids.HailstormTalent) and PlayerHasBuff(ids.HailstormBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.Sundering) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.FlameShock) and ( IsPlayerSpell(ids.MoltenAssaultTalent) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         -- NG Added
         if OffCooldown(ids.FlameShock) and ( ( IsPlayerSpell(ids.FireNovaTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         -- Required target switching, so commented it out.
         --if OffCooldown(ids.FlameShock) and ( ( IsPlayerSpell(ids.FireNovaTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) and ( FlameShockedEnemies < NearbyEnemies ) and FlameShockedEnemies < 6 ) then
-        --    KTrig("Flame Shock") return true end
+        --    NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies >= 3 ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.Stormstrike) and ( PlayerHasBuff(ids.CrashLightningBuff) and ( IsPlayerSpell(ids.DeeplyRootedElementsTalent) or GetPlayerStacks(ids.ConvergingStormsBuff) == 6 ) ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.CrashingStormsTalent) and PlayerHasBuff(ids.ClCrashLightningBuff) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.Stormstrike) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.LavaLash) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies >= 2 ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and not PlayerHasBuff(ids.PrimordialStormBuff) ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.FrostShock) and ( not IsPlayerSpell(ids.HailstormTalent) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
     end
     
     -- Multi target action priority list for the Totemic hero talent tree
     local AoeTotemic = function()
         if OffCooldown(ids.SurgingTotem) and not SurgingTotemActive then
-            KTrig("Surging Totem") return true end
+            NGSend("Surging Totem") return true end
         
         if OffCooldown(ids.Ascendance) and ( aura_env.LastTISpell == ids.ChainLightning ) then
-            -- KTrig("Ascendance") return true end
-            if aura_env.config[tostring(ids.Ascendance)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Ascendance")
-            elseif aura_env.config[tostring(ids.Ascendance)] ~= true then
-                KTrig("Ascendance")
-                return true
-            end
-        end
+            NGSend("Ascendance") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) and ( IsPlayerSpell(ids.AshenCatalystTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.CrashingStormsTalent) and ( NearbyEnemies >= 15 - 5 * (IsPlayerSpell(ids.UnrulyWindsTalent) and 1 or 0) ) ) then
-            KTrig("Crash Lightning") return true end
-
+            NGSend("Crash Lightning") return true end
+        
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and ((GetRemainingSpellCooldown(ids.DoomWinds) > 30 or GetRemainingSpellCooldown(ids.DoomWinds) < 7) and (GetRemainingSpellCooldown(ids.PrimordialWave) < 2 or PlayerHasBuff(ids.PrimordialStormBuff) or not IsPlayerSpell(ids.PrimordialStormTalent))) then
-            -- KTrig("Feral Spirit") return true end
-            if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Feral Spirit")
-            elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-                KTrig("Feral Spirit")
-                return true
-            end
-        end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.DoomWinds) and ( not IsPlayerSpell(ids.ElementalSpiritsTalent) ) then
-            -- KTrig("Doom Winds") return true end
-            if aura_env.config[tostring(ids.DoomWinds)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Doom Winds")
-            elseif aura_env.config[tostring(ids.DoomWinds)] ~= true then
-                KTrig("Doom Winds")
-                return true
-            end
-        end
+            NGSend("Doom Winds") return true end
         
         if PlayerHasBuff(ids.PrimordialStormBuff) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) and ( GetRemainingSpellCooldown(ids.DoomWinds) > 3 ) ) then
-            -- KTrig("Primordial Storm") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Storm")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Storm")
-                return true
-            end
-        end
+            NGSend("Primordial Storm") return true end
         
         if OffCooldown(ids.PrimordialWave) and ( TargetHasDebuff(ids.FlameShockDebuff) and ( FlameShockedEnemies == NearbyEnemies or FlameShockedEnemies == 6 ) ) then
-            -- KTrig("Primordial Wave") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Wave")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Wave")
-                return true
-            end
-        end
+            NGSend("Primordial Wave") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) then
-            KTrig("Windstrike") return true end
-
+            NGSend("Windstrike") return true end
+        
         if OffCooldown(ids.ElementalBlast) and ( ( not IsPlayerSpell(ids.ElementalSpiritsTalent) or ( IsPlayerSpell(ids.ElementalSpiritsTalent) and ( C_Spell.GetSpellCharges(ids.ElementalBlast).currentCharges == C_Spell.GetSpellCharges(ids.ElementalBlast).maxCharges or WolvesOut >= 2 ) ) ) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks and ( not IsPlayerSpell(ids.CrashingStormsTalent) or NearbyEnemies <= 3 ) ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.LavaLash) and ( PlayerHasBuff(ids.HotHandBuff) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) and ( GetPlayerStacks(ids.ElectrostaticWagerBuff) > 8 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Sundering) and ( PlayerHasBuff(ids.DoomWindsBuff) or IsPlayerSpell(ids.EarthsurgeTalent) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) or not IsPlayerSpell(ids.LegacyOfTheFrostWitchTalent) ) and SurgingTotemActive ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
-
+            NGSend("Sundering") return true end
+        
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 and GetPlayerStacks(ids.ElectrostaticWagerBuff) > 4 and not PlayerHasBuff(ids.ClCrashLightningBuff) and PlayerHasBuff(ids.DoomWindsBuff) ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 and not PlayerHasBuff(ids.PrimordialStormBuff) ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.CrashLightning) and ( PlayerHasBuff(ids.DoomWindsBuff) or not PlayerHasBuff(ids.CrashLightningBuff) or ( IsPlayerSpell(ids.AlphaWolfTalent) and WolvesOut and MinAlphaWolfRemains == 0 ) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze then
-            KTrig("Voltaic Blaze") return true end
-
+            NGSend("Voltaic Blaze") return true end
+        
         if OffCooldown(ids.FireNova) and ( ( TargetHasDebuff(ids.FlameShockDebuff) and ( FlameShockedEnemies == NearbyEnemies or FlameShockedEnemies == 6 ) ) and PlayerHasBuff(ids.LivelyTotemsBuff) ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.LavaLash) and ( IsPlayerSpell(ids.MoltenAssaultTalent) and TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.FrostShock) and ( IsPlayerSpell(ids.HailstormTalent) and PlayerHasBuff(ids.HailstormBuff) and PlayerHasBuff(ids.LivelyTotemsBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.CrashingStormsTalent) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FireNova) and ( TargetHasDebuff(ids.FlameShockDebuff) and ( FlameShockedEnemies == NearbyEnemies or FlameShockedEnemies == 6 ) ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.FrostShock) and ( IsPlayerSpell(ids.HailstormTalent) and PlayerHasBuff(ids.HailstormBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
-
+            NGSend("Crash Lightning") return true end
+        
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike and ( IsPlayerSpell(ids.HailstormTalent) and not PlayerHasBuff(ids.IceStrikeBuff) ) then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and not PlayerHasBuff(ids.PrimordialStormBuff) ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and not PlayerHasBuff(ids.PrimordialStormBuff) ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.Sundering) and ( PlayerHasBuff(ids.DoomWindsBuff) or IsPlayerSpell(ids.EarthsurgeTalent) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) or not IsPlayerSpell(ids.LegacyOfTheFrostWitchTalent) ) and SurgingTotemActive ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies == 6 or ( FlameShockedEnemies >= 4 and FlameShockedEnemies == NearbyEnemies ) ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze then
-            KTrig("Voltaic Blaze") return true end
+            NGSend("Voltaic Blaze") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike and ( IsPlayerSpell(ids.HailstormTalent) and not PlayerHasBuff(ids.IceStrikeBuff) ) then 
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.FrostShock) and ( IsPlayerSpell(ids.HailstormTalent) and PlayerHasBuff(ids.HailstormBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.Sundering) and ( ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) or not IsPlayerSpell(ids.LegacyOfTheFrostWitchTalent) ) and SurgingTotemActive ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.FlameShock) and ( IsPlayerSpell(ids.MoltenAssaultTalent) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies >= 3 ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.LavaLash) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
     end
     
     -- Funnel action priority list
     local Funnel = function()
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and ( IsPlayerSpell(ids.ElementalSpiritsTalent) ) then
-            -- KTrig("Feral Spirit") return true end
-            if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Feral Spirit")
-            elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-                KTrig("Feral Spirit")
-                return true
-            end
-        end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.SurgingTotem) and not SurgingTotemActive then
-            KTrig("Surging Totem") return true end
+            NGSend("Surging Totem") return true end
         
         if OffCooldown(ids.Ascendance) then
-            -- KTrig("Ascendance") return true end
-            if aura_env.config[tostring(ids.Ascendance)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Ascendance")
-            elseif aura_env.config[tostring(ids.Ascendance)] ~= true then
-                KTrig("Ascendance")
-                return true
-            end
-        end
+            NGSend("Ascendance") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) and ( ( IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 ) or GetPlayerStacks(ids.ConvergingStormsBuff) == 6 ) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if PlayerHasBuff(ids.TempestBuff) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks or ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and ( aura_env.TempestMaelstromCount > 30 or GetPlayerStacks(ids.AwakeningStormsBuff) == 2 ) ) ) then
-            KTrig("Tempest") return true end
+            NGSend("Tempest") return true end
         
         if OffCooldown(ids.LightningBolt) and ( ( FlameShockedEnemies == NearbyEnemies or FlameShockedEnemies == 6 ) and PlayerHasBuff(ids.PrimordialWaveBuff) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks and ( not PlayerHasBuff(ids.SplinteredElementsBuff) or FightRemains(60, NearbyRange) <= 12  ) ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and IsPlayerSpell(ids.ElementalSpiritsTalent) and WolvesOut >= 4 ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.LightningBolt) and ( IsPlayerSpell(ids.SuperchargeTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks and ( Variables.ExpectedLbFunnel > Variables.ExpectedClFunnel ) ) then        
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.ChainLightning) and ( ( IsPlayerSpell(ids.SuperchargeTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks ) or PlayerHasBuff(ids.ArcDischargeBuff) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.LavaLash) and ( ( IsPlayerSpell(ids.MoltenAssaultTalent) and TargetHasDebuff(ids.FlameShockDebuff) and ( FlameShockedEnemies < NearbyEnemies ) and FlameShockedEnemies < 6 ) or ( IsPlayerSpell(ids.AshenCatalystTalent) and GetPlayerStacks(ids.AshenCatalystBuff) == 8 ) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.PrimordialWave) and ( not PlayerHasBuff(ids.PrimordialWaveBuff) ) then
-            -- KTrig("Primordial Wave") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Wave")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Wave")
-                return true
-            end
-        end
+            NGSend("Primordial Wave") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( not IsPlayerSpell(ids.ElementalSpiritsTalent) or ( IsPlayerSpell(ids.ElementalSpiritsTalent) and ( C_Spell.GetSpellCharges(ids.ElementalBlast).currentCharges == C_Spell.GetSpellCharges(ids.ElementalBlast).maxCharges or PlayerHasBuff(ids.FeralSpiritBuff) ) ) ) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) then
-            -- KTrig("Feral Spirit") return true end
-            if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Feral Spirit")
-            elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-                KTrig("Feral Spirit")
-                return true
-            end
-        end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.DoomWinds) then
-            -- KTrig("Doom Winds") return true end
-            if aura_env.config[tostring(ids.DoomWinds)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Doom Winds")
-            elseif aura_env.config[tostring(ids.DoomWinds)] ~= true then
-                KTrig("Doom Winds")
-                return true
-            end
-        end
+            NGSend("Doom Winds") return true end
         
         if OffCooldown(ids.Stormstrike) and ( GetPlayerStacks(ids.ConvergingStormsBuff) == 6 ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.LavaBurst) and not IsPlayerSpell(ids.ElementalBlast) and ( ( GetPlayerStacks(ids.MoltenWeaponBuff) > GetPlayerStacks(ids.CracklingSurgeBuff) ) and GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks ) then
-            KTrig("Lava Burst") return true end
+            NGSend("Lava Burst") return true end
         
         if OffCooldown(ids.LightningBolt) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks and ( Variables.ExpectedLbFunnel > Variables.ExpectedClFunnel ) ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) == MaxMaelstromStacks ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.CrashLightning) and ( PlayerHasBuff(ids.DoomWindsBuff) or not PlayerHasBuff(ids.CrashLightningBuff) or ( IsPlayerSpell(ids.AlphaWolfTalent) and WolvesOut and MinAlphaWolfRemains == 0 ) or ( IsPlayerSpell(ids.ConvergingStormsTalent) and GetPlayerStacks(ids.ConvergingStormsBuff) < 6 ) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Sundering) and ( PlayerHasBuff(ids.DoomWindsBuff) or IsPlayerSpell(ids.EarthsurgeTalent) ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies == 6 or ( FlameShockedEnemies >= 4 and FlameShockedEnemies == NearbyEnemies ) ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike and ( IsPlayerSpell(ids.HailstormTalent) and not PlayerHasBuff(ids.IceStrikeBuff) ) then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.FrostShock) and ( IsPlayerSpell(ids.HailstormTalent) and PlayerHasBuff(ids.HailstormBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.Sundering) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.FlameShock) and ( IsPlayerSpell(ids.MoltenAssaultTalent) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         -- NG Added
         if OffCooldown(ids.FlameShock) and ( ( IsPlayerSpell(ids.FireNovaTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) and not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         -- Required target switching, so commented it out.
         --if OffCooldown(ids.FlameShock) and ( ( IsPlayerSpell(ids.FireNovaTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) and ( FlameShockedEnemies < NearbyEnemies ) and FlameShockedEnemies < 6 ) then
-        --    KTrig("Flame Shock") return true end
+        --    NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies >= 3 ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.Stormstrike) and ( PlayerHasBuff(ids.CrashLightningBuff) and IsPlayerSpell(ids.DeeplyRootedElementsTalent) ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.CrashingStormsTalent) and PlayerHasBuff(ids.ClCrashLightningBuff) and NearbyEnemies >= 4 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.Stormstrike) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.LavaLash) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies >= 2 ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( not IsPlayerSpell(ids.ElementalSpiritsTalent) or ( IsPlayerSpell(ids.ElementalSpiritsTalent) and ( C_Spell.GetSpellCharges(ids.ElementalBlast).currentCharges == C_Spell.GetSpellCharges(ids.ElementalBlast).maxCharges or PlayerHasBuff(ids.FeralSpiritBuff) ) ) ) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.LavaBurst) and not IsPlayerSpell(ids.ElementalBlast) and ( ( GetPlayerStacks(ids.MoltenWeaponBuff) > GetPlayerStacks(ids.CracklingSurgeBuff) ) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) then
-            KTrig("Lava Burst") return true end
+            NGSend("Lava Burst") return true end
         
         if OffCooldown(ids.LightningBolt) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and ( Variables.ExpectedLbFunnel > Variables.ExpectedClFunnel ) ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.ChainLightning) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) then
-            KTrig("Chain Lightning") return true end
+            NGSend("Chain Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.FrostShock) and ( not IsPlayerSpell(ids.HailstormTalent) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
     end
     
     -- Single target action priority list
     local Single = function()
         
         if PlayerHasBuff(ids.PrimordialStormBuff) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 or GetRemainingAuraDuration("player", ids.PrimordialStormBuff) <= 4 and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) ) then
-            -- KTrig("Primordial Storm") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Storm")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Storm")
-                return true
-            end
-        end
+            NGSend("Primordial Storm") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) and ( IsPlayerSpell(ids.AshenCatalystTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) or IsPlayerSpell(ids.LashingFlamesTalent) ) ) then  
-            KTrig("Flame Shock") return true end
-
+            NGSend("Flame Shock") return true end
+        
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and ( ( GetRemainingSpellCooldown(ids.DoomWinds) > 30 or GetRemainingSpellCooldown(ids.DoomWinds) < 7 ) ) then
-            -- KTrig("Feral Spirit") return true end
-            if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Feral Spirit")
-            elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-                KTrig("Feral Spirit")
-                return true
-            end
-        end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) and ( IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 and aura_env.LastTISpell == ids.LightningBolt ) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.DoomWinds) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) and ( GetRemainingSpellCooldown(ids.FeralSpirit) > 30 or GetRemainingSpellCooldown(ids.FeralSpirit) < 2 ) ) then
-            -- KTrig("Doom Winds") return true end
-            if aura_env.config[tostring(ids.DoomWinds)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Doom Winds")
-            elseif aura_env.config[tostring(ids.DoomWinds)] ~= true then
-                KTrig("Doom Winds")
-                return true
-            end
-        end
+            NGSend("Doom Winds") return true end
         
         if OffCooldown(ids.PrimordialWave) and ( TargetHasDebuff(ids.FlameShockDebuff) ) then
-            -- KTrig("Primordial Wave") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Wave")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Wave")
-                return true
-            end
-        end
+            NGSend("Primordial Wave") return true end
         
         if OffCooldown(ids.Ascendance) and ( ( TargetHasDebuff(ids.FlameShockDebuff) or not IsPlayerSpell(ids.PrimordialWaveTalent) or not IsPlayerSpell(ids.AshenCatalystTalent) ) ) then
-            -- KTrig("Ascendance") return true end
-            if aura_env.config[tostring(ids.Ascendance)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Ascendance")
-            elseif aura_env.config[tostring(ids.Ascendance)] ~= true then
-                KTrig("Ascendance")
-                return true
-            end
-        end
+            NGSend("Ascendance") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) and ( IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 and aura_env.LastTISpell == ids.LightningBolt ) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( ( not IsPlayerSpell(ids.OverflowingMaelstromTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) or ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) ) and GetSpellChargesFractional(ids.ElementalBlast) >= 1.8 ) then
-            KTrig("Elemental Blast") return true end
-
+            NGSend("Elemental Blast") return true end
+        
         if PlayerHasBuff(ids.TempestBuff) and ( ( GetPlayerStacks(ids.TempestBuff) == 3 and ( aura_env.TempestMaelstromCount > 30 or GetPlayerStacks(ids.AwakeningStormsBuff) == 3 ) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) ) then
-            KTrig("Tempest") return true end
+            NGSend("Tempest") return true end
         
         if OffCooldown(ids.LightningBolt) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 and not PlayerHasBuff(ids.PrimordialStormBuff) and GetPlayerStacks(ids.ArcDischargeBuff) > 1 ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( ( not IsPlayerSpell(ids.OverflowingMaelstromTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 ) or ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) ) ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if PlayerHasBuff(ids.TempestBuff) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) then
-            KTrig("Tempest") return true end
+            NGSend("Tempest") return true end
         
         if OffCooldown(ids.LightningBolt) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 9 ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.LavaLash) and ( ( PlayerHasBuff(ids.HotHandBuff) and ( GetPlayerStacks(ids.AshenCatalystBuff) == 8 ) ) or ( GetRemainingDebuffDuration("target", ids.FlameShockDebuff) <= 2 and not IsPlayerSpell(ids.VoltaicBlazeTalent) ) or (IsPlayerSpell(ids.LashingFlamesTalent) and not TargetHasDebuff(ids.LashingFlamesDebuff)) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) and ( ( PlayerHasBuff(ids.DoomWindsBuff) and GetPlayerStacks(ids.ElectrostaticWagerBuff) > 1 ) or GetPlayerStacks(ids.ElectrostaticWagerBuff) > 8 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and ( PlayerHasBuff(ids.DoomWindsBuff) or GetPlayerStacks(ids.StormblastBuff) > 0 ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.UnrelentingStormsTalent) and IsPlayerSpell(ids.AlphaWolfTalent) and MinAlphaWolfRemains == 0 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.LavaLash) and ( PlayerHasBuff(ids.HotHandBuff) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) and ( (SetPieces >= 4) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze then
-            KTrig("Voltaic Blaze") return true end
+            NGSend("Voltaic Blaze") return true end
         
         if OffCooldown(ids.Stormstrike) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.LavaLash) and ( IsPlayerSpell(ids.ElementalAssaultTalent) and IsPlayerSpell(ids.MoltenAssaultTalent) and TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Lava Lash") return true end
-
+            NGSend("Lava Lash") return true end
+        
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.LightningBolt) and ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 5 and not PlayerHasBuff(ids.PrimordialStormBuff) ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.FrostShock) and ( PlayerHasBuff(ids.HailstormBuff) ) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.Sundering) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FrostShock) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         --if OffCooldown(ids.EarthElemental) then
-        --    KTrig("Earth Elemental") return true end
+        --    NGSend("Earth Elemental") return true end
         
         if OffCooldown(ids.FlameShock) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
     end
     
     -- Single target action priority list for the Totemic hero talent tree
     local SingleTotemic = function()
         if OffCooldown(ids.SurgingTotem) and not SurgingTotemActive then
-            KTrig("Surging Totem") return true end
+            NGSend("Surging Totem") return true end
         
         if OffCooldown(ids.Ascendance) and ( aura_env.LastTISpell == ids.LightningBolt and SurgingTotemRemaining > 4 and ( GetPlayerStacks(ids.TotemicReboundBuff) >= 3 or GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 ) ) then
-            -- KTrig("Ascendance") return true end
-            if aura_env.config[tostring(ids.Ascendance)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Ascendance")
-            elseif aura_env.config[tostring(ids.Ascendance)] ~= true then
-                KTrig("Ascendance")
-                return true
-            end
-        end
+            NGSend("Ascendance") return true end
         
         if OffCooldown(ids.FlameShock) and ( not TargetHasDebuff(ids.FlameShockDebuff) and ( IsPlayerSpell(ids.AshenCatalystTalent) or IsPlayerSpell(ids.PrimordialWaveTalent) ) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
         
         if OffCooldown(ids.LavaLash) and ( PlayerHasBuff(ids.HotHandBuff) ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.FeralSpirit) and not IsPlayerSpell(ids.FlowingSpiritsTalent) and ( ( ( GetRemainingSpellCooldown(ids.DoomWinds) > 23 or GetRemainingSpellCooldown(ids.DoomWinds) < 7 ) and ( GetRemainingSpellCooldown(ids.PrimordialWave) < 20 or PlayerHasBuff(ids.PrimordialStormBuff) or not IsPlayerSpell(ids.PrimordialStormTalent) ) ) ) then
-            -- KTrig("Feral Spirit") return true end
-            if aura_env.config[tostring(ids.FeralSpirit)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Feral Spirit")
-            elseif aura_env.config[tostring(ids.FeralSpirit)] ~= true then
-                KTrig("Feral Spirit")
-                return true
-            end
-        end
+            NGSend("Feral Spirit") return true end
         
         if OffCooldown(ids.PrimordialWave) and ( TargetHasDebuff(ids.FlameShockDebuff) ) then
-            -- KTrig("Primordial Wave") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Wave")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Wave")
-                return true
-            end
-        end
+            NGSend("Primordial Wave") return true end
         
         if OffCooldown(ids.DoomWinds) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) ) then
-            -- KTrig("Doom Winds") return true end
-            if aura_env.config[tostring(ids.DoomWinds)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Doom Winds")
-            elseif aura_env.config[tostring(ids.DoomWinds)] ~= true then
-                KTrig("Doom Winds")
-                return true
-            end
-        end
+            NGSend("Doom Winds") return true end
         
         if PlayerHasBuff(ids.PrimordialStormBuff) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) or not IsPlayerSpell(ids.LegacyOfTheFrostWitchTalent) ) and ( GetRemainingSpellCooldown(ids.DoomWinds) >= 15 or PlayerHasBuff(ids.DoomWindsBuff) ) ) then
-            -- KTrig("Primordial Storm") return true end
-            if aura_env.config[tostring(ids.PrimordialWave)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Primordial Storm")
-            elseif aura_env.config[tostring(ids.PrimordialWave)] ~= true then
-                KTrig("Primordial Storm")
-                return true
-            end
-        end
+            NGSend("Primordial Storm") return true end
         
         if OffCooldown(ids.Sundering) and ( PlayerHasBuff(ids.AscendanceBuff) and SurgingTotemActive and IsPlayerSpell(ids.EarthsurgeTalent) and PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) and GetPlayerStacks(ids.TotemicReboundBuff) >= 5 and GetPlayerStacks(ids.EarthenWeaponBuff) >= 2 ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) and ( IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) > 0 and aura_env.LastTISpell == ids.LightningBolt ) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.Sundering) and ( PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) and ( ( GetRemainingSpellCooldown(ids.Ascendance) >= 10 and IsPlayerSpell(ids.AscendanceTalent) ) or not IsPlayerSpell(ids.AscendanceTalent) ) and SurgingTotemActive and GetPlayerStacks(ids.TotemicReboundBuff) >= 3 and not PlayerHasBuff(ids.AscendanceBuff) ) then
-            -- KTrig("Sundering") return true end
-            if aura_env.config[tostring(ids.Sundering)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Sundering")
-            elseif aura_env.config[tostring(ids.Sundering)] ~= true then
-                KTrig("Sundering")
-                return true
-            end
-        end
+            NGSend("Sundering") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.UnrelentingStormsTalent) and IsPlayerSpell(ids.AlphaWolfTalent) and MinAlphaWolfRemains == 0 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.LavaBurst) and not IsPlayerSpell(ids.ElementalBlast) and ( not IsPlayerSpell(ids.ThorimsInvocationTalent) and GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 and PlayerHasBuff(ids.WhirlingAirBuff) == false ) then
-            KTrig("Lava Burst") return true end
+            NGSend("Lava Burst") return true end
         
         if OffCooldown(ids.ElementalBlast) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) and ( PlayerHasBuff(ids.PrimordialStormBuff) == false or GetRemainingAuraDuration("player", ids.PrimordialStormBuff) > 4 ) ) then
-            KTrig("Elemental Blast") return true end
+            NGSend("Elemental Blast") return true end
         
         if OffCooldown(ids.Stormstrike) and ( PlayerHasBuff(ids.DoomWindsBuff) and PlayerHasBuff(ids.LegacyOfTheFrostWitchBuff) ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.LightningBolt) and ( ( GetPlayerStacks(ids.MaelstromWeaponBuff) >= 10 ) and ( PlayerHasBuff(ids.PrimordialStormBuff) == false or GetRemainingAuraDuration("player", ids.PrimordialStormBuff) > 4 ) ) then
-            KTrig("Lightning Bolt") return true end
+            NGSend("Lightning Bolt") return true end
         
         if OffCooldown(ids.CrashLightning) and ( GetPlayerStacks(ids.ElectrostaticWagerBuff) > 4 ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.Stormstrike) and ( PlayerHasBuff(ids.DoomWindsBuff) or GetPlayerStacks(ids.StormblastBuff) > 1 ) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.LavaLash) and ( PlayerHasBuff(ids.WhirlingFireBuff) or GetPlayerStacks(ids.AshenCatalystBuff) >= 8 ) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.Stormstrike) and PlayerHasBuff(ids.Ascendance) then
-            KTrig("Windstrike") return true end
+            NGSend("Windstrike") return true end
         
         if OffCooldown(ids.Stormstrike) then
-            KTrig("Stormstrike") return true end
+            NGSend("Stormstrike") return true end
         
         if OffCooldown(ids.LavaLash) then
-            KTrig("Lava Lash") return true end
+            NGSend("Lava Lash") return true end
         
         if OffCooldown(ids.CrashLightning) and ( (SetPieces >= 4) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FlameShock) and FindSpellOverrideByID(ids.FlameShock) == ids.VoltaicBlaze then
-            KTrig("Voltaic Blaze") return true end
+            NGSend("Voltaic Blaze") return true end
         
         if OffCooldown(ids.CrashLightning) and ( IsPlayerSpell(ids.UnrelentingStormsTalent) ) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.IceStrike) or OffCooldown(ids.FrostShock) and FindSpellOverrideByID(ids.FrostShock) == ids.FrostShockIceStrike and ( not PlayerHasBuff(ids.IceStrikeBuff) ) then
-            KTrig("Ice Strike") return true end
+            NGSend("Ice Strike") return true end
         
         if OffCooldown(ids.CrashLightning) then
-            KTrig("Crash Lightning") return true end
+            NGSend("Crash Lightning") return true end
         
         if OffCooldown(ids.FrostShock) then
-            KTrig("Frost Shock") return true end
+            NGSend("Frost Shock") return true end
         
         if OffCooldown(ids.FireNova) and ( FlameShockedEnemies ) then
-            KTrig("Fire Nova") return true end
+            NGSend("Fire Nova") return true end
         
         --if OffCooldown(ids.EarthElemental) then
-        --    KTrig("Earth Elemental") return true end
+        --    NGSend("Earth Elemental") return true end
         
         if OffCooldown(ids.FlameShock) and ( not IsPlayerSpell(ids.VoltaicBlazeTalent) ) then
-            KTrig("Flame Shock") return true end
+            NGSend("Flame Shock") return true end
     end
     
     if NearbyEnemies <= 1 and not IsPlayerSpell(ids.SurgingTotemTalent) then
-        print("Single")
         if Single() then return true end end
     
     if NearbyEnemies <= 1 and IsPlayerSpell(ids.SurgingTotemTalent) then
-        print("SingleTotemic")
         if SingleTotemic() then return true end end
     
     if NearbyEnemies > 1 and aura_env.config["UseFunnelRotation"] == false and not IsPlayerSpell(ids.SurgingTotemTalent) then
-        print("Aoe")
         if Aoe() then return true end end
     
     if NearbyEnemies > 1 and aura_env.config["UseFunnelRotation"] == false and IsPlayerSpell(ids.SurgingTotemTalent) then
-        print("AoeTotemic")
         if AoeTotemic() then return true end end
     
     if NearbyEnemies > 1 and aura_env.config["UseFunnelRotation"] == true then
-
         if Funnel() then return true end end
     
-    -- Kichi --
-    KTrig("Clear")
-    KTrigCD("Clear")
+    NGSend("Clear")
 end
 
 
@@ -1326,177 +1209,4 @@ function( _,_,subEvent,_,sourceGUID,_,_,_,_,_,_,_,spellID,_, amount)
         aura_env.MinAlphaWolf = 0
     end
     return
-end
-
-
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Rotation load--------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
----- Spell IDs ------------------------------------------------------------------------------------------------
----@class idsTable
-aura_env.ids = {
-    -- Abilities
-    Ascendance = 114051,
-    ChainLightning = 188443,
-    CrashLightning = 187874,
-    DoomWinds = 384352,
-    ElementalBlast = 117014,
-    FeralSpirit = 51533,
-    FireNova = 333974,
-    FlameShock = 470411,
-    FrostShock = 196840,
-    FrostShockIceStrike = 342240,
-    IceStrike = 470194,
-    LavaBurst = 51505,
-    LavaLash = 60103,
-    LightningBolt = 188196,
-    PrimordialWave = 375982,
-    PrimordialStorm = 1218090,
-    Stormstrike = 17364,
-    Sundering = 197214,
-    SurgingTotem = 444995,
-    Tempest = 452201,
-    VoltaicBlaze = 470057,
-    Windstrike = 115356,
-    
-    -- Talents
-    AlphaWolfTalent = 198434,
-    AscendanceTalent = 114051,
-    AshenCatalystTalent = 390370,
-    AwakeningStormsTalent = 455129,
-    ConvergingStormsTalent = 384363,
-    CrashingStormsTalent =  334308,
-    DeeplyRootedElementsTalent = 378270,
-    DoomWindsTalent = 384352,
-    EarthsurgeTalent = 455590,
-    ElementalAssaultTalent = 210853,
-    ElementalSpiritsTalent = 262624,
-    FeralSpiritTalent = 51533,
-    FireNovaTalent = 333974,
-    FlowingSpiritsTalent = 469314,
-    HailstormTalent = 334195,
-    LashingFlamesTalent = 334046,
-    LegacyOfTheFrostWitchTalent = 384450,
-    MoltenAssaultTalent = 334033,
-    OverflowingMaelstromTalent = 384149,
-    PrimordialWaveTalent = 375982,
-    PrimordialStormTalent = 1218047,
-    RagingMaelstromTalent = 384143,
-    StaticAccumulation = 384411,
-    StormblastTalent = 319930,
-    StormflurryTalent = 344357,
-    SuperchargeTalent = 455110,
-    SurgingTotemTalent = 444995,
-    SwirlingMaelstromTalent = 384359,
-    TempestTalent = 454009,
-    ThorimsInvocationTalent = 384444,
-    TotemicRebound = 445025,
-    UnrelentingStormsTalent = 470490,
-    UnrulyWindsTalent = 390288,
-    VoltaicBlazeTalent = 470053,
-    WitchDoctorsAncestryTalent = 384447,
-    
-    -- Buffs
-    ArcDischargeBuff = 455097,
-    AscendanceBuff = 114051,
-    AshenCatalystBuff = 390371,
-    AwakeningStormsBuff = 462131,
-    ClCrashLightningBuff = 333964,
-    ConvergingStormsBuff = 198300,
-    CracklingSurgeBuff = 224127,
-    CrashLightningBuff = 187878,
-    DoomWindsBuff = 466772,
-    EarthenWeaponBuff = 392375,
-    ElectrostaticWagerBuff = 1223410,
-    FeralSpiritBuff = 333957,
-    FlameShockDebuff = 188389,
-    HailstormBuff = 334196,
-    HotHandBuff = 215785,
-    IceStrikeBuff = 384357,
-    IcyEdgeBuff = 224126,
-    LashingFlamesDebuff = 334168,
-    LegacyOfTheFrostWitchBuff = 384451,
-    LightningRodDebuff = 197209,
-    LivelyTotemsBuff = 461242,
-    MaelstromWeaponBuff = 344179,
-    MoltenWeaponBuff = 224125,
-    PrimordialWaveBuff = 375986,
-    PrimordialStormBuff = 1218125,
-    SplinteredElementsBuff = 382043,
-    StormblastBuff = 470466,
-    StormsurgeBuff = 201846,
-    TempestBuff = 454015,
-    TotemicReboundBuff = 458269,
-    VolcanicStrengthBuff = 409833,
-    WhirlingAirBuff = 453409,
-    WhirlingEarthBuff = 453406,
-    WhirlingFireBuff = 453405,
-}
-
-
-aura_env.GetSpellCooldown = function(spellId)
-    local spellCD = C_Spell.GetSpellCooldown(spellId)
-    local spellCharges = C_Spell.GetSpellCharges(spellId)
-    if spellCharges then
-        local rechargeTime = (spellCharges.currentCharges < spellCharges.maxCharges) and (spellCharges.cooldownStartTime + spellCharges.cooldownDuration - GetTime()) or 0
-        return spellCharges.currentCharges, rechargeTime, spellCharges.maxCharges
-    elseif spellCD then
-        local remainingCD = (spellCD.startTime and spellCD.duration) and math.max(spellCD.startTime + spellCD.duration - GetTime(), 0) or 0
-        return 0, remainingCD, 0
-    else
-        return 0, 0, 0
-    end
-end
-
-aura_env.GetSafeSpellIcon = function(spellId)
-    if not spellId or spellId == 0 then
-        return 0  
-    end
-    local spellInfo = C_Spell.GetSpellInfo(spellId)
-    return spellInfo and spellInfo.iconID or 0
-end
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Rotation Trigger--------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
-function(allstates, event, spellID, customData)
-    
-    local ids = aura_env.ids
-    local GetSpellCooldown = aura_env.GetSpellCooldown
-    local GetSafeSpellIcon = aura_env.GetSafeSpellIcon
-    local firstPriority = nil
-    local firstIcon = 0
-    local firstCharges, firstCD, firstMaxCharges = 0, 0, 0
-
-    if spellID and spellID ~= "Clear" then
-        print(spellID)
-        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
-        firstPriority = ids[key]
-        firstIcon = GetSafeSpellIcon(firstPriority)
-        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
-    end
-
-    if spellID == "Clear" then
-        firstIcon = 0
-        firstCharges, firstCD, firstMaxCharges = 0, 0, 0
-    end
-    -- 更新 allstates
-    allstates[1] = {
-        show = true,
-        changed = true,
-        icon = firstIcon,
-        spell = firstPriority,
-        cooldown = firstCD,
-        charges = firstCharges,
-        maxCharges = firstMaxCharges
-    }
-    
-    return true
 end
