@@ -1,11 +1,49 @@
-shaman="TWW2_Shaman_Enhancement_Totemic"
-source=default
-spec=enhancement
+shaman="新能源修狗"
 level=80
-race=maghar_orc
+race=dark_iron_dwarf
+region=cn
+server=安苏
 role=attack
-position=back
+
+spec=enhancement
+
 talents=CcQAL+iDLHPJSLC+6fqMJ8tubOzMjZwMYmxMzMbmxyYGAAAAAAAAAAsgttZMzstoZZbYGNz0gNAMLTmBWWGzMzwMmxMWmZmswywYmBAYGA
+
+
+# 巨狼流放者的锐颚 (480)
+head=,id=217238,bonus_id=10532/10341/8096/10867/1472
+# 法师之城坠饰 (480)
+neck=,id=223637,bonus_id=10341/11311/1537/8767
+# 巨狼流放者的伙伴 (480)
+shoulder=,id=217240,bonus_id=10341/8096/10869/1472
+# 巨狼流放者的链纹 (480)
+back=,id=207204,bonus_id=10341/8096/1511
+# 巨狼流放者的束胸 (480)
+chest=,id=217236,bonus_id=10341/8096/10865/1472
+# 黑铁矮人战袍 (1)
+tabard=,id=161329
+# 巨狼流放者的护腕 (480)
+wrist=,id=207205,bonus_id=10532/10341/8096/1511
+# 巨狼流放者之握 (480)
+hands=,id=217237,bonus_id=10341/8096/10866/1472
+# 巨狼流放者的印记腰带 (480)
+waist=,id=207206,bonus_id=10532/10341/8096/1511
+# 巨狼流放者的裘衬褶裙 (480)
+legs=,id=217239,bonus_id=10341/8096/10868/1472
+# 巨狼流放者的足垫 (480)
+feet=,id=207211,bonus_id=10341/8096/1511
+# 复返回忆之戒 (480)
+finger1=,id=223634,bonus_id=10341/10532/11311/1537/8767
+# 达拉然防御者的青睐 (480)
+finger2=,id=223635,bonus_id=10341/10532/11311/1537/8767
+# 符文法师的雷缚符文 (590)
+trinket1=,id=231118,bonus_id=10279/11215/6652/1452/10255
+# 黑潮驱浪者的法球 (584)
+trinket2=,id=231117,bonus_id=10281/11215/6652/1446/10255
+# 达拉然防御者劈斧 (493)
+main_hand=,id=219230,bonus_id=10313/8902/1615/8767
+# 古旧的玛克迦文之锤 (342)
+off_hand=,id=122385,bonus_id=3592
 
 # Default consumables
 potion=tempered_potion_3
@@ -325,44 +363,54 @@ actions.single_totemic_open+=/lightning_bolt,if=buff.maelstrom_weapon.stack=10
 actions.single_totemic_open+=/stormstrike
 actions.single_totemic_open+=/lava_lash
 
-head=gale_sovereigns_charged_hood,id=229262,ilevel=678,gem_id=213743
-neck=gobfathers_gifted_bling,id=228842,ilevel=678,gem_id=213491/213491
-shoulders=gale_sovereigns_zephyrs,id=229260,ilevel=678
-back=consecrated_cloak,id=222817,bonus_id=10421/9633/8902/11144/10222/1485/11109/8960,ilevel=675,crafted_stats=49/36
-chest=gale_sovereigns_clouded_hauberk,id=229265,ilevel=678,enchant=crystalline_radiance_3
-wrists=made_manacles,id=228878,ilevel=678,gem_id=213491,enchant=chant_of_armored_avoidance_3
-hands=gale_sovereigns_grasps,id=229263,ilevel=678
-waist=gale_sovereigns_ritual_belt,id=229259,ilevel=678,gem_id=213491
-legs=gale_sovereigns_pantaloons,id=229261,ilevel=678,enchant=stormbound_armor_kit_3
-feet=dubious_tablerunners,id=228883,ilevel=678,enchant=defenders_march_3
-finger1=the_jastor_diamond,id=231265,ilevel=678,gem_id=213482/213482,enchant=radiant_haste_3
-finger2=miniature_roulette_wheel,id=228843,bonus_id=11138/8949,ilevel=678,gem_id=213491/213491,enchant=radiant_mastery_3
-trinket1=house_of_cards,id=230027,ilevel=678
-trinket2=eye_of_kezan,id=230198,bonus_id=6652/10356/11996/1527/10255,ilevel=678
-main_hand=gallywixs_iron_thumb,id=228899,ilevel=678,enchant=authority_of_the_depths_3
-off_hand=everforged_mace,id=222442,bonus_id=10421/9633/8902/9627/8793/10222/11144/11300/8960,ilevel=675,enchant=authority_of_the_depths_3,crafted_stats=36/32
 
-# Gear Summary
-# gear_ilvl=677.63
-# gear_agility=51224
-# gear_stamina=392511
-# gear_crit_rating=5308
-# gear_haste_rating=17642
-# gear_mastery_rating=21563
-# gear_versatility_rating=2055
-# gear_avoidance_rating=1090
-# gear_armor=49063
-# set_bonus=thewarwithin_season_2_2pc=1
-# set_bonus=thewarwithin_season_2_4pc=1
 
-shaman="TWW2_Shaman_Enhancement_Totemic_fixopen"
-source=default
-spec=enhancement
+shaman="新能源修狗213"
 level=80
-race=maghar_orc
+race=dark_iron_dwarf
+region=cn
+server=安苏
 role=attack
-position=back
+
+spec=enhancement
+
 talents=CcQAL+iDLHPJSLC+6fqMJ8tubOzMjZwMYmxMzMbmxyYGAAAAAAAAAAsgttZMzstoZZbYGNz0gNAMLTmBWWGzMzwMmxMWmZmswywYmBAYGA
+
+
+# 巨狼流放者的锐颚 (480)
+head=,id=217238,bonus_id=10532/10341/8096/10867/1472
+# 法师之城坠饰 (480)
+neck=,id=223637,bonus_id=10341/11311/1537/8767
+# 巨狼流放者的伙伴 (480)
+shoulder=,id=217240,bonus_id=10341/8096/10869/1472
+# 巨狼流放者的链纹 (480)
+back=,id=207204,bonus_id=10341/8096/1511
+# 巨狼流放者的束胸 (480)
+chest=,id=217236,bonus_id=10341/8096/10865/1472
+# 黑铁矮人战袍 (1)
+tabard=,id=161329
+# 巨狼流放者的护腕 (480)
+wrist=,id=207205,bonus_id=10532/10341/8096/1511
+# 巨狼流放者之握 (480)
+hands=,id=217237,bonus_id=10341/8096/10866/1472
+# 巨狼流放者的印记腰带 (480)
+waist=,id=207206,bonus_id=10532/10341/8096/1511
+# 巨狼流放者的裘衬褶裙 (480)
+legs=,id=217239,bonus_id=10341/8096/10868/1472
+# 巨狼流放者的足垫 (480)
+feet=,id=207211,bonus_id=10341/8096/1511
+# 复返回忆之戒 (480)
+finger1=,id=223634,bonus_id=10341/10532/11311/1537/8767
+# 达拉然防御者的青睐 (480)
+finger2=,id=223635,bonus_id=10341/10532/11311/1537/8767
+# 符文法师的雷缚符文 (590)
+trinket1=,id=231118,bonus_id=10279/11215/6652/1452/10255
+# 黑潮驱浪者的法球 (584)
+trinket2=,id=231117,bonus_id=10281/11215/6652/1446/10255
+# 达拉然防御者劈斧 (493)
+main_hand=,id=219230,bonus_id=10313/8902/1615/8767
+# 古旧的玛克迦文之锤 (342)
+off_hand=,id=122385,bonus_id=3592
 
 # Default consumables
 potion=tempered_potion_3
@@ -370,7 +418,6 @@ flask=flask_of_alchemical_chaos_3
 food=feast_of_the_divine_day
 augmentation=crystallized
 temporary_enchant=disabled
-
 # This default action priority list is automatically created based on your character.
 # It is a attempt to provide you with a action list that is both simple and practicable,
 # while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
@@ -681,34 +728,3 @@ actions.single_totemic_open+=/elemental_blast,if=buff.maelstrom_weapon.stack=10
 actions.single_totemic_open+=/lightning_bolt,if=buff.maelstrom_weapon.stack=10
 actions.single_totemic_open+=/stormstrike
 actions.single_totemic_open+=/lava_lash
-
-head=gale_sovereigns_charged_hood,id=229262,ilevel=678,gem_id=213743
-neck=gobfathers_gifted_bling,id=228842,ilevel=678,gem_id=213491/213491
-shoulders=gale_sovereigns_zephyrs,id=229260,ilevel=678
-back=consecrated_cloak,id=222817,bonus_id=10421/9633/8902/11144/10222/1485/11109/8960,ilevel=675,crafted_stats=49/36
-chest=gale_sovereigns_clouded_hauberk,id=229265,ilevel=678,enchant=crystalline_radiance_3
-wrists=made_manacles,id=228878,ilevel=678,gem_id=213491,enchant=chant_of_armored_avoidance_3
-hands=gale_sovereigns_grasps,id=229263,ilevel=678
-waist=gale_sovereigns_ritual_belt,id=229259,ilevel=678,gem_id=213491
-legs=gale_sovereigns_pantaloons,id=229261,ilevel=678,enchant=stormbound_armor_kit_3
-feet=dubious_tablerunners,id=228883,ilevel=678,enchant=defenders_march_3
-finger1=the_jastor_diamond,id=231265,ilevel=678,gem_id=213482/213482,enchant=radiant_haste_3
-finger2=miniature_roulette_wheel,id=228843,bonus_id=11138/8949,ilevel=678,gem_id=213491/213491,enchant=radiant_mastery_3
-trinket1=house_of_cards,id=230027,ilevel=678
-trinket2=eye_of_kezan,id=230198,bonus_id=6652/10356/11996/1527/10255,ilevel=678
-main_hand=gallywixs_iron_thumb,id=228899,ilevel=678,enchant=authority_of_the_depths_3
-off_hand=everforged_mace,id=222442,bonus_id=10421/9633/8902/9627/8793/10222/11144/11300/8960,ilevel=675,enchant=authority_of_the_depths_3,crafted_stats=36/32
-
-# Gear Summary
-# gear_ilvl=677.63
-# gear_agility=51224
-# gear_stamina=392511
-# gear_crit_rating=5308
-# gear_haste_rating=17642
-# gear_mastery_rating=21563
-# gear_versatility_rating=2055
-# gear_avoidance_rating=1090
-# gear_armor=49063
-# set_bonus=thewarwithin_season_2_2pc=1
-# set_bonus=thewarwithin_season_2_4pc=1
-

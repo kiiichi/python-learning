@@ -1,0 +1,1 @@
+function(v1,v1,v1,v1,v2,v1,v1,v1,v1,v1,v1,v1,v3,v1,v1,v1,v1) local v4=0;while true do if (v4==1) then aura_env.PrevCastTime=GetTime();break;end if (v4==(0 -0)) then if (v2~=UnitGUID("player")) then return false;end aura_env.PrevCast=v3;v4=1423 -(378 + 1044) ;end end end;
