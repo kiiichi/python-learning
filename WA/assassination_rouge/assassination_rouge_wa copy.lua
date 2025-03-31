@@ -739,7 +739,7 @@ function()
     -- Stealthed Actions
     local Stealthed = function()
         -- Apply Deathstalkers Mark if it has fallen off or waiting for Rupture in AoE
-        if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and EffectiveComboPoints < Variables.EffectiveSpendCp and ( TargetHasDebuff(ids.Rupture) or NearbyEnemies <= 1 or not IsPlayerSpell(ids.SubterfugeTalent)) ) then
+        if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and EffectiveComboPoints < Variables.EffectiveSpendCp and ( TargetHasDebuff(ids.Rupture) or NearbyEnemies <= 1 or not IsPlayerSpell(ids.SubterfugeTalent)) ) and not PlayerHasBuff(ids.DarkestNightBuff) then
             KTrig("Ambush") return true end
         
         -- Make sure to have Shiv up during Kingsbane as a final check
@@ -761,14 +761,52 @@ function()
         if OffCooldown(ids.Envenom) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and GetRemainingAuraDuration("player", ids.MasterAssassinBuff) < -1 and (NearbyEnemies < 2) and (TargetHasDebuff(ids.DeathstalkersMarkDebuff) or PlayerHasBuff(ids.ColdBlood) or PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 7) ) then
             KTrig("Envenom") return true end
         
+        -- Kichi --
+        if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 7 and EffectiveComboPoints >= Variables.EffectiveSpendCp and GetRemainingDebuffDuration("target", ids.CrimsonTempest) <= 2 and not PlayerHasBuff(ids.DarkestNightBuff) and Variables.RegenSaturated and Variables.ScentSaturation and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 ) then
+            KTrig("Crimson Tempest") return true end
+
+        -- Kichi -- for quick danmage
+        Variables.DeathmarkConditionInStealthed = TargetHasDebuff(ids.Rupture) and ( Variables.DeathmarkKingsbaneCondition or NearbyEnemies > 1 and EffectiveComboPoints >= Variables.EffectiveSpendCp and Variables.ScentSaturation or not IsPlayerSpell(ids.KingsbaneTalent) and TargetHasDebuff(ids.CrimsonTempest) ) and not TargetHasDebuff(ids.Deathmark) and ( not IsPlayerSpell(ids.MasterAssassinTalent) or TargetHasDebuff(ids.Garrote) )
+
+        -- Kichi -- for quick danmage
+        if OffCooldown(ids.Deathmark) and ( ( (Variables.DeathmarkConditionInStealthed) and TargetTimeToXPct(0, 60) >= 10 ) or FightRemains(60, NearbyRange) <= 20 ) then
+            -- KTrig("Deathmark") return true end
+            if aura_env.config[tostring(ids.Deathmark)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Deathmark", "Quick")
+            elseif aura_env.config[tostring(ids.Deathmark)] ~= true then
+                KTrig("Deathmark")
+                return true
+            end
+        end
+
+        -- Kichi -- for quick danmage
+        if Shiv() then 
+            -- return true end
+            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
+            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
+                return true
+            end
+        end
+
+        -- Kichi -- for quick danmage
+        if OffCooldown(ids.Kingsbane) and ( ( TargetHasDebuff(ids.ShivDebuff) or GetRemainingSpellCooldown(ids.Shiv) < 6 ) and ( PlayerHasBuff(ids.Envenom) or NearbyEnemies > 1 ) and ( GetRemainingSpellCooldown(ids.Deathmark) >= 50 or TargetHasDebuff(ids.Deathmark) ) or FightRemains(60, NearbyRange) <= 15 ) then
+            -- KTrig("Kingsbane") return true end
+            if aura_env.config[tostring(ids.Kingsbane)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Kingsbane", "Quick")
+            elseif aura_env.config[tostring(ids.Kingsbane)] ~= true then
+                KTrig("Kingsbane")
+                return true
+            end
+        end
+
         -- Rupture during Indiscriminate Carnage
         -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
         -- Kichi --
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and true ) then
+        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and TargetTimeToXPct(0, 60) > 15 ) then
             KTrig("Rupture") return true end
         
         -- Improved Garrote: Apply or Refresh with buffed Garrotes, accounting for Indiscriminate Carnage
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyShortGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyRefreshableGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
         
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
@@ -838,11 +876,19 @@ function()
         -- Wait on Deathmark for Garrote with MA and check for Kingsbane
         Variables.DeathmarkMaCondition = not IsPlayerSpell(ids.MasterAssassinTalent) or TargetHasDebuff(ids.Garrote)
         
-        Variables.DeathmarkKingsbaneCondition = not IsPlayerSpell(ids.Kingsbane) or GetRemainingSpellCooldown(ids.Kingsbane) <= 2
+        Variables.DeathmarkKingsbaneCondition = PlayerHasBuff(ids.EnvenomBuff) and GetRemainingSpellCooldown(ids.Kingsbane) <= 2
         
         -- Deathmark to be used if not stealthed, Rupture is up, and all other talent conditions are satisfied
-        Variables.DeathmarkCondition = not IsStealthed and GetRemainingAuraDuration("player", ids.SliceAndDice) > 5 and TargetHasDebuff(ids.Rupture) and ( PlayerHasBuff(ids.Envenom) or NearbyEnemies > 1 ) and not TargetHasDebuff(ids.Deathmark) and Variables.DeathmarkMaCondition and Variables.DeathmarkKingsbaneCondition
+        Variables.DeathmarkCondition = TargetHasDebuff(ids.Rupture) and ( Variables.DeathmarkKingsbaneCondition or NearbyEnemies > 1 and GetRemainingAuraDuration("player", ids.SliceAndDice) > 5 or not IsPlayerSpell(ids.KingsbaneTalent) and TargetHasDebuff(ids.CrimsonTempest) ) and not TargetHasDebuff(ids.Deathmark) and Variables.DeathmarkMaCondition
         
+        -- Kichi -- 
+        Variables.UseCausticFillerInCDs = IsPlayerSpell(ids.CausticSpatterTalent) and TargetHasDebuff(ids.Rupture) and ( not TargetHasDebuff(ids.CausticSpatterDebuff) or GetRemainingDebuffDuration("target", ids.CausticSpatterDebuff) <= WeakAuras.gcdDuration() ) and MaxComboPoints - EffectiveComboPoints > 1 and not (NearbyEnemies < 2)
+        if OffCooldown(ids.Mutilate) and ( Variables.UseCausticFillerInCDs ) then
+            KTrig("Mutilate") return true end
+        
+        if OffCooldown(ids.Ambush) and ( Variables.UseCausticFillerInCDs ) and not PlayerHasBuff(ids.DarkestNightBuff) then
+            KTrig("Ambush") return true end
+
         -- Cast Deathmark if the target will survive long enough
         if OffCooldown(ids.Deathmark) and ( ( Variables.DeathmarkCondition and TargetTimeToXPct(0, 60) >= 10 ) or FightRemains(60, NearbyRange) <= 20 ) then
             -- KTrig("Deathmark") return true end
