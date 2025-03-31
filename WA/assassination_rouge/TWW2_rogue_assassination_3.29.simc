@@ -97,11 +97,11 @@ actions.cds+=/deathmark,if=(variable.deathmark_condition&target.time_to_die>=10)
 actions.cds+=/call_action_list,name=shiv
 actions.cds+=/kingsbane,if=(debuff.shiv.up|cooldown.shiv.remains<6)&(buff.envenom.up|spell_targets.fan_of_knives>1)&(cooldown.deathmark.remains>=50|dot.deathmark.ticking)|fight_remains<=15
 
-
+###################################Changed#####################################
 # Use with shiv or in niche cases at the end of Kingsbane if not already up
 # actions.cds+=/thistle_tea,if=!buff.thistle_tea.up&debuff.shiv.remains>=6|!buff.thistle_tea.up&dot.kingsbane.ticking&dot.kingsbane.remains<=6|!buff.thistle_tea.up&fight_remains<=cooldown.thistle_tea.charges*6
 actions.cds+=/thistle_tea,if=!buff.thistle_tea.up&debuff.shiv.remains>=6&!dot.kingsbane.ticking|!buff.thistle_tea.up&dot.kingsbane.ticking&dot.kingsbane.remains<=6|!buff.thistle_tea.up&fight_remains<=cooldown.thistle_tea.charges*6
-
+###################################Changed#####################################
 
 # Potion/Racials/Other misc cooldowns
 actions.cds+=/call_action_list,name=misc_cds

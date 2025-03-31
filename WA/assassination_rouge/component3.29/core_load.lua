@@ -1,60 +1,84 @@
 WeakAuras.WatchGCD()
 
-aura_env.TemplarStrikeExpires = 0
+-- Kichi --
+_G.KLIST = { 
+    AssassinationRogue = { 
+        aura_env.config["ExcludeList1"],
+        aura_env.config["ExcludeList2"],
+        aura_env.config["ExcludeList3"],
+        aura_env.config["ExcludeList4"],
+    }
+}
+
+aura_env.GarroteSnapshots = {}
+aura_env.Envenom1 = 0
+aura_env.Envenom2 = 0
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
-    AvengingWrath = 31884,
-    ExecutionSentence = 343527,
-    TemplarsVerdict = 85256,
-    FinalVerdict = 383328,
-    WakeOfAshes = 255937,
-    DivineToll = 375576,
-    HammerOfWrath = 24275,
-    TemplarSlash = 406647,
-    TemplarStrike = 407480,
-    BladeOfJustice = 184575,
-    Judgment = 20271,
-    FinalReckoning = 343721,
-    DivineStorm = 53385,
-    DivineHammer = 198034,
-    Crusade = 231895,
-    JusticarsVengeance = 215661,
-    CrusaderStrike = 35395,
-    HammerOfLight = 427453,
+    Ambush = 8676,
+    ColdBlood = 382245,
+    CrimsonTempest = 121411,
+    Deathmark = 360194,
+    EchoingReprimand = 385616,
+    Envenom = 32645,
+    FanOfKnives = 51723,
+    Garrote = 703,
+    Kingsbane = 385627,
+    Mutilate = 1329,
+    Rupture = 1943,
+    Shiv = 5938,
+    SliceAndDice = 315496,
+    ThistleTea = 381623,
+    Vanish = 1856,
     
     -- Talents
-    BladeOfVengeanceTalent = 403826,
-    BlessedChampionTalent = 403010,
-    BoundlessJudgmentTalent = 405278,
-    CrusadingStrikesTalent = 404542,
-    DivineAuxiliaryTalent = 406158,
-    ExecutionersWillTalent = 406940,
-    HolyBladeTalent = 383342,
-    HolyFlamesTalent = 406545,
-    LightsGuidanceTalent = 427445,
-    RadiantGloryTalent = 458359,
-    TempestOfTheLightbringerTalent = 383396,
-    TemplarStrikesTalent = 406646,
-    VanguardsMomentumTalent = 383314,
-    VengefulWrathTalent = 406835,
+    AmplifyingPoisonTalent = 381664,
+    ArterialPrecisionTalent = 400783,
+    BlindsideTalent = 328085,
+    CausticSpatterTalent = 421975,
+    DashingScoundrelTalent = 381797,
+    DeathstalkersMarkTalent = 457052,
+    HandOfFateTalent = 452536,
+    ImprovedGarroteTalent = 381632,
+    IndiscriminateCarnageTalent = 381802,
+    KingsbaneTalent = 385627,
+    LightweightShivTalent = 394983,
+    MasterAssassinTalent = 255989,
+    MomentumOfDespairTalent = 457067,
+    ScentOfBloodTalent = 381799,
+    ShroudedSuffocationTalent = 385478,
+    SubterfugeTalent = 108208,
+    ThrownPrecisionTalent = 381629,
+    ViciousVenomsTalent = 381634,
+    TwistTheKnifeTalent = 381669,
     
-    -- Buffs/Debuffs
-    AllInBuff = 1216837,
-    AvengingWrathBuff = 31884,
-    BlessingOfAnsheBuff = 445206,
-    CrusadeBuff = 231895,
-    DivineArbiterBuff = 406975,
-    DivineHammerBuff = 198034,
-    DivineResonanceBuff = 384029,
-    EmpyreanLegacyBuff = 387178,
-    EmpyreanPowerBuff = 326733,
-    ExpurgationDebuff = 383346,
-    JudgmentDebuff = 197277,
-    RadiantGloryAvangeningWrathBuff = 454351,
-    RadiantGloryCrusadeBuff = 454373,
+    -- Auras
+    AmplifyingPoisonDebuff = 383414,
+    BlindsideBuff = 121153,
+    CausticSpatterDebuff = 421976,
+    ClearTheWitnessesBuff = 457178,
+    CrimsonTempestDebuff = 121411,
+    DarkestNightBuff = 457280,
+    DeadlyPoisonDebuff = 2818,
+    DeathstalkersMarkDebuff = 457129,
+    EnvenomBuff = 32645,
+    FateboundCoinHeadsBuff = 452923,
+    FateboundCoinTailsBuff = 452917,
+    FateboundLuckyCoinBuff = 452562,
+    IndiscriminateCarnageBuff = 385747,
+    KingsbaneDebuff = 385627,
+    LingeringDarknessBuff = 457273,
+    MasterAssassinBuff = 256735,
+    MomentumOfDespairBuff = 457115,
+    VanishBuff = 11327,
+    ScentOfBloodBuff = 394080,
+    ShivDebuff = 319504,
+    SubterfugeBuff = 115192,
+    StealthBuff = 1784,
+    ThistleTeaBuff = 381623,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -87,10 +111,16 @@ aura_env.OffCooldown = function(spellID)
     -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    if (not usable) then return false end
+    if (not usable) and (not nomana) then return false end
     
-    local Duration = C_Spell.GetSpellCooldown(spellID).duration
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    -- Kichi --
+    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    local Cooldown = C_Spell.GetSpellCooldown(spellID)
+    local Duration = Cooldown.duration
+    local Remaining = Cooldown.startTime + Duration - GetTime()
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
+
     if not OffCooldown then return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
@@ -106,10 +136,6 @@ end
 
 aura_env.IsCasting = function(spellID)
     return select(9, UnitCastingInfo("player")) == spellID
-end
-
-aura_env.OffCooldownNotCasting = function(spellID)
-    return aura_env.OffCooldown(spellID) and not aura_env.IsCasting(spellID)
 end
 
 aura_env.GetStacks = function(unit, spellID, filter)
@@ -140,8 +166,11 @@ aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
     return Expiration - GetTime()
 end
 
+-- Kichi --
 aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    if duration == nil then duration = 0 end
+    return duration
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -212,8 +241,9 @@ aura_env.GetRemainingSpellCooldown = function(spellID)
     return Remaining
 end
 
-aura_env.IsAuraRefreshable = function(SpellID, Unit)
-    local Filter = ""
+aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
+    -- Kichi --
+    -- local Filter = ""
     if Unit == nil then 
         Unit = "target" 
         Filter = "HARMFUL|PLAYER" 
@@ -227,6 +257,18 @@ aura_env.IsAuraRefreshable = function(SpellID, Unit)
     return (RemainingTime / Duration) < 0.3
 end
 
+aura_env.GetRemainingStealthDuration = function()
+    if WA_GetUnitAura("player", aura_env.ids.Stealth) then return 999999999 end
+    
+    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.Subterfuge))
+    if SubterfugeExpiration ~= nil then return SubterfugeExpiration end
+    
+    local ShadowDanceExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.ShadowDanceBuff))
+    if ShadowDanceExpiration ~= nil then return ShadowDanceExpiration end
+    
+    return 0
+end
+
 aura_env.HasBloodlust = function()
     return (WA_GetUnitBuff("player", 2825) or WA_GetUnitBuff("player", 264667) or WA_GetUnitBuff("player", 80353) or WA_GetUnitBuff("player", 32182) or WA_GetUnitBuff("player", 390386) or WA_GetUnitBuff("player", 386540))
 end
@@ -237,4 +279,11 @@ end
 
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
+end
+
+-- Kichi --
+aura_env.FullGCD = function()
+    local baseGCD = 1.5
+    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    return FullGCDnum
 end

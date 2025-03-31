@@ -172,8 +172,11 @@ aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
     return Expiration - GetTime()
 end
 
+-- Kichi --
 aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    if duration == nil then duration = 0 end
+    return duration
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -244,8 +247,9 @@ aura_env.GetRemainingSpellCooldown = function(spellID)
     return Remaining
 end
 
-aura_env.IsAuraRefreshable = function(SpellID, Unit)
-    local Filter = ""
+aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
+    -- Kichi --
+    -- local Filter = ""
     if Unit == nil then 
         Unit = "target" 
         Filter = "HARMFUL|PLAYER" 
@@ -378,6 +382,11 @@ function()
     local NearbyEnemies = 0
     local NearbyGarroted = 0
     local NearbyRuptured = 0
+    -- Kichi --
+    local NearbyShortGarroted = 0
+    local NearbyUnenhancedGarroted = 0
+    local NearbyRefreshableGarroted = 0
+    local NearbyRefreshableRuptured = 0
     for i = 1, 40 do
         local unit = "nameplate"..i
         if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
@@ -389,7 +398,25 @@ function()
             if WA_GetUnitDebuff(unit, ids.Rupture, "PLAYER") then
                 NearbyRuptured = NearbyRuptured + 1
             end
-            
+
+            -- Kichi --
+            if GetRemainingDebuffDuration(unit, ids.Garrote) < 12 then 
+                NearbyShortGarroted = NearbyShortGarroted + 1
+            end
+            if aura_env.GarroteSnapshots[UnitGUID(unit)] == nil then 
+                aura_env.GarroteSnapshots[UnitGUID(unit)] = 0
+            end
+            if aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+                NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
+            end
+
+            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+                NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
+            end
+            if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
+                NearbyRefreshableRuptured = NearbyRefreshableRuptured + 1
+            end
+
             -- Energy Regen
             if IsLethalPoisoned(unit) then
                 LethalPoisons = LethalPoisons + 1
@@ -403,6 +430,22 @@ function()
         end
     end
     
+    -- print("------------------")
+    -- print("NearbyEnemies: " .. NearbyEnemies)
+    -- print("NearbyGarroted: " .. NearbyGarroted)
+    -- print("NearbyRuptured: " .. NearbyRuptured)
+    -- print("NearbyShortGarroted: " .. NearbyShortGarroted)
+    -- print("NearbyUnenhancedGarroted: " .. NearbyUnenhancedGarroted)
+    -- print("NearbyRefreshableGarroted: " .. NearbyRefreshableGarroted)
+    -- print("NearbyRefreshableRuptured: " .. NearbyRefreshableRuptured)
+
+    if not (NearbyGarroted < NearbyEnemies) then
+        WeakAuras.ScanEvents("K_NEARBY_GARROTED_SAT")
+    end
+    if not (NearbyRuptured < NearbyEnemies) then
+        WeakAuras.ScanEvents("K_NEARBY_RUPTURED_SAT")
+    end
+
     -- Kichi --
     WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     -- WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
@@ -484,7 +527,7 @@ function()
     ExtraGlows.ColdBlood = true end
     
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
-    
+
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     -- AoE Damage over time abilities
@@ -493,14 +536,26 @@ function()
         if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 2 and IsAuraRefreshable(ids.CrimsonTempest) and EffectiveComboPoints >= Variables.EffectiveSpendCp and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 ) then
             KTrig("Crimson Tempest") return true end
         
+        -- Kichi --
+        if OffCooldown(ids.Garrote) and aura_env.config["PerformanceMode"] == true and ( MaxComboPoints - EffectiveComboPoints >= 1 and NearbyRefreshableGarroted > 0 and not Variables.RegenSaturated ) then
+            KTrig("Garrote", "TAB") return true end
+
         -- Garrote upkeep in AoE to reach energy saturation
         if OffCooldown(ids.Garrote) and ( MaxComboPoints - EffectiveComboPoints >= 1 and ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) and IsAuraRefreshable(ids.Garrote) and not Variables.RegenSaturated and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 12 ) then
             KTrig("Garrote") return true end
+        
+        -- Kichi --
+        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or true ) ) ) and true and not PlayerHasBuff(ids.DarkestNightBuff) ) then
+            KTrig("Rupture", "TAB") return true end
         
         -- Rupture upkeep in AoE to reach energy or scent of blood saturation
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 15 ) ) ) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 7 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) and not PlayerHasBuff(ids.DarkestNightBuff) ) then
             KTrig("Rupture") return true end
         
+        -- Kichi --
+        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and true and not PlayerHasBuff(ids.DarkestNightBuff)) then
+            KTrig("Rupture", "TAB") return true end
+
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 19) and not PlayerHasBuff(ids.DarkestNightBuff)) then
             KTrig("Rupture") return true end
         
@@ -709,11 +764,11 @@ function()
         -- Rupture during Indiscriminate Carnage
         -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
         -- Kichi --
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and TargetTimeToXPct(0, 60) > 15 ) then
+        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and true ) then
             KTrig("Rupture") return true end
         
         -- Improved Garrote: Apply or Refresh with buffed Garrotes, accounting for Indiscriminate Carnage
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( GetRemainingDebuffDuration("target", ids.Garrote) < 12 or ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyShortGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
         
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
@@ -759,7 +814,7 @@ function()
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+                KTrigCD("Vanish", "APL5")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -829,7 +884,7 @@ function()
         end
 
     end
-    
+
     -- Call Stealthed Actions
     if IsStealthed or HasImprovedGarroteBuff or abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) > 0 then
         if Stealthed() then 
@@ -858,8 +913,8 @@ function()
         return true end
     
     KTrig("Clear")
-end
 
+end
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
@@ -891,53 +946,14 @@ function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellI
             aura_env.GarroteSnapshots[targetGUID] = Multiplier
         end
     end
-end
 
+    -- Kichi --
+    if subEvent == "SPELL_AURA_REMOVED" then 
+        if spellID == aura_env.ids.Garrote then
+            aura_env.GarroteSnapshots[targetGUID] = nil
+        end
+    end
 
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Garrote Load------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
-aura_env.NearbyGarroted = 0
-aura_env.MissingGarrote = 0
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Garrote Trig------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
--- K_GARROTE_DATA
-
-function(event, NearbyGarroted, NearbyEnemies)
-    aura_env.NearbyGarroted = NearbyGarroted
-    aura_env.MissingGarrote = NearbyEnemies - NearbyGarroted
-    return true
-end
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Rupture Load------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
-aura_env.NearbyRuptured = 0
-aura_env.MissingRupture = 0
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Rupture Trig------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
--- K_RUPTURE_DATA
-
-function(event, NearbyRuptured, NearbyEnemies)
-    aura_env.NearbyRuptured = NearbyRuptured
-    aura_env.MissingRupture = NearbyEnemies - NearbyRuptured
-    return true
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -1169,5 +1185,33 @@ function(allstates, event, spellID, customData)
         maxCharges = firstMaxCharges
     }
     
+    return true
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Trig3------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- K_GARROTE_DATA
+
+function(event, NearbyGarroted, NearbyEnemies)
+    aura_env.NearbyGarroted = NearbyGarroted
+    aura_env.MissingGarrote = NearbyEnemies - NearbyGarroted
+    return true
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Trig4------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- K_RUPTURE_DATA
+
+function(event, NearbyRuptured, NearbyEnemies)
+    aura_env.NearbyRuptured = NearbyRuptured
+    aura_env.MissingRupture = NearbyEnemies - NearbyRuptured
     return true
 end

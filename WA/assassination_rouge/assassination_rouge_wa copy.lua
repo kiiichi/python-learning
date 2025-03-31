@@ -79,6 +79,11 @@ function()
     local NearbyEnemies = 0
     local NearbyGarroted = 0
     local NearbyRuptured = 0
+    -- Kichi --
+    local NearbyShortGarroted = 0
+    local NearbyUnenhancedGarroted = 0
+    local NearbyRefreshableGarroted = 0
+    local NearbyRefreshableRuptured = 0
     for i = 1, 40 do
         local unit = "nameplate"..i
         if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
@@ -90,7 +95,25 @@ function()
             if WA_GetUnitDebuff(unit, ids.Rupture, "PLAYER") then
                 NearbyRuptured = NearbyRuptured + 1
             end
-            
+
+            -- Kichi --
+            if GetRemainingDebuffDuration(unit, ids.Garrote) < 12 then 
+                NearbyShortGarroted = NearbyShortGarroted + 1
+            end
+            if aura_env.GarroteSnapshots[UnitGUID(unit)] == nil then 
+                aura_env.GarroteSnapshots[UnitGUID(unit)] = 0
+            end
+            if aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+                NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
+            end
+
+            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+                NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
+            end
+            if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
+                NearbyRefreshableRuptured = NearbyRefreshableRuptured + 1
+            end
+
             -- Energy Regen
             if IsLethalPoisoned(unit) then
                 LethalPoisons = LethalPoisons + 1
@@ -104,6 +127,22 @@ function()
         end
     end
     
+    print("------------------")
+    print("NearbyEnemies: " .. NearbyEnemies)
+    print("NearbyGarroted: " .. NearbyGarroted)
+    print("NearbyRuptured: " .. NearbyRuptured)
+    print("NearbyShortGarroted: " .. NearbyShortGarroted)
+    print("NearbyUnenhancedGarroted: " .. NearbyUnenhancedGarroted)
+    print("NearbyRefreshableGarroted: " .. NearbyRefreshableGarroted)
+    print("NearbyRefreshableRuptured: " .. NearbyRefreshableRuptured)
+
+    if not (NearbyGarroted < NearbyEnemies) then
+        WeakAuras.ScanEvents("K_NEARBY_GARROTED_SAT")
+    end
+    if not (NearbyRuptured < NearbyEnemies) then
+        WeakAuras.ScanEvents("K_NEARBY_RUPTURED_SAT")
+    end
+
     -- Kichi --
     WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     -- WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
@@ -185,7 +224,7 @@ function()
     ExtraGlows.ColdBlood = true end
     
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
-    
+
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     -- AoE Damage over time abilities
@@ -194,14 +233,26 @@ function()
         if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 2 and IsAuraRefreshable(ids.CrimsonTempest) and EffectiveComboPoints >= Variables.EffectiveSpendCp and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 ) then
             KTrig("Crimson Tempest") return true end
         
+        -- Kichi --
+        if OffCooldown(ids.Garrote) and aura_env.config["PerformanceMode"] == true and ( MaxComboPoints - EffectiveComboPoints >= 1 and NearbyRefreshableGarroted > 0 and not Variables.RegenSaturated ) then
+            KTrig("Garrote", "TAB") return true end
+
         -- Garrote upkeep in AoE to reach energy saturation
         if OffCooldown(ids.Garrote) and ( MaxComboPoints - EffectiveComboPoints >= 1 and ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) and IsAuraRefreshable(ids.Garrote) and not Variables.RegenSaturated and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 12 ) then
             KTrig("Garrote") return true end
+        
+        -- Kichi --
+        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or true ) ) ) and true and not PlayerHasBuff(ids.DarkestNightBuff) ) then
+            KTrig("Rupture", "TAB") return true end
         
         -- Rupture upkeep in AoE to reach energy or scent of blood saturation
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 15 ) ) ) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 7 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) and not PlayerHasBuff(ids.DarkestNightBuff) ) then
             KTrig("Rupture") return true end
         
+        -- Kichi --
+        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and true and not PlayerHasBuff(ids.DarkestNightBuff)) then
+            KTrig("Rupture", "TAB") return true end
+
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 19) and not PlayerHasBuff(ids.DarkestNightBuff)) then
             KTrig("Rupture") return true end
         
@@ -228,12 +279,10 @@ function()
     -- Direct Damage Abilities Envenom at applicable cp if not pooling, capped on amplifying poison stacks, on an animacharged CP, or in aoe.
     local Direct = function()
         if OffCooldown(ids.Envenom) and ( not PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( Variables.NotPooling or GetTargetStacks(ids.AmplifyingPoisonDebuff) >= 20 or not (NearbyEnemies < 2) ) and not PlayerHasBuff(ids.VanishBuff) ) then
-            print("1")
             KTrig("Envenom") return true end
         
         -- Special Envenom handling for Darkest Night
         if OffCooldown(ids.Envenom) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= MaxComboPoints ) then
-            print("2")
             KTrig("Envenom") return true end
         
         -- Check if we should be using a filler
@@ -245,22 +294,18 @@ function()
         Variables.UseCausticFiller = IsPlayerSpell(ids.CausticSpatterTalent) and TargetHasDebuff(ids.Rupture) and ( not TargetHasDebuff(ids.CausticSpatterDebuff) or GetRemainingDebuffDuration("target", ids.CausticSpatterDebuff) <= 3 ) and MaxComboPoints - EffectiveComboPoints > 1 and not (NearbyEnemies < 2)     
         
         if OffCooldown(ids.Mutilate) and ( Variables.UseCausticFiller ) then
-            print("3")
             KTrig("Mutilate") return true end
         
         if OffCooldown(ids.Ambush) and ( Variables.UseCausticFiller ) then
-            print("4")
             KTrig("Ambush") return true end
 
         -- Fan of Knives at 6cp for Darkest Night
         if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 6 and ( not IsPlayerSpell(ids.ViciousVenomsTalent) or NearbyEnemies >= 2) ) then
-            print("5")
             KTrig("Fan of Knives") return true end
         
         -- Fan of Knives at 3+ targets, accounting for various edge cases
         -- Kichi --
         if OffCooldown(ids.FanOfKnives) and (Variables.UseFiller and Variables.FokTargetCount ) then
-            print("6")
             -- KTrig("Fan of Knives") return true end
             if Variables.NotPooling
             then
@@ -272,7 +317,6 @@ function()
         
         -- Ambush on Blindside/Subterfuge. Do not use Ambush from stealth during Kingsbane & Deathmark.
         if OffCooldown(ids.Ambush) and ( Variables.UseFiller and ( PlayerHasBuff(ids.BlindsideBuff) or IsStealthed ) and ( not TargetHasDebuff(ids.Kingsbane) or TargetHasDebuff(ids.Deathmark) == false or PlayerHasBuff(ids.BlindsideBuff) ) ) then
-            print("7")
             -- KTrig("Ambush") return true end
             if Variables.NotPooling
             then
@@ -285,7 +329,6 @@ function()
         
         -- Tab-Mutilate to apply Deadly Poison at 2 targets if not using Fan of Knives
         if OffCooldown(ids.Mutilate) and ( not TargetHasDebuff(ids.DeadlyPoisonDebuff) and not TargetHasDebuff(ids.AmplifyingPoisonDebuff) and Variables.UseFiller and NearbyEnemies == 2 ) then
-            print("8")
             -- KTrig("Mutilate") return true end
             if Variables.NotPooling
             then
@@ -297,7 +340,6 @@ function()
         
         -- Fallback Mutilate
         if OffCooldown(ids.Mutilate) and ( Variables.UseFiller ) then
-            print("9")
             -- KTrig("Mutilate") return true end
             if Variables.NotPooling 
             then
@@ -419,11 +461,11 @@ function()
         -- Rupture during Indiscriminate Carnage
         -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
         -- Kichi --
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and TargetTimeToXPct(0, 60) > 15 ) then
+        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and true ) then
             KTrig("Rupture") return true end
         
         -- Improved Garrote: Apply or Refresh with buffed Garrotes, accounting for Indiscriminate Carnage
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( GetRemainingDebuffDuration("target", ids.Garrote) < 12 or ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyShortGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
         
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
@@ -469,7 +511,7 @@ function()
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+                KTrigCD("Vanish", "APL5")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -539,33 +581,34 @@ function()
         end
 
     end
-    
+
     -- Call Stealthed Actions
     if IsStealthed or HasImprovedGarroteBuff or abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) > 0 then
         if Stealthed() then 
-            print("Stealthed")
+            -- print("Stealthed")
             return true end end
     
     -- Call Cooldowns    
     if Cds() then 
-        print("Cds")
+        -- print("Cds")
         return true end
     
     -- Call Core DoT effects
     if CoreDot() then 
-        print("CoreDot")
+        -- print("CoreDot")
         return true end
     
     -- Call AoE DoTs when in AoE
     if not (NearbyEnemies < 2) then
         if AoeDot() then 
-            print("AoeDot")
+            -- print("AoeDot")
             return true end end
     
     -- Call Direct Damage Abilities
     if Direct() then 
-        print("Direct")
+        -- print("Direct")
         return true end
     
     KTrig("Clear")
+
 end

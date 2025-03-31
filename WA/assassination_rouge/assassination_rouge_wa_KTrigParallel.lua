@@ -1,4 +1,313 @@
-env.test = function()
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Load--------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+WeakAuras.WatchGCD()
+
+-- Kichi --
+_G.KLIST = { 
+    AssassinationRogue = { 
+        aura_env.config["ExcludeList1"],
+        aura_env.config["ExcludeList2"],
+        aura_env.config["ExcludeList3"],
+        aura_env.config["ExcludeList4"],
+    }
+}
+
+aura_env.GarroteSnapshots = {}
+aura_env.Envenom1 = 0
+aura_env.Envenom2 = 0
+
+---- Spell IDs ------------------------------------------------------------------------------------------------
+---@class idsTable
+aura_env.ids = {
+    -- Abilities
+    Ambush = 8676,
+    ColdBlood = 382245,
+    CrimsonTempest = 121411,
+    Deathmark = 360194,
+    EchoingReprimand = 385616,
+    Envenom = 32645,
+    FanOfKnives = 51723,
+    Garrote = 703,
+    Kingsbane = 385627,
+    Mutilate = 1329,
+    Rupture = 1943,
+    Shiv = 5938,
+    SliceAndDice = 315496,
+    ThistleTea = 381623,
+    Vanish = 1856,
+    
+    -- Talents
+    AmplifyingPoisonTalent = 381664,
+    ArterialPrecisionTalent = 400783,
+    BlindsideTalent = 328085,
+    CausticSpatterTalent = 421975,
+    DashingScoundrelTalent = 381797,
+    DeathstalkersMarkTalent = 457052,
+    HandOfFateTalent = 452536,
+    ImprovedGarroteTalent = 381632,
+    IndiscriminateCarnageTalent = 381802,
+    KingsbaneTalent = 385627,
+    LightweightShivTalent = 394983,
+    MasterAssassinTalent = 255989,
+    MomentumOfDespairTalent = 457067,
+    ScentOfBloodTalent = 381799,
+    ShroudedSuffocationTalent = 385478,
+    SubterfugeTalent = 108208,
+    ThrownPrecisionTalent = 381629,
+    ViciousVenomsTalent = 381634,
+    TwistTheKnifeTalent = 381669,
+    
+    -- Auras
+    AmplifyingPoisonDebuff = 383414,
+    BlindsideBuff = 121153,
+    CausticSpatterDebuff = 421976,
+    ClearTheWitnessesBuff = 457178,
+    CrimsonTempestDebuff = 121411,
+    DarkestNightBuff = 457280,
+    DeadlyPoisonDebuff = 2818,
+    DeathstalkersMarkDebuff = 457129,
+    EnvenomBuff = 32645,
+    FateboundCoinHeadsBuff = 452923,
+    FateboundCoinTailsBuff = 452917,
+    FateboundLuckyCoinBuff = 452562,
+    IndiscriminateCarnageBuff = 385747,
+    KingsbaneDebuff = 385627,
+    LingeringDarknessBuff = 457273,
+    MasterAssassinBuff = 256735,
+    MomentumOfDespairBuff = 457115,
+    VanishBuff = 11327,
+    ScentOfBloodBuff = 394080,
+    ShivDebuff = 319504,
+    SubterfugeBuff = 115192,
+    StealthBuff = 1784,
+    ThistleTeaBuff = 381623,
+}
+
+---- Utility Functions ----------------------------------------------------------------------------------------
+aura_env.OutOfRange = false
+
+-- Kichi --
+-- Kichi --
+aura_env.KTrig = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    if aura_env.FlagKTrigCD then
+        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
+    end
+    if aura_env.FlagKTrigParallel then
+        WeakAuras.ScanEvents("K_TRIGED_PARALLEL", "Clear", ...)
+    end
+    aura_env.FlagKTrigCD = flase
+    aura_env.FlagKTrigParallel = false
+end
+
+aura_env.KTrigCD = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigCD = false
+end
+
+aura_env.KTrigParallel = function(Name, ...)
+    WeakAuras.ScanEvents("K_TRIGED_PARALLEL", Name, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigParallel = false
+end
+
+aura_env.OffCooldown = function(spellID)
+    if spellID == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    if not IsPlayerSpell(spellID) then return false end
+    -- Kichi --
+    -- if aura_env.config[tostring(spellID)] == false then return false end
+    
+    local usable, nomana = C_Spell.IsSpellUsable(spellID)
+    if (not usable) and (not nomana) then return false end
+    
+    -- Kichi --
+    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    local Cooldown = C_Spell.GetSpellCooldown(spellID)
+    local Duration = Cooldown.duration
+    local Remaining = Cooldown.startTime + Duration - GetTime()
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
+
+    if not OffCooldown then return false end
+    
+    local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
+    local InRange = (SpellIdx and C_SpellBook.IsSpellBookItemInRange(SpellIdx, SpellBank, "target")) -- safety
+    
+    if InRange == false then
+        aura_env.OutOfRange = true
+        --return false
+    end
+    
+    return true
+end
+
+aura_env.IsCasting = function(spellID)
+    return select(9, UnitCastingInfo("player")) == spellID
+end
+
+aura_env.GetStacks = function(unit, spellID, filter)
+    local _,_,Stacks = WA_GetUnitAura(unit, spellID, filter)
+    if Stacks == nil then Stacks = 0 end
+    return Stacks
+end
+
+aura_env.GetPlayerStacks = function(spellID)
+    return aura_env.GetStacks("player", spellID)
+end
+
+aura_env.GetTargetStacks = function(spellID)
+    return aura_env.GetStacks("target", spellID, "PLAYER|HARMFUL")
+end
+
+aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
+    if spellID == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    if filter == nil then filter = "PLAYER" end
+    local AuraFound = WA_GetUnitAura(unit, spellID, filter)
+    
+    if AuraFound == nil then return 0 end
+    local Expiration = select(6, WA_GetUnitAura(unit, spellID, filter))
+    if Expiration == nil then return 0 end
+    return Expiration - GetTime()
+end
+
+aura_env.GetRemainingDebuffDuration = function(unit, spellID)
+    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+end
+
+aura_env.GetSpellChargesFractional = function(spellID)
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    local CurrentCharges = ChargeInfo.currentCharges
+    if ChargeInfo.cooldownStartTime == 0 then return CurrentCharges end
+    
+    local FractionalCharge = (GetTime() - ChargeInfo.cooldownStartTime) / ChargeInfo.cooldownDuration
+    return CurrentCharges + FractionalCharge
+end
+
+aura_env.GetTimeToNextCharge = function(spellID)
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    local MissingCharges = ChargeInfo.maxCharges - ChargeInfo.currentCharges
+    if MissingCharges == 0 then return 0 end
+    
+    local TimeRemaining = ChargeInfo.cooldownStartTime + ChargeInfo.cooldownDuration - GetTime()
+    return TimeRemaining
+end
+
+aura_env.GetTimeToFullCharges = function(spellID)
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    local MissingCharges = ChargeInfo.maxCharges - ChargeInfo.currentCharges
+    if MissingCharges == 0 then return 0 end
+    
+    local TimeRemaining = ChargeInfo.cooldownStartTime + ChargeInfo.cooldownDuration - GetTime()
+    if MissingCharges > 1 then 
+        TimeRemaining = TimeRemaining + (ChargeInfo.cooldownDuration * (MissingCharges-1))
+    end
+    return TimeRemaining
+end
+
+aura_env.TargetTimeToXPct = function(Pct, Default)
+    if Default == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    if HeroLib == nil then
+        return Default
+    end
+    
+    return HeroLib.Unit.Target:TimeToX(Pct)
+end
+
+aura_env.FightRemains = function(Default, NearbyRange)
+    if Default == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    if HeroLib == nil then
+        return Default
+    end
+    
+    return HeroLib.FightRemains(HeroLib.Unit.Player:GetEnemiesInRange(NearbyRange))
+end
+
+aura_env.GetRemainingSpellCooldown = function(spellID)
+    if spellID == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    local ChargeInfo = C_Spell.GetSpellCharges(spellID)
+    if ChargeInfo and C_Spell.GetSpellCharges(spellID).currentCharges >= 1 then return 0 end
+    
+    local Cooldown = C_Spell.GetSpellCooldown(spellID)
+    local Remaining = Cooldown.startTime + Cooldown.duration - GetTime()
+    if (Cooldown.duration == 0 or Cooldown.duration == WeakAuras.gcdDuration()) then Remaining = 0 end
+    return Remaining
+end
+
+aura_env.IsAuraRefreshable = function(SpellID, Unit)
+    local Filter = ""
+    if Unit == nil then 
+        Unit = "target" 
+        Filter = "HARMFUL|PLAYER" 
+    end
+    
+    local _,_,_,_,Duration,ExpirationTime = WA_GetUnitAura(Unit, SpellID, Filter)
+    if Duration == nil then return true end
+    
+    local RemainingTime = ExpirationTime - GetTime()
+    
+    return (RemainingTime / Duration) < 0.3
+end
+
+aura_env.GetRemainingStealthDuration = function()
+    if WA_GetUnitAura("player", aura_env.ids.Stealth) then return 999999999 end
+    
+    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.Subterfuge))
+    if SubterfugeExpiration ~= nil then return SubterfugeExpiration end
+    
+    local ShadowDanceExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.ShadowDanceBuff))
+    if ShadowDanceExpiration ~= nil then return ShadowDanceExpiration end
+    
+    return 0
+end
+
+aura_env.HasBloodlust = function()
+    return (WA_GetUnitBuff("player", 2825) or WA_GetUnitBuff("player", 264667) or WA_GetUnitBuff("player", 80353) or WA_GetUnitBuff("player", 32182) or WA_GetUnitBuff("player", 390386) or WA_GetUnitBuff("player", 386540))
+end
+
+aura_env.PlayerHasBuff = function(spellID)
+    return WA_GetUnitBuff("player", spellID) ~= nil
+end
+
+aura_env.TargetHasDebuff = function(spellID)
+    return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
+end
+
+-- Kichi --
+aura_env.FullGCD = function()
+    local baseGCD = 1.5
+    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    return FullGCDnum
+end
+
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Core1--------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+function()
     if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
     then
         return 
@@ -29,6 +338,8 @@ env.test = function()
     local KTrig = aura_env.KTrig
     local KTrigCD = aura_env.KTrigCD
     aura_env.FlagKTrigCD = true
+    local KTrigParallel = aura_env.KTrigParallel
+    aura_env.FlagKTrigParallel = true
     local FullGCD = aura_env.FullGCD
     
     ---@class idsTable
@@ -79,11 +390,6 @@ env.test = function()
     local NearbyEnemies = 0
     local NearbyGarroted = 0
     local NearbyRuptured = 0
-    -- Kichi --
-    local NearbyShortGarroted = 0
-    local NearbyUnenhancedGarroted = 0
-    local NearbyRefreshableGarroted = 0
-    local NearbyRefreshableRuptured = 0
     for i = 1, 40 do
         local unit = "nameplate"..i
         if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
@@ -95,25 +401,7 @@ env.test = function()
             if WA_GetUnitDebuff(unit, ids.Rupture, "PLAYER") then
                 NearbyRuptured = NearbyRuptured + 1
             end
-
-            -- Kichi --
-            if GetRemainingDebuffDuration(unit, ids.Garrote) < 12 then 
-                NearbyShortGarroted = NearbyShortGarroted + 1
-            end
-            if aura_env.GarroteSnapshots[UnitGUID(unit)] == nil then 
-                aura_env.GarroteSnapshots[UnitGUID(unit)] = 0
-            end
-            if aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
-                NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
-            end
-
-            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
-                NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
-            end
-            if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
-                NearbyRefreshableRuptured = NearbyRefreshableRuptured + 1
-            end
-
+            
             -- Energy Regen
             if IsLethalPoisoned(unit) then
                 LethalPoisons = LethalPoisons + 1
@@ -127,22 +415,6 @@ env.test = function()
         end
     end
     
-    -- print("------------------")
-    -- print("NearbyEnemies: " .. NearbyEnemies)
-    -- print("NearbyGarroted: " .. NearbyGarroted)
-    -- print("NearbyRuptured: " .. NearbyRuptured)
-    -- print("NearbyShortGarroted: " .. NearbyShortGarroted)
-    -- print("NearbyUnenhancedGarroted: " .. NearbyUnenhancedGarroted)
-    -- print("NearbyRefreshableGarroted: " .. NearbyRefreshableGarroted)
-    -- print("NearbyRefreshableRuptured: " .. NearbyRefreshableRuptured)
-
-    if not (NearbyGarroted < NearbyEnemies) then
-        WeakAuras.ScanEvents("K_NEARBY_GARROTED_SAT")
-    end
-    if not (NearbyRuptured < NearbyEnemies) then
-        WeakAuras.ScanEvents("K_NEARBY_RUPTURED_SAT")
-    end
-
     -- Kichi --
     WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     -- WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
@@ -233,26 +505,14 @@ env.test = function()
         if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 2 and IsAuraRefreshable(ids.CrimsonTempest) and EffectiveComboPoints >= Variables.EffectiveSpendCp and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 ) then
             KTrig("Crimson Tempest") return true end
         
-        -- Kichi --
-        if OffCooldown(ids.Garrote) and aura_env.config["PerformanceMode"] == true and ( MaxComboPoints - EffectiveComboPoints >= 1 and NearbyRefreshableGarroted > 0 and not Variables.RegenSaturated ) then
-            KTrig("Garrote", "TAB") return true end
-
         -- Garrote upkeep in AoE to reach energy saturation
         if OffCooldown(ids.Garrote) and ( MaxComboPoints - EffectiveComboPoints >= 1 and ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) and IsAuraRefreshable(ids.Garrote) and not Variables.RegenSaturated and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 12 ) then
             KTrig("Garrote") return true end
-        
-        -- Kichi --
-        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or true ) ) ) and true and not PlayerHasBuff(ids.DarkestNightBuff) ) then
-            KTrig("Rupture", "TAB") return true end
         
         -- Rupture upkeep in AoE to reach energy or scent of blood saturation
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 15 ) ) ) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 7 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) and not PlayerHasBuff(ids.DarkestNightBuff) ) then
             KTrig("Rupture") return true end
         
-        -- Kichi --
-        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and true and not PlayerHasBuff(ids.DarkestNightBuff)) then
-            KTrig("Rupture", "TAB") return true end
-
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 19) and not PlayerHasBuff(ids.DarkestNightBuff)) then
             KTrig("Rupture") return true end
         
@@ -461,24 +721,82 @@ env.test = function()
         -- Rupture during Indiscriminate Carnage
         -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
         -- Kichi --
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and true ) then
+        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and TargetTimeToXPct(0, 60) > 15 ) then
             KTrig("Rupture") return true end
         
         -- Improved Garrote: Apply or Refresh with buffed Garrotes, accounting for Indiscriminate Carnage
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyShortGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( GetRemainingDebuffDuration("target", ids.Garrote) < 12 or ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
         
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
             KTrig("Garrote") return true end
     end
     
+    -- -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
+    -- local Vanish = function()
+    --     -- Vanish to fish for Fateful Ending
+    --     if OffCooldown(ids.Vanish) and ( not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) ) then
+    --         -- KTrig("Vanish") return true end
+    --         if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+    --             KTrigCD("Vanish")
+    --         elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+    --             KTrig("Vanish")
+    --             return true
+    --         end
+    --     end
+        
+    --     -- Vanish to spread Garrote during Deathmark without Indiscriminate Carnage
+    --     if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.MasterAssassinTalent) and not IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 ) and MaxComboPoints - EffectiveComboPoints >= min(NearbyEnemies, 4) ) then
+    --         -- KTrig("Vanish") return true end
+    --         if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+    --             KTrigCD("Vanish")
+    --         elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+    --             KTrig("Vanish")
+    --             return true
+    --         end
+    --     end
+        
+    --     -- Vanish for cleaving Garrotes with Indiscriminate Carnage
+    --     if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and NearbyEnemies > 2 and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Vanish) > 15  ) ) then
+    --         -- KTrig("Vanish") return true end
+    --         if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+    --             KTrigCD("Vanish")
+    --         elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+    --             KTrig("Vanish")
+    --             return true
+    --         end
+    --     end
+        
+    --     -- Vanish fallback for Master Assassin
+    --     if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
+    --         -- KTrig("Vanish") return true end
+    --         if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+    --             KTrigCD("Vanish")
+    --         elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+    --             KTrig("Vanish")
+    --             return true
+    --         end
+    --     end
+        
+    --     -- Vanish fallback for Improved Garrote during Deathmark if no add waves are expected
+    --     if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 )  ) then   
+    --         -- KTrig("Vanish") return true end
+    --         if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+    --             KTrigCD("Vanish")
+    --         elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+    --             KTrig("Vanish")
+    --             return true
+    --         end
+    --     end
+    -- end
+
     -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
     local Vanish = function()
         -- Vanish to fish for Fateful Ending
         if OffCooldown(ids.Vanish) and ( not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) ) then
             -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+            if aura_env.config[tostring(ids.Vanish)] == true then
+                KTrigParallel("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -488,8 +806,8 @@ env.test = function()
         -- Vanish to spread Garrote during Deathmark without Indiscriminate Carnage
         if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.MasterAssassinTalent) and not IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 ) and MaxComboPoints - EffectiveComboPoints >= min(NearbyEnemies, 4) ) then
             -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+            if aura_env.config[tostring(ids.Vanish)] == true then
+                KTrigParallel("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -499,8 +817,8 @@ env.test = function()
         -- Vanish for cleaving Garrotes with Indiscriminate Carnage
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and NearbyEnemies > 2 and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Vanish) > 15  ) ) then
             -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+            if aura_env.config[tostring(ids.Vanish)] == true then
+                KTrigParallel("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -510,8 +828,8 @@ env.test = function()
         -- Vanish fallback for Master Assassin
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
             -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish", "APL5")
+            if aura_env.config[tostring(ids.Vanish)] == true then
+                KTrigParallel("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -521,14 +839,15 @@ env.test = function()
         -- Vanish fallback for Improved Garrote during Deathmark if no add waves are expected
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 )  ) then   
             -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
+            if aura_env.config[tostring(ids.Vanish)] == true then
+                KTrigParallel("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
             end
         end
     end
+    
     
     -- Cooldowns
     local Cds = function()
@@ -543,8 +862,10 @@ env.test = function()
         -- Cast Deathmark if the target will survive long enough
         if OffCooldown(ids.Deathmark) and ( ( Variables.DeathmarkCondition and TargetTimeToXPct(0, 60) >= 10 ) or FightRemains(60, NearbyRange) <= 20 ) then
             -- KTrig("Deathmark") return true end
-            if aura_env.config[tostring(ids.Deathmark)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Deathmark")
+            -- if aura_env.config[tostring(ids.Deathmark)] == true and aura_env.FlagKTrigCD then
+            --     KTrigCD("Deathmark")
+            if aura_env.config[tostring(ids.Deathmark)] == true then
+                KTrigParallel("Deathmark")
             elseif aura_env.config[tostring(ids.Deathmark)] ~= true then
                 KTrig("Deathmark")
                 return true
@@ -611,4 +932,316 @@ env.test = function()
     
     KTrig("Clear")
 
+end
+
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Core2--------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- CLEU:SPELL_CAST_SUCCESS, CLEU:SPELL_AURA_REFRESH, CLEU:SPELL_AURA_APPLIED, CLEU:SPELL_AURA_REMOVED
+
+function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellID)
+    if sourceGUID ~= UnitGUID("player") then return false end
+    
+    if subEvent == "SPELL_CAST_SUCCESS" then 
+        aura_env.PrevCast = spellID 
+        if spellID == aura_env.ids.Envenom then
+            if IsPlayerSpell(aura_env.ids.TwistTheKnifeTalent) and aura_env.Envenom1 < GetTime() then
+                aura_env.Envenom1 = aura_env.Envenom1
+                aura_env.Envenom2 = aura_env.GetRemainingAuraDuration("player", aura_env.ids.Envenom) + GetTime()
+            else
+                aura_env.Envenom1 = aura_env.GetRemainingAuraDuration("player", aura_env.ids.Envenom) + GetTime()
+            end
+        end
+    end
+    
+    if subEvent == "SPELL_AURA_APPLIED" or subEvent == "SPELL_AURA_REFRESH" then
+        if spellID == aura_env.ids.Garrote then
+            local Multiplier = (aura_env.PlayerHasBuff(392403) or aura_env.PlayerHasBuff(392401)) and 1.5 or 1
+            
+            aura_env.GarroteSnapshots[targetGUID] = Multiplier
+        end
+    end
+end
+
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Garrote Load------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+aura_env.NearbyGarroted = 0
+aura_env.MissingGarrote = 0
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Garrote Trig------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- K_GARROTE_DATA
+
+function(event, NearbyGarroted, NearbyEnemies)
+    aura_env.NearbyGarroted = NearbyGarroted
+    aura_env.MissingGarrote = NearbyEnemies - NearbyGarroted
+    return true
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rupture Load------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+aura_env.NearbyRuptured = 0
+aura_env.MissingRupture = 0
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rupture Trig------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- K_RUPTURE_DATA
+
+function(event, NearbyRuptured, NearbyEnemies)
+    aura_env.NearbyRuptured = NearbyRuptured
+    aura_env.MissingRupture = NearbyEnemies - NearbyRuptured
+    return true
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Nameplate Load----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- Kichi --
+aura_env.ShouldShowDebuff = function(unit)
+    if (UnitAffectingCombat(unit) or aura_env.config["BypassCombatRequirement"]) and not UnitIsFriend("player", unit) and UnitClassification(unit) ~= "minus" and not WA_GetUnitDebuff(unit, aura_env.config["DebuffID"]) then
+        if _G.KLIST then
+            for _, ID in ipairs(_G.KLIST.AssassinationRogue) do                
+                if UnitName(unit) == ID or select(6, strsplit("-", UnitGUID(unit))) == ID then
+                    return false
+                end
+            end
+        end
+        
+        return true
+    end
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Nameplate Trig----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+-- CLEU:SPELL_AURA_APPLIED, CLEU:SPELL_AURA_REMOVED, UNIT_THREAT_LIST_UPDATE, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED
+
+function(allstates, event, Unit, subEvent, _, sourceGUID, _, _, _, destGUID, _, _, _, spellID)
+    
+    if event == "UNIT_THREAT_LIST_UPDATE" and Unit:find("nameplate") then
+        if aura_env.ShouldShowDebuff(Unit) and not allstates[Unit] then
+            allstates[Unit] = {
+                show = true,
+                changed = true,
+                icon = C_Spell.GetSpellTexture(aura_env.config["DebuffID"]),
+                unit = Unit
+            }
+            return true
+        end
+    end
+    
+    if event == "NAME_PLATE_UNIT_ADDED" then
+        if Unit:find("nameplate") and aura_env.ShouldShowDebuff(Unit) and not allstates[Unit] then
+            allstates[Unit] = {
+                show = true,
+                changed = true,
+                icon = C_Spell.GetSpellTexture(aura_env.config["DebuffID"]),
+                unit = Unit
+            }
+            return true
+        end
+    end
+    
+    if event == "NAME_PLATE_UNIT_REMOVED" then
+        if allstates[Unit] then
+            allstates[Unit] = {
+                show = false,
+                changed = true
+            }
+            return true
+        end
+    end
+    
+    if subEvent == "SPELL_AURA_APPLIED" then
+        if sourceGUID == UnitGUID("player") and spellID == aura_env.config["DebuffID"] then
+            local UnitToken = UnitTokenFromGUID(destGUID)
+            if UnitToken ~= nil and UnitToken:find("nameplate") then
+                allstates[UnitToken] = {
+                    show = false,
+                    changed = true,
+                }
+                return true
+            end
+        end
+    elseif subEvent == "SPELL_AURA_REMOVED" then
+        if sourceGUID == UnitGUID("player") then
+            local UnitToken = UnitTokenFromGUID(destGUID)
+            if UniToken ~= nil and UnitToken:find("nameplate") and aura_env.ShouldShowDebuff(UnitToken) and not allstates[UnitToken] then
+                allstates[UnitToken] = {
+                    show = true,
+                    changed = true,
+                    icon = C_Spell.GetSpellTexture(aura_env.config["DebuffID"]),
+                    unit = UnitToken
+                }
+                return true
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Load ----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+aura_env.NearbyGarroted = 0
+aura_env.MissingGarrote = 0
+aura_env.NearbyRuptured = 0
+aura_env.MissingRupture = 0
+
+---@class idsTable
+aura_env.ids = {
+    -- Abilities
+    Ambush = 8676,
+    ColdBlood = 382245,
+    CrimsonTempest = 121411,
+    Deathmark = 360194,
+    EchoingReprimand = 385616,
+    Envenom = 32645,
+    FanOfKnives = 51723,
+    Garrote = 703,
+    Kingsbane = 385627,
+    Mutilate = 1329,
+    Rupture = 1943,
+    Shiv = 5938,
+    SliceAndDice = 315496,
+    ThistleTea = 381623,
+    Vanish = 1856,
+    
+    -- Talents
+    AmplifyingPoisonTalent = 381664,
+    ArterialPrecisionTalent = 400783,
+    BlindsideTalent = 328085,
+    CausticSpatterTalent = 421975,
+    DashingScoundrelTalent = 381797,
+    DeathstalkersMarkTalent = 457052,
+    HandOfFateTalent = 452536,
+    ImprovedGarroteTalent = 381632,
+    IndiscriminateCarnageTalent = 381802,
+    KingsbaneTalent = 385627,
+    LightweightShivTalent = 394983,
+    MasterAssassinTalent = 255989,
+    MomentumOfDespairTalent = 457067,
+    ScentOfBloodTalent = 381799,
+    ShroudedSuffocationTalent = 385478,
+    SubterfugeTalent = 108208,
+    ThrownPrecisionTalent = 381629,
+    ViciousVenomsTalent = 381634,
+    TwistTheKnifeTalent = 381669,
+    
+    -- Auras
+    AmplifyingPoisonDebuff = 383414,
+    BlindsideBuff = 121153,
+    CausticSpatterDebuff = 421976,
+    ClearTheWitnessesBuff = 457178,
+    CrimsonTempestDebuff = 121411,
+    DarkestNightBuff = 457280,
+    DeadlyPoisonDebuff = 2818,
+    DeathstalkersMarkDebuff = 457129,
+    EnvenomBuff = 32645,
+    FateboundCoinHeadsBuff = 452923,
+    FateboundCoinTailsBuff = 452917,
+    FateboundLuckyCoinBuff = 452562,
+    IndiscriminateCarnageBuff = 385747,
+    KingsbaneDebuff = 385627,
+    LingeringDarknessBuff = 457273,
+    MasterAssassinBuff = 256735,
+    MomentumOfDespairBuff = 457115,
+    VanishBuff = 11327,
+    ScentOfBloodBuff = 394080,
+    ShivDebuff = 319504,
+    SubterfugeBuff = 115192,
+    StealthBuff = 1784,
+    ThistleTeaBuff = 381623,
+}
+
+aura_env.GetSpellCooldown = function(spellId)
+    local spellCD = C_Spell.GetSpellCooldown(spellId)
+    local spellCharges = C_Spell.GetSpellCharges(spellId)
+    if spellCharges then
+        local rechargeTime = (spellCharges.currentCharges < spellCharges.maxCharges) and (spellCharges.cooldownStartTime + spellCharges.cooldownDuration - GetTime()) or 0
+        return spellCharges.currentCharges, rechargeTime, spellCharges.maxCharges
+    elseif spellCD then
+        local remainingCD = (spellCD.startTime and spellCD.duration) and math.max(spellCD.startTime + spellCD.duration - GetTime(), 0) or 0
+        return 0, remainingCD, 0
+    else
+        return 0, 0, 0
+    end
+end
+
+aura_env.GetSafeSpellIcon = function(spellId)
+    if not spellId or spellId == 0 then
+        return 0  
+    end
+    local spellInfo = C_Spell.GetSpellInfo(spellId)
+    return spellInfo and spellInfo.iconID or 0
+end
+
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------Rotation Trig ----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+function(allstates, event, spellID, customData)
+    
+    local ids = aura_env.ids
+    local GetSpellCooldown = aura_env.GetSpellCooldown
+    local GetSafeSpellIcon = aura_env.GetSafeSpellIcon
+    local firstPriority = nil
+    local firstIcon = 0
+    local firstCharges, firstCD, firstMaxCharges = 0, 0, 0
+
+    if spellID and spellID ~= "Clear" then
+        -- print(spellID)
+        local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
+        firstPriority = ids[key]
+        firstIcon = GetSafeSpellIcon(firstPriority)
+        firstCharges, firstCD, firstMaxCharges = GetSpellCooldown(firstPriority)
+    end
+
+    if spellID == "Clear" then
+        firstIcon = 0
+        firstCharges, firstCD, firstMaxCharges = 0, 0, 0
+    end
+    -- 更新 allstates
+    allstates[1] = {
+        show = true,
+        changed = true,
+        icon = firstIcon,
+        spell = firstPriority,
+        cooldown = firstCD,
+        charges = firstCharges,
+        maxCharges = firstMaxCharges
+    }
+    
+    return true
 end
