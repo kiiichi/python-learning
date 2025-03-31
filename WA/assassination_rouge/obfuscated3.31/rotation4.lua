@@ -1,0 +1,1 @@
+function(v1,v2,v3) local v4=1422 -(378 + 1044) ;while true do if (v4==(2 -1)) then return true;end if (v4==(0 -0)) then aura_env.NearbyRuptured=v2;aura_env.MissingRupture=v3-v2 ;v4=1;end end end;
