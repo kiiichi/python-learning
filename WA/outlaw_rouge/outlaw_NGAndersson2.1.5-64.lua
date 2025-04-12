@@ -9,7 +9,6 @@ WeakAuras.WatchGCD()
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
-    
     -- Abilities
     AdrenalineRush = 13750,
     Ambush = 8676,
@@ -35,6 +34,7 @@ aura_env.ids = {
     -- Talents
     CrackshotTalent = 423703,
     DeftManeuversTalent = 381878,
+    DisorientingStrikesTalent = 441274,
     DoubleJeopardyTalent = 454430,
     FanTheHammerTalent = 381846,
     FatefulEndingTalent = 454428,
@@ -82,6 +82,7 @@ aura_env.ids = {
 }
 
 aura_env.RTBContainerExpires = 0
+aura_env.DisorientingStrikesCount = 0
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
@@ -465,10 +466,9 @@ function()
     
     local IsStealthed = PlayerHasBuff(ids.SubterfugeBuff) or PlayerHasBuff(ids.Stealth) or PlayerHasBuff(ids.VanishBuff)
     
-    local EffectiveComboPoints = CurrentComboPoints
-    
     local CurrentEnergy = UnitPower("player", Enum.PowerType.Energy)
     local MaxEnergy = UnitPowerMax("player", Enum.PowerType.Energy)
+    local HasDisorientingStrikes = aura_env.DisorientingStrikesCount > 0
     
     local NearbyEnemies = 0
     local NearbyRange = 8
@@ -510,9 +510,6 @@ function()
         end
     end
     
-    -- RangeChecker (Melee)
-    if C_Item.IsItemInRange(16114, "target") == false then aura_env.OutOfRange = true end
-    
     ---- Variables ------------------------------------------------------------------------------------------------
     Variables.AmbushCondition = ( IsPlayerSpell(ids.HiddenOpportunityTalent) or MaxComboPoints - CurrentComboPoints >= 2 + (IsPlayerSpell(ids.ImprovedAmbushTalent) and 1 or 0) + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) ) and CurrentEnergy >= 50
     
@@ -530,13 +527,18 @@ function()
         WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows)
         NGSend("Clear", nil) return end
     
-    -- Maintain Adrenaline Rush. Recast while already active if using Impreved ADR and at low CPs.
-    if OffCooldown(ids.AdrenalineRush) and ( not PlayerHasBuff(ids.AdrenalineRush) and ( not Variables.FinishCondition or not IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) ) or IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) and CurrentComboPoints <= 2 ) then
+    -- Maintain Adrenaline Rush if it is not active. Use at low CPs with Improved AR.
+    if OffCooldown(ids.AdrenalineRush) and ( not PlayerHasBuff(ids.AdrenalineRush) and ( not Variables.FinishCondition or not IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) ) ) then
         ExtraGlows.AdrenalineRush = true
     end
     
-    -- Ghostly Strike
-    if OffCooldown(ids.GhostlyStrike) and ( CurrentComboPoints < MaxComboPoints ) then
+    -- If using Improved AR, recast AR if it is already active at low CPs.
+    if OffCooldown(ids.AdrenalineRush) and ( PlayerHasBuff(ids.AdrenalineRush) and IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) and CurrentComboPoints <= 2 ) then
+        ExtraGlows.AdrenalineRush = true
+    end
+    
+    -- High priority Ghostly Strike as it is off-gcd. 1 FTH builds prefer to not use it at max CPs.
+    if OffCooldown(ids.GhostlyStrike) and ( CurrentComboPoints < MaxComboPoints or IsPlayerSpell(ids.FanTheHammerTalent) ) then
         ExtraGlows.GhostlyStrike = true
     end
     
@@ -545,8 +547,8 @@ function()
         ExtraGlows.ThistleTea = true
     end
     
-    -- With a natural 5 buff roll, use Keep it Rolling when you obtain the remaining buff from Count the Odds and all buffs are within 30s remaining.
-    if OffCooldown(ids.KeepItRolling) and ( RTBBuffNormal >= 5 and RTBBuffCount == 6 and RTBBuffMaxRemains <= 30 ) then
+    -- With a natural 5 buff roll, use Keep it Rolling when you obtain the remaining buff from Count the Odds.
+    if OffCooldown(ids.KeepItRolling) and ( RTBBuffNormal >= 5 and RTBBuffCount == 6 ) then
         ExtraGlows.KeepItRolling = true
     end
     
@@ -578,11 +580,15 @@ function()
         if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.AudacityBuff) ) then
             NGSend("Ambush") return true end
         
+        -- Trickster builds should prioritize Sinister Strike during Disorienting Strikes. HO builds prefer to do this only at 3 Escalating Blade stacks and not at max Opportunity stacks.
+        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and ( GetPlayerStacks(ids.EscalatingBladeBuff) > 2 and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 ) then
+            NGSend("Sinister Strike") return true end
+        
         -- With Audacity + Hidden Opportunity + Fan the Hammer, consume Opportunity to proc Audacity any time Ambush is not available.
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and IsPlayerSpell(ids.AudacityBuff) and IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.OpportunityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) then
             NGSend("Pistol Shot") return true end
         
-        -- With Fan the Hammer, consume Opportunity as a higher priority if at max stacks or if it will expire.
+        -- With 2 ranks in Fan the Hammer, consume Opportunity as a higher priority if at max stacks or if it will expire.
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( GetPlayerStacks(ids.OpportunityBuff) >= (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or GetRemainingAuraDuration("player", ids.OpportunityBuff) < 2 ) ) then
             NGSend("Pistol Shot") return true end
         
@@ -594,6 +600,10 @@ function()
         if OffCooldown(ids.PistolShot) and ( not IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( MaxEnergy - CurrentEnergy > 75 or MaxComboPoints - CurrentComboPoints <= 1 + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) or IsPlayerSpell(ids.QuickDrawTalent) or IsPlayerSpell(ids.AudacityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) ) then
             NGSend("Pistol Shot") return true end
         
+        -- Use Coup de Grace at low CP if Sinister Strike would otherwise be used.
+        if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace and (not IsStealthed) then
+            NGSend("Dispatch") return true end
+        
         -- Fallback pooling just so Sinister Strike is never casted if Ambush is available for Hidden Opportunity builds
         if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) ) then
             NGSend("Ambush") return true end
@@ -602,21 +612,35 @@ function()
             NGSend("Sinister Strike") return true end
     end
     
+    local Finish = function()
+        if OffCooldown(ids.KillingSpree) then
+            NGSend("Killing Spree") return true end
+        
+        if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace then
+            NGSend("Dispatch") return true end
+        
+        -- Finishers Use Between the Eyes outside of Stealth to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
+        if OffCooldown(ids.BetweenTheEyes) and ( ( PlayerHasBuff(ids.RuthlessPrecisionBuff) or GetRemainingAuraDuration("player", ids.BetweenTheEyesBuff) < 4 or not IsPlayerSpell(ids.MeanStreakTalent) ) and ( not PlayerHasBuff(ids.GreenskinsWickersBuff) or not IsPlayerSpell(ids.GreenskinsWickersTalent) ) ) then
+            NGSend("Between the Eyes") return true end
+        
+        --if OffCooldown(ids.CoupDeGrace) then
+        --    NGSend("Coup De Grace") return true end
+        
+        if OffCooldown(ids.Dispatch) then
+            NGSend("Dispatch") return true end
+    end
+    
     local VanishUsage = function()
-        -- Vanish usage for builds using Underhanded Upper Hand, Crackshot and Subterfuge.  Without Killing Spree, attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active. Also with Keep it Rolling, hold Vanish if we haven't done the first roll after KIR yet.
+        -- Flex Vanish usage for standard builds. Without Killing Spree, attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active. Also with Keep it Rolling, hold Vanish if we haven't done the first roll after KIR yet.
         if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and not OffCooldown(ids.BetweenTheEyes) and GetRemainingAuraDuration("player", ids.RuthlessPrecisionBuff) > 4 and ( GetRemainingSpellCooldown(ids.KeepItRolling) > 150 and RTBBuffNormal > 0 or not IsPlayerSpell(ids.KeepItRollingTalent) ) ) then
             NGSend("Vanish") return true end
         
-        -- Vanish to prevent Adrenaline Rush downtime.
-        if OffCooldown(ids.Vanish) and ( GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 3 and GetRemainingSpellCooldown(ids.AdrenalineRush) > 10 ) then
-            NGSend("Vanish") return true end
-        
-        -- Supercharger builds that do not use Killing Spree should Vanish if Supercharger is active.
+        -- Supercharger builds that do not use Killing Spree should also Vanish if Supercharger becomes active.
         if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and GetUnitChargedPowerPoints("player") ~= nil  ) then
             NGSend("Vanish") return true end
         
         -- Builds with Killing Spree can freely Vanish if KS is not up soon.
-        if OffCooldown(ids.Vanish) and ( GetRemainingSpellCooldown(ids.KillingSpree) > 15 ) then
+        if OffCooldown(ids.Vanish) and ( GetRemainingSpellCooldown(ids.KillingSpree) > 30 ) then
             NGSend("Vanish") return true end
         
         -- Vanish if about to cap on charges or sim duration is ending.
@@ -624,7 +648,7 @@ function()
             NGSend("Vanish") return true end
     end
     
-    -- Vanish usage for builds lacking one of the mandatory talents Crackshot, Underhanded Upper Hand or Subterfuge. APL support for these builds is considered limited.
+    -- Flex Vanish usage for builds lacking one of the mandatory stealth talents. APL support for these builds is considered limited.
     local VanishUsageOffMeta = function()
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and not IsPlayerSpell(ids.CrackshotTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and ( Variables.AmbushCondition or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and ( not OffCooldown(ids.BetweenTheEyes) and PlayerHasBuff(ids.RuthlessPrecisionBuff) or PlayerHasBuff(ids.RuthlessPrecisionBuff) == false or GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 3 ) ) then
             NGSend("Vanish") return true end
@@ -647,8 +671,8 @@ function()
         if OffCooldown(ids.BladeFlurry) and ( NearbyEnemies >= 2 and GetRemainingAuraDuration("player", ids.BladeFlurry) < aura_env.config["BFHeadsup"] ) then
             NGSend("Blade Flurry") return true end
         
-        -- With Deft Maneuvers, use Blade Flurry on cooldown at 5+ targets, or at 3-4 targets if missing combo points equal to the amount it would grant.
-        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and not Variables.FinishCondition and ( NearbyEnemies >= 3 and MaxComboPoints - CurrentComboPoints == NearbyEnemies + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) or NearbyEnemies >= 5 ) ) then
+        -- With Deft Maneuvers, build CPs with Blade Flurry at 5+ targets. Trickster builds should avoid this during Disorienting Strikes with 0-3 stacks of Escalating Blade, unless stealth is active.
+        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and not Variables.FinishCondition and NearbyEnemies >= 5 and ( not HasDisorientingStrikes or IsStealthed or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 ) ) then
             NGSend("Blade Flurry") return true end
         
         -- Maintain Roll the Bones: cast without any buffs.
@@ -667,12 +691,16 @@ function()
         if OffCooldown(ids.RollTheBones) and ( not (SetPieces >= 4) and ( RTBBuffWillLose <= (PlayerHasBuff(ids.LoadedDiceBuff) and 1 or 0) or IsPlayerSpell(ids.SuperchargerTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 or IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 and not PlayerHasBuff(ids.BroadsideBuff) and not PlayerHasBuff(ids.RuthlessPrecisionBuff) and not PlayerHasBuff(ids.TrueBearingBuff) ) ) then
             NGSend("Roll the Bones") return true end
         
-        -- Killing Spree has higher priority than entering stealth.
-        if OffCooldown(ids.KillingSpree) and ( Variables.FinishCondition and not IsStealthed ) then
-            NGSend("Killing Spree") return true end
+        -- If necessary, standard builds prioritize using Vanish at any CP to prevent Adrenaline Rush downtime.
+        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and not IsStealthed and GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 2 and GetRemainingSpellCooldown(ids.AdrenalineRush) > 30 ) then
+            NGSend("Vanish") return true end
         
-        -- Builds with Crackshot, Underhanded Upper Hand and Subterfuge use Vanish while Adrenaline Rush is active, the finisher condition is met, and not already in stealth. Trickster builds also consume Coup de Grace before Vanishing if it is ready.
-        if not IsStealthed and IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 and PlayerHasBuff(ids.AdrenalineRushBuff) and Variables.FinishCondition then
+        -- If not at risk of losing Adrenaline Rush, run finishers to use Killing Spree or Coup de Grace as a higher priority than Vanish.
+        if not IsStealthed and ( OffCooldown(ids.KillingSpree) and IsPlayerSpell(ids.KillingSpreeTalent) or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 ) and Variables.FinishCondition then
+            Finish() return true end
+        
+        -- If not at risk of losing Adrenaline Rush, call flexible Vanish rules to be used at finisher CPs.
+        if not IsStealthed and IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and Variables.FinishCondition then
             if VanishUsage() then return true end end
         
         if not IsStealthed and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) or not IsPlayerSpell(ids.CrackshotTalent) or not IsPlayerSpell(ids.SubterfugeTalent) ) then
@@ -681,21 +709,6 @@ function()
         -- Use Blade Rush at minimal energy outside of stealth
         if OffCooldown(ids.BladeRush) and ( CurrentEnergy < aura_env.config["BRKSEnergy"] and not IsStealthed ) then
             NGSend("Blade Rush") return true end
-    end
-    
-    local Finish = function()
-        if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace then
-            NGSend("Dispatch") return true end
-        
-        -- Finishers Use Between the Eyes outside of Stealth to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
-        if OffCooldown(ids.BetweenTheEyes) and ( ( PlayerHasBuff(ids.RuthlessPrecisionBuff) or GetRemainingAuraDuration("player", ids.BetweenTheEyesBuff) < 4 or not IsPlayerSpell(ids.MeanStreakTalent) ) and ( not PlayerHasBuff(ids.GreenskinsWickersBuff) or not IsPlayerSpell(ids.GreenskinsWickersTalent) ) ) then
-            NGSend("Between the Eyes") return true end
-        
-        --if OffCooldown(ids.CoupDeGrace) then
-        --    NGSend("Coup De Grace") return true end
-        
-        if OffCooldown(ids.Dispatch) then
-            NGSend("Dispatch") return true end
     end
     
     local Stealth = function()
@@ -735,15 +748,21 @@ end
 -- CLEU:SPELL_CAST_SUCCESS
 
 function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
-    if sourceGUID == UnitGUID("PLAYER") and spellId == 315508 then
-        -- Initial prediction
-        local Expires = GetTime() + 30
-        if aura_env.RTBContainerExpires and aura_env.RTBContainerExpires > GetTime() then
-            local Offset = math.min(aura_env.RTBContainerExpires - GetTime(), 9)
-            aura_env.RTBContainerExpires = Expires + Offset
-        else
-            aura_env.RTBContainerExpires = Expires
+    if sourceGUID == UnitGUID("PLAYER") then
+        if spellId == aura_env.ids.RollTheBones then
+            -- Initial prediction
+            local Expires = GetTime() + 30
+            if aura_env.RTBContainerExpires and aura_env.RTBContainerExpires > GetTime() then
+                local Offset = math.min(aura_env.RTBContainerExpires - GetTime(), 9)
+                aura_env.RTBContainerExpires = Expires + Offset
+            else
+                aura_env.RTBContainerExpires = Expires
+            end
+        elseif spellId == aura_env.ids.KillingSpree and IsPlayerSpell(aura_env.ids.DisorientingStrikesTalent) then
+            aura_env.DisorientingStrikesCount = 2
+        elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
+            aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
         end
     end
-endend
+end
 

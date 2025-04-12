@@ -4,6 +4,7 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
     local delta = 0
     local showTime = 0
     local showPercent = 100.0
+    local usable = true
 
     -- 进入战斗
     if event == "PLAYER_REGEN_DISABLED" then
@@ -45,8 +46,7 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
         -- print("Full GCD: " .. FullGCD .. " seconds")
         timestamp = GetTime()
         aura_env.battleDuration = timestamp - aura_env.battleStartTime
-
-        if aura_env.lastCast > 0 then
+        if aura_env.lastCast > 0 and not aura_env.stunInLastCast then
             delta = math.max(0, timestamp - aura_env.lastCast - FullGCD)
             if delta > 0 then
                 aura_env.wasteGCDTime = aura_env.wasteGCDTime + delta
@@ -55,9 +55,9 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
 
                 showTime = string.format("%.2f", aura_env.wasteGCDTime)
                 if aura_env.battleDuration > 0 then
-                    showPercent = string.format("%.2f", (1 - aura_env.wasteGCDTime / aura_env.battleDuration) * 100)
+                    showPercent = string.format("%.1f", (1 - aura_env.wasteGCDTime / aura_env.battleDuration) * 100)
                 else
-                    showPercent = "100.00"
+                    showPercent = "100.0"
                 end
                 aura_env.showTime = showTime
                 aura_env.showPercent = showPercent
@@ -66,6 +66,11 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
             end
         end
         aura_env.lastCast = timestamp
+        usable, _ = C_Spell.IsSpellUsable(61304)
+        if not usable then
+            aura_env.stunInLastCast = true
+        else aura_env.stunInLastCast = false
+        end
     end
 
     return true

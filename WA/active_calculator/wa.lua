@@ -1,9 +1,21 @@
+WeakAuras.WatchGCD()
+aura_env.showTime = 0
+aura_env.showPercent = 100.0
+aura_env.lastCast = 0
+aura_env.wasteGCDTime = 0
+aura_env.battleDuration = 0
+aura_env.battleStartTime = 0
+aura_env.playerInCombat = false
+aura_env.stunInLastCast = false
+
+
 function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellID)
     local FullGCD = 1
     local timestamp = 0
     local delta = 0
     local showTime = 0
     local showPercent = 100.0
+    local usable = true
 
     -- 进入战斗
     if event == "PLAYER_REGEN_DISABLED" then
@@ -45,8 +57,7 @@ function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellI
         -- print("Full GCD: " .. FullGCD .. " seconds")
         timestamp = GetTime()
         aura_env.battleDuration = timestamp - aura_env.battleStartTime
-
-        if aura_env.lastCast > 0 then
+        if aura_env.lastCast > 0 and not aura_env.stunInLastCast then
             delta = math.max(0, timestamp - aura_env.lastCast - FullGCD)
             if delta > 0 then
                 aura_env.wasteGCDTime = aura_env.wasteGCDTime + delta
@@ -55,9 +66,9 @@ function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellI
 
                 showTime = string.format("%.2f", aura_env.wasteGCDTime)
                 if aura_env.battleDuration > 0 then
-                    showPercent = string.format("%.2f", (1 - aura_env.wasteGCDTime / aura_env.battleDuration) * 100)
+                    showPercent = string.format("%.1f", (1 - aura_env.wasteGCDTime / aura_env.battleDuration) * 100)
                 else
-                    showPercent = "100.00"
+                    showPercent = "100.0"
                 end
                 aura_env.showTime = showTime
                 aura_env.showPercent = showPercent
@@ -66,17 +77,14 @@ function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellI
             end
         end
         aura_env.lastCast = timestamp
+        usable, _ = C_Spell.IsSpellUsable(61304)
+        if not usable then
+            aura_env.stunInLastCast = true
+        else aura_env.stunInLastCast = false
+        end
     end
 
     return true
 end
 
 
-WeakAuras.WatchGCD()
-aura_env.showTime = 0
-aura_env.showPercent = 100.0
-aura_env.lastCast = 0
-aura_env.wasteGCDTime = 0
-aura_env.battleDuration = 0
-aura_env.battleStartTime = 0
-aura_env.playerInCombat = false

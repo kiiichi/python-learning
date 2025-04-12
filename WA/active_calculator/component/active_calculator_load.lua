@@ -6,3 +6,4 @@ aura_env.wasteGCDTime = 0
 aura_env.battleDuration = 0
 aura_env.battleStartTime = 0
 aura_env.playerInCombat = false
+aura_env.stunInLastCast = false

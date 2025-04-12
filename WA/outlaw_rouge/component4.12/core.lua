@@ -18,7 +18,7 @@ env.test = function()
     local GetTargetStacks = aura_env.GetTargetStacks
     local PlayerHasBuff = aura_env.PlayerHasBuff
     local TargetHasDebuff = aura_env.TargetHasDebuff
-    local HasBloodlust = aura_env.HasBloodlust
+    local HasBloodlust = aura_env.HasBloodlust    
     local GetSpellChargesFractional = aura_env.GetSpellChargesFractional
     local GetTimeToNextCharge = aura_env.GetTimeToNextCharge
     local GetTimeToFullCharges = aura_env.GetTimeToFullCharges
@@ -30,452 +30,222 @@ env.test = function()
     local KTrigCD = aura_env.KTrigCD
     aura_env.FlagKTrigCD = true
     local FullGCD = aura_env.FullGCD
+    local TalentRank = aura_env.TalentRank
+    -- Kichi for custom variables --
+    local BFHeadsup = 1 -- How many seconds before the expiration of the Blade Flurry buff should the Blade Flurry icon glow: from 0 to 3, default 1.
+    local BRKSEnergy = 50 -- How low your energy must for the aura to recommend Blade Rush: from 0 to 100, default 50.
+    local ThistleTeaEnergy = 50 -- How low your energy must for the aura to recommend Thistle Tea: from 0 to 200, default 50.
     
     ---@class idsTable
     local ids = aura_env.ids
     aura_env.OutOfRange = false
+    
+    ---- Setup Data -----------------------------------------------------------------------------------------------    
     local Variables = {}
-    
-    ---- Setup Data -----------------------------------------------------------------------------------------------  
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1687)
-    
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1876)
     local CurrentComboPoints = UnitPower("player", Enum.PowerType.ComboPoints)
     local MaxComboPoints = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-    local CurrentEnergy = UnitPower("player", Enum.PowerType.Energy)
-    local MaxEnergy = UnitPowerMax("player", Enum.PowerType.Energy)
+    
+    local IsStealthed = PlayerHasBuff(ids.SubterfugeBuff) or PlayerHasBuff(ids.Stealth) or PlayerHasBuff(ids.VanishBuff)
     
     local EffectiveComboPoints = CurrentComboPoints
     
-    local Envenom1Remains = ((aura_env.Envenom1 < CurrentTime) and 0 or (aura_env.Envenom1 - CurrentTime))
+    local CurrentEnergy = UnitPower("player", Enum.PowerType.Energy)
+    local MaxEnergy = UnitPowerMax("player", Enum.PowerType.Energy)
+    local HasDisorientingStrikes = aura_env.DisorientingStrikesCount > 0
     
-    local IsStealthed = PlayerHasBuff(ids.SubterfugeBuff) or PlayerHasBuff(ids.StealthBuff)
-    local HasImprovedGarroteBuff = PlayerHasBuff(392403) or PlayerHasBuff(392401)
-    
-    local EnergyRegen = GetPowerRegen()
-    local DotTickRate = 2 / (1+0.01*UnitSpellHaste("player"))
-    local LethalPoisons = 0
-    local PoisonedBleeds = 0
-    local BleedIds = {
-        703, -- Garrote
-        1943, -- Rupture
-        360826, -- Deathmark Garrote
-        360830, -- Deathmark Rupture
-    }
-    local PoisonIds = {
-        8680, -- Wound Poison
-        2818, -- Deadly Poison
-        383414, -- Amplifying Poison
-    }
-    local IsLethalPoisoned = function(unit)
-        for _, Id in ipairs(PoisonIds) do
-            if WA_GetUnitDebuff(unit, Id, "PLAYER") then
-                return true
-            end
-        end
-        return false
-    end
-    
-    local NearbyRange = 10 -- Fan of Knives range is 10 yards
     local NearbyEnemies = 0
-    local NearbyGarroted = 0
-    local NearbyRuptured = 0
-    -- Kichi --
-    local NearbyShortGarroted = 0
-    local NearbyUnenhancedGarroted = 0
-    local NearbyRefreshableGarroted = 0
-    local NearbyRefreshableRuptured = 0
+    local NearbyRange = 8
     for i = 1, 40 do
         local unit = "nameplate"..i
-        if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
+        if UnitExists(unit) and UnitIsFriend("player", unit) == false and WeakAuras.CheckRange(unit, NearbyRange, "<=") then
             NearbyEnemies = NearbyEnemies + 1
-            if WA_GetUnitDebuff(unit, ids.Garrote, "PLAYER") then
-                NearbyGarroted = NearbyGarroted + 1
-            end
-            
-            if WA_GetUnitDebuff(unit, ids.Rupture, "PLAYER") then
-                NearbyRuptured = NearbyRuptured + 1
-            end
+        end
+    end
+    
+    -- Kichi --
+    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
 
-            -- Kichi --
-            if GetRemainingDebuffDuration(unit, ids.Garrote) < 12 then 
-                NearbyShortGarroted = NearbyShortGarroted + 1
-            end
-            if aura_env.GarroteSnapshots[UnitGUID(unit)] == nil then 
-                aura_env.GarroteSnapshots[UnitGUID(unit)] = 0
-            end
-            if aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
-                NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
-            end
-
-            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
-                NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
-            end
-            if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
-                NearbyRefreshableRuptured = NearbyRefreshableRuptured + 1
-            end
-
-            -- Energy Regen
-            if IsLethalPoisoned(unit) then
-                LethalPoisons = LethalPoisons + 1
-                
-                for _, Id in ipairs(BleedIds) do
-                    if WA_GetUnitDebuff(unit, Id, "PLAYER") then
-                        PoisonedBleeds = PoisonedBleeds + 1
-                    end
+    local RTBBuffCount = 0
+    local RTBBuffMaxRemains = 0
+    local RTBBuffMinRemains = 0
+    local RTBBuffWillLose = 0
+    local RTBBuffWillRetain = 0
+    local RTBBuffNormal = 0
+    local RTBContainerRemaining = max(aura_env.RTBContainerExpires - GetTime(), 0)
+    local Buffids = {
+        193356, -- Broadside
+        193357, -- Ruthless Precision
+        193358, -- Grand Melee
+        193359, -- True Bearing
+        199600, -- Buried Treasure
+        199603, -- Skull and Crossbones
+    }
+    for _, Id in ipairs(Buffids) do
+        if PlayerHasBuff(Id) then
+            RTBBuffCount = RTBBuffCount + 1
+            RTBBuffMaxRemains = math.max(RTBBuffMaxRemains, GetRemainingAuraDuration("player", Id))
+            RTBBuffMinRemains = (RTBBuffMinRemains == 0 and GetRemainingAuraDuration("player", Id) or math.min(RTBBuffMinRemains, GetRemainingAuraDuration("player", Id)))
+            if GetRemainingAuraDuration("player", Id) > RTBContainerRemaining + 0.3 then
+                RTBBuffWillRetain = RTBBuffWillRetain + 1
+            else
+                if ( GetRemainingAuraDuration("player", Id) > RTBContainerRemaining - 0.3) then
+                    RTBBuffNormal = RTBBuffNormal + 1
                 end
+                RTBBuffWillLose = RTBBuffWillLose + 1
             end
         end
     end
     
-    -- print("------------------")
-    -- print("NearbyEnemies: " .. NearbyEnemies)
-    -- print("NearbyGarroted: " .. NearbyGarroted)
-    -- print("NearbyRuptured: " .. NearbyRuptured)
-    -- print("NearbyShortGarroted: " .. NearbyShortGarroted)
-    -- print("NearbyUnenhancedGarroted: " .. NearbyUnenhancedGarroted)
-    -- print("NearbyRefreshableGarroted: " .. NearbyRefreshableGarroted)
-    -- print("NearbyRefreshableRuptured: " .. NearbyRefreshableRuptured)
-
-    if not (NearbyGarroted < NearbyEnemies) then
-        WeakAuras.ScanEvents("K_NEARBY_GARROTED_SAT")
-    end
-    if not (NearbyRuptured < NearbyEnemies) then
-        WeakAuras.ScanEvents("K_NEARBY_RUPTURED_SAT")
-    end
-
-    -- Kichi --
-    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
-    -- WeakAuras.ScanEvents("K_NEARBY_Wounds", TargetsWithFesteringWounds)
-
-    -- Venomous Wounds
-    EnergyRegen = EnergyRegen + (PoisonedBleeds * 7) / DotTickRate
-
-    -- Dashing Scoundrel -- Estimate ~90% Envenom uptime for energy regen approximation
-    if IsPlayerSpell(ids.DashingScoundrelTalent) then
-        EnergyRegen = EnergyRegen + ((0.9 * LethalPoisons * (GetCritChance() / 100)) / DotTickRate)
-    end
-
-    -- WeakAuras.ScanEvents("NG_GARROTE_DATA", NearbyGarroted, NearbyEnemies)
-    -- WeakAuras.ScanEvents("NG_RUPTURE_DATA", NearbyRuptured, NearbyEnemies)
-    -- Kichi --
-    WeakAuras.ScanEvents("K_GARROTE_DATA", NearbyGarroted, NearbyEnemies)
-    WeakAuras.ScanEvents("K_RUPTURE_DATA", NearbyRuptured, NearbyEnemies)
-
-    -- print("NearbyEnemies: " .. NearbyEnemies)
-    -- print("NearbyGarroted: " .. NearbyGarroted)
-    -- print("NearbyRuptured: " .. NearbyRuptured)
-    
-    -- RangeChecker (Melee)
-    if C_Item.IsItemInRange(16114, "target") == false then aura_env.OutOfRange = true end
+    -- -- RangeChecker (Melee)
+    -- if C_Item.IsItemInRange(16114, "target") == false then aura_env.OutOfRange = true end
     
     ---- Variables ------------------------------------------------------------------------------------------------
+    Variables.AmbushCondition = ( IsPlayerSpell(ids.HiddenOpportunityTalent) or MaxComboPoints - CurrentComboPoints >= 2 + (IsPlayerSpell(ids.ImprovedAmbushTalent) and 1 or 0) + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) ) and CurrentEnergy >= 50
     
-    -- Determine combo point finish condition
-    Variables.EffectiveSpendCp = max(MaxComboPoints - 2, 5 * (IsPlayerSpell(ids.HandOfFateTalent) and 1 or 0))
-    
-    -- Conditional to check if there is only one enemy
-    Variables.SingleTarget = NearbyEnemies < 2
-    
-    -- Combined Energy Regen needed to saturate
-    Variables.RegenSaturated = EnergyRegen > 30
-    
-    -- Pooling Setup, check for cooldowns
-    Variables.InCooldowns = TargetHasDebuff(ids.Deathmark) or TargetHasDebuff(ids.Kingsbane) or TargetHasDebuff(ids.ShivDebuff)
-    
-    -- Check upper bounds of energy to begin spending
-    Variables.UpperLimitEnergy = (CurrentEnergy/MaxEnergy*100) >= ( 50 - 10 * (IsPlayerSpell(ids.ViciousVenomsTalent) and 2 or 0) )
-    
-    -- Checking for cooldowns soon
-    Variables.CdSoon = GetRemainingSpellCooldown(ids.Kingsbane) < 3 and not OffCooldown(ids.Kingsbane)
-    
-    -- Pooling Condition all together
-    Variables.NotPooling = Variables.InCooldowns or not Variables.CdSoon and PlayerHasBuff(ids.DarkestNightBuff) or Variables.UpperLimitEnergy or FightRemains(60, NearbyRange) <= 20
-    
-    -- Check what the maximum Scent of Blood stacks is currently
-    -- Kichi --
-    Variables.ScentEffectiveMaxStacks = min(( NearbyEnemies * (IsPlayerSpell(ids.ScentOfBloodTalent) and 2 or 0) )*2, 20)
-    
-    -- We are Scent Saturated when our stack count is hitting the maximum
-    Variables.ScentSaturation = GetPlayerStacks(ids.ScentOfBloodBuff) >= Variables.ScentEffectiveMaxStacks
+    -- Use finishers if at -1 from max combo points, or -2 in Stealth with Crackshot. With the hero trees, Hidden Opportunity builds also finish at -2 if Audacity or Opportunity is active.
+    Variables.FinishCondition = CurrentComboPoints >= MaxComboPoints - 1 - ( (IsStealthed and IsPlayerSpell(ids.CrackshotTalent) or ( IsPlayerSpell(ids.HandOfFateTalent) or IsPlayerSpell(ids.FlawlessFormTalent) ) and IsPlayerSpell(ids.HiddenOpportunityTalent) and ( PlayerHasBuff(ids.AudacityBuff) or PlayerHasBuff(ids.OpportunityBuff) ) ) and 1 or 0)
+    -- WeakAuras.ScanEvents("K_TRIGED_FINISH", Variables.FinishCondition)
+    -- Variable that counts how many buffs are ahead of RtB's pandemic range, which is only possible by using KIR.
+    Variables.BuffsAbovePandemic = ( GetRemainingAuraDuration("player", ids.BroadsideBuff) > 39 and 1 or 0 ) + ( GetRemainingAuraDuration("player", ids.RuthlessPrecisionBuff) > 39 and 1 or 0 ) + ( GetRemainingAuraDuration("player", ids.TrueBearingBuff) > 39 and 1 or 0 ) + ( GetRemainingAuraDuration("player", ids.GrandMeleeBuff) > 39 and 1 or 0 ) + ( GetRemainingAuraDuration("player", ids.BuriedTreasureBuff) > 39 and 1 or 0 ) + ( GetRemainingAuraDuration("player", ids.SkullAndCrossbonesBuff) > 39 and 1 or 0 )
     
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
-    -- Kichi --
     local ExtraGlows = {}
-
+    
     -- Kichi --
     -- Only recommend things when something's targeted
     if aura_env.config["NeedTarget"] then
         if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
-            WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
+            WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows)
             KTrig("Clear", nil)
             KTrigCD("Clear", nil) 
             return end
     end
     
-    -- Use with shiv or in niche cases at the end of Kingsbane if not already up
-    -- if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
-    -- Kichi --
-    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 and not TargetHasDebuff(ids.KingsbaneDebuff) or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
-        ExtraGlows.ThistleTea = true 
+    -- Maintain Adrenaline Rush if it is not active. Use at low CPs with Improved AR.
+    if OffCooldown(ids.AdrenalineRush) and ( not PlayerHasBuff(ids.AdrenalineRush) and ( not Variables.FinishCondition or not IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) ) ) then
+        ExtraGlows.AdrenalineRush = true
     end
     
-    -- Cold Blood with similar conditions to Envenom,
-    if OffCooldown(ids.ColdBlood) and ( GetRemainingSpellCooldown(ids.Deathmark) > 10 and not PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( Variables.NotPooling or GetTargetStacks(ids.AmplifyingPoisonDebuff) >= 20 or not (NearbyEnemies < 2) ) and not PlayerHasBuff(ids.VanishBuff) and ( not OffCooldown(ids.Kingsbane) or not (NearbyEnemies < 2) ) and not OffCooldown(ids.Deathmark) ) then
-    ExtraGlows.ColdBlood = true end
+    -- If using Improved AR, recast AR if it is already active at low CPs.
+    if OffCooldown(ids.AdrenalineRush) and ( PlayerHasBuff(ids.AdrenalineRush) and IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) and CurrentComboPoints <= 2 ) then
+        ExtraGlows.AdrenalineRush = true
+    end
+    
+    -- High priority Ghostly Strike as it is off-gcd. 1 FTH builds prefer to not use it at max CPs.
+    if OffCooldown(ids.GhostlyStrike) and ( CurrentComboPoints < MaxComboPoints or TalentRank(ids.FanTheHammerTalentNode) > 1 ) then
+        ExtraGlows.GhostlyStrike = true
+    end
+    
+    -- Thistle Tea
+    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTea) and ( CurrentEnergy < aura_env.config["ThistleTeaEnergy"] or TargetTimeToXPct(0, 999) < C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) ) then
+        ExtraGlows.ThistleTea = true
+    end
+    
+    -- With a natural 5 buff roll, use Keep it Rolling when you obtain the remaining buff from Count the Odds.
+    if OffCooldown(ids.KeepItRolling) and ( RTBBuffNormal >= 5 and RTBBuffCount == 6 ) then
+        ExtraGlows.KeepItRolling = true
+    end
+    
+    -- Without a natural 5 buff roll, use Keep it Rolling at any 4+ buffs
+    if OffCooldown(ids.KeepItRolling) and ( RTBBuffCount >= 4 and RTBBuffNormal <= 2 ) then
+        ExtraGlows.KeepItRolling = true
+    end
+    
+    -- Without a natural 5 buff roll, use Keep it Rolling at 3 buffs if you have the combination of Ruthless Precision + Broadside + True Bearing.
+    if OffCooldown(ids.KeepItRolling) and ( RTBBuffCount >= 3 and RTBBuffNormal <= 2 and PlayerHasBuff(ids.BroadsideBuff) and PlayerHasBuff(ids.RuthlessPrecisionBuff) and PlayerHasBuff(ids.TrueBearingBuff) ) then
+        ExtraGlows.KeepItRolling = true
+    end
+    
+    -- Cold Blood
+    if OffCooldown(ids.ColdBlood) then
+        ExtraGlows.ColdBlood = true
+    end
     
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
-
+    
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
-    -- AoE Damage over time abilities
-    local AoeDot = function()
-        -- Crimson Tempest on 2+ Targets
-        if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 2 and IsAuraRefreshable(ids.CrimsonTempest) and EffectiveComboPoints >= Variables.EffectiveSpendCp and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 ) then
-            KTrig("Crimson Tempest") return true end
-        
-        -- Kichi --
-        if OffCooldown(ids.Garrote) and aura_env.config["PerformanceMode"] == true and ( MaxComboPoints - EffectiveComboPoints >= 1 and NearbyRefreshableGarroted > 0 and not Variables.RegenSaturated ) then
-            KTrig("Garrote", "TAB") return true end
-
-        -- Garrote upkeep in AoE to reach energy saturation
-        if OffCooldown(ids.Garrote) and ( MaxComboPoints - EffectiveComboPoints >= 1 and ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) and IsAuraRefreshable(ids.Garrote) and not Variables.RegenSaturated and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 12 ) then
-            KTrig("Garrote") return true end
-        
-        -- Kichi --
-        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or true ) ) ) and true and not PlayerHasBuff(ids.DarkestNightBuff) ) then
-            KTrig("Rupture", "TAB") return true end
-        
-        -- Rupture upkeep in AoE to reach energy or scent of blood saturation
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and ( not Variables.RegenSaturated and ( IsPlayerSpell(ids.ScentOfBloodTalent) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) or TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 15 ) ) ) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 7 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) and not PlayerHasBuff(ids.DarkestNightBuff) ) then
-            KTrig("Rupture") return true end
-        
-        -- Kichi --
-        if OffCooldown(ids.Rupture) and aura_env.config["PerformanceMode"] == true and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and NearbyRefreshableRuptured > 0 and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and true and not PlayerHasBuff(ids.DarkestNightBuff)) then
-            KTrig("Rupture", "TAB") return true end
-
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (not TargetHasDebuff(ids.Kingsbane) or PlayerHasBuff(ids.ColdBlood)) and Variables.RegenSaturated and not Variables.ScentSaturation and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > 19) and not PlayerHasBuff(ids.DarkestNightBuff)) then
-            KTrig("Rupture") return true end
-        
-        -- Garrote as a special generator for the last CP before a finisher for edge case handling
-        if OffCooldown(ids.Garrote) and ( IsAuraRefreshable(ids.Garrote) and MaxComboPoints - EffectiveComboPoints >= 1 and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or GetRemainingDebuffDuration("target", ids.Garrote) <= 2 and NearbyEnemies >= 3 ) and ( GetRemainingDebuffDuration("target", ids.Garrote) <= 2 * 2 and NearbyEnemies >= 3 ) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) ) > 4 and abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) == 0 ) then
-            KTrig("Garrote") return true end
-    end
+    -- With multiple targets, this variable is checked to decide whether some CDs should be synced with Blade Flurry
+    -- Variables.BladeFlurrySync = NearbyEnemies < 2  or GetRemainingAuraDuration("player", ids.BladeFlurry) > aura_env.config["BFHeadsup"]
     
-    -- Core damage over time abilities used everywhere 
-    local CoreDot = function()
-        -- Maintain Garrote
-        if OffCooldown(ids.Garrote) and ( MaxComboPoints - EffectiveComboPoints >= 1 and ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) and IsAuraRefreshable(ids.Garrote) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 12 ) then
-            KTrig("Garrote") return true end
-        
-        -- Maintain Rupture unless darkest night is up
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 4 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) and (not PlayerHasBuff(ids.DarkestNightBuff) or IsPlayerSpell(ids.CausticSpatterTalent) and not TargetHasDebuff(ids.CausticSpatterDebuff)) ) then
-            KTrig("Rupture") return true end
-
-        -- Maintain Crimson Tempest
-        if OffCooldown(ids.CrimsonTempest) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.CrimsonTempestDebuff) and ( not PlayerHasBuff(ids.DarkestNightBuff) ) and not IsPlayerSpell(ids.AmplifyingPoisonTalent) ) then
-            KTrig("Crimson Tempest") return true end
-    end
-    
-    -- Direct Damage Abilities Envenom at applicable cp if not pooling, capped on amplifying poison stacks, on an animacharged CP, or in aoe.
-    local Direct = function()
-        if OffCooldown(ids.Envenom) and ( not PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( Variables.NotPooling or GetTargetStacks(ids.AmplifyingPoisonDebuff) >= 20 or not (NearbyEnemies < 2) ) and not PlayerHasBuff(ids.VanishBuff) ) then
-            KTrig("Envenom") return true end
-        
-        -- Special Envenom handling for Darkest Night
-        if OffCooldown(ids.Envenom) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= MaxComboPoints ) then
-            KTrig("Envenom") return true end
-        
-        -- Check if we should be using a filler
-        Variables.UseFiller = CurrentComboPoints <= Variables.EffectiveSpendCp and not Variables.CdSoon or Variables.NotPooling or not (NearbyEnemies < 2)
-        
-        Variables.FokTargetCount = ( PlayerHasBuff(ids.ClearTheWitnessesBuff) and ( NearbyEnemies >= 2 - (( PlayerHasBuff(ids.LingeringDarknessBuff) or not IsPlayerSpell(ids.ViciousVenomsTalent) ) and 1 or 0) ) ) or ( NearbyEnemies >= 3 - (( IsPlayerSpell(ids.MomentumOfDespairTalent) and IsPlayerSpell(ids.ThrownPrecisionTalent) ) and 1 or 0) + (IsPlayerSpell(ids.ViciousVenomsTalent) and 1 or 0) + (IsPlayerSpell(ids.BlindsideTalent) and 1 or 0) )
-
-        -- Maintain Caustic Spatter
-        Variables.UseCausticFiller = IsPlayerSpell(ids.CausticSpatterTalent) and TargetHasDebuff(ids.Rupture) and ( not TargetHasDebuff(ids.CausticSpatterDebuff) or GetRemainingDebuffDuration("target", ids.CausticSpatterDebuff) <= 3 ) and MaxComboPoints - EffectiveComboPoints > 1 and not (NearbyEnemies < 2)     
-        
-        if OffCooldown(ids.Mutilate) and ( Variables.UseCausticFiller ) then
-            KTrig("Mutilate") return true end
-        
-        if OffCooldown(ids.Ambush) and ( Variables.UseCausticFiller ) then
+    -- Builders
+    local Build = function()
+        -- High priority Ambush for Hidden Opportunity builds.
+        if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.AudacityBuff) ) then
             KTrig("Ambush") return true end
 
-        -- Fan of Knives at 6cp for Darkest Night
-        if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 6 and ( not IsPlayerSpell(ids.ViciousVenomsTalent) or NearbyEnemies >= 2) ) then
-            KTrig("Fan of Knives") return true end
-        
-        -- Fan of Knives at 3+ targets, accounting for various edge cases
-        -- Kichi --
-        if OffCooldown(ids.FanOfKnives) and (Variables.UseFiller and Variables.FokTargetCount ) then
-            -- KTrig("Fan of Knives") return true end
-            if Variables.NotPooling
-            then
-                KTrig("Fan of Knives") return true
-            else
-                KTrig("Fan of Knives", "Not Good") return true 
-            end
-        end
-        
-        -- Ambush on Blindside/Subterfuge. Do not use Ambush from stealth during Kingsbane & Deathmark.
-        if OffCooldown(ids.Ambush) and ( Variables.UseFiller and ( PlayerHasBuff(ids.BlindsideBuff) or IsStealthed ) and ( not TargetHasDebuff(ids.Kingsbane) or TargetHasDebuff(ids.Deathmark) == false or PlayerHasBuff(ids.BlindsideBuff) ) ) then
-            -- KTrig("Ambush") return true end
-            if Variables.NotPooling
-            then
-                KTrig("Ambush") return true
-            else
-                KTrig("Ambush", "Not Good") return true 
-            end
-        end
+        -- Trickster builds should prioritize Sinister Strike during Disorienting Strikes. HO builds prefer to do this only at 3 Escalating Blade stacks and not at max Opportunity stacks.
+        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and ( GetPlayerStacks(ids.EscalatingBladeBuff) > 2 and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 ) then
+            KTrig("Sinister Strike") return true end
             
+        -- With Audacity + Hidden Opportunity + Fan the Hammer, consume Opportunity to proc Audacity any time Ambush is not available.
+        if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and IsPlayerSpell(ids.AudacityBuff) and IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.OpportunityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) then
+            KTrig("Pistol Shot") return true end
         
-        -- Tab-Mutilate to apply Deadly Poison at 2 targets if not using Fan of Knives
-        if OffCooldown(ids.Mutilate) and ( not TargetHasDebuff(ids.DeadlyPoisonDebuff) and not TargetHasDebuff(ids.AmplifyingPoisonDebuff) and Variables.UseFiller and NearbyEnemies == 2 ) then
-            -- KTrig("Mutilate") return true end
-            if Variables.NotPooling
-            then
-                KTrig("Mutilate") return true
-            else
-                KTrig("Mutilate", "Not Good") return true 
-            end 
-        end
+        -- With 2 ranks in Fan the Hammer, consume Opportunity as a higher priority if at max stacks or if it will expire.
+        if OffCooldown(ids.PistolShot) and ( TalentRank(ids.FanTheHammerTalentNode) > 1 and PlayerHasBuff(ids.OpportunityBuff) and ( GetPlayerStacks(ids.OpportunityBuff) >= (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or GetRemainingAuraDuration("player", ids.OpportunityBuff) < 2 ) ) then
+            KTrig("Pistol Shot") return true end
         
-        -- Fallback Mutilate
-        if OffCooldown(ids.Mutilate) and ( Variables.UseFiller ) then
-            -- KTrig("Mutilate") return true end
-            if Variables.NotPooling 
-            then
-                KTrig("Mutilate") return true
-            else
-                KTrig("Mutilate", "Not Good") return true 
-            end 
-        end
-    end
-    
-    -- Shiv conditions
-    local Shiv = function()
-        Variables.ShivCondition = not TargetHasDebuff(ids.ShivDebuff) and TargetHasDebuff(ids.Garrote) and TargetHasDebuff(ids.Rupture) and NearbyEnemies <= 5
+        -- With Fan the Hammer, consume Opportunity if it will not overcap CPs, or with 1 CP at minimum.
+        if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( MaxComboPoints - CurrentComboPoints >= ( 1 + ( (IsPlayerSpell(ids.QuickDrawTalent) and 1 or 0) + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) ) * ( TalentRank(ids.FanTheHammerTalentNode) + 1 ) ) or CurrentComboPoints <= (IsPlayerSpell(ids.RuthlessnessTalent) and 1 or 0) ) ) then
+            KTrig("Pistol Shot") return true end
         
-        Variables.ShivKingsbaneCondition = IsPlayerSpell(ids.Kingsbane) and PlayerHasBuff(ids.Envenom) and Variables.ShivCondition
-        
-        -- Shiv for aoe with Arterial Precision
-        if OffCooldown(ids.Shiv) and ( IsPlayerSpell(ids.ArterialPrecisionTalent) and Variables.ShivCondition and NearbyEnemies >= 4 and TargetHasDebuff(ids.CrimsonTempest) ) then      
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        -- Shiv cases for Kingsbane
-        if OffCooldown(ids.Shiv) and ( not IsPlayerSpell(ids.LightweightShivTalent) and Variables.ShivKingsbaneCondition and ( TargetHasDebuff(ids.Kingsbane) and GetRemainingDebuffDuration("target", ids.Kingsbane) < 8 or not TargetHasDebuff(ids.Kingsbane) and GetRemainingSpellCooldown(ids.Kingsbane) >= 20 ) and ( not IsPlayerSpell(ids.CrimsonTempest) or (NearbyEnemies < 2) or TargetHasDebuff(ids.CrimsonTempest) ) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
+        -- If not using Fan the Hammer, then consume Opportunity based on energy, when it will exactly cap CPs, or when using Quick Draw.
+        if OffCooldown(ids.PistolShot) and ( not IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( MaxEnergy - CurrentEnergy > 75 or MaxComboPoints - CurrentComboPoints <= 1 + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) or IsPlayerSpell(ids.QuickDrawTalent) or IsPlayerSpell(ids.AudacityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) ) then
+            KTrig("Pistol Shot") return true end
 
-        -- Shiv for big Darkest Night Envenom during Lingering Darkness
-        if OffCooldown(ids.Shiv) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.LingeringDarknessBuff) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Shiv) and ( IsPlayerSpell(ids.LightweightShivTalent) and Variables.ShivKingsbaneCondition and ( TargetHasDebuff(ids.Kingsbane) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) < 8 or GetRemainingSpellCooldown(ids.Kingsbane) <= 1 and GetSpellChargesFractional(ids.Shiv) >= 1.7 ) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        -- Fallback shiv for arterial during deathmark
-        if OffCooldown(ids.Shiv) and ( IsPlayerSpell(ids.ArterialPrecisionTalent) and not TargetHasDebuff(ids.ShivDebuff) and TargetHasDebuff(ids.Garrote) and TargetHasDebuff(ids.Rupture) and TargetHasDebuff(ids.Deathmark) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        -- Fallback if no special cases apply
-        if OffCooldown(ids.Shiv) and ( not IsPlayerSpell(ids.Kingsbane) and not IsPlayerSpell(ids.ArterialPrecisionTalent) and Variables.ShivCondition and ( not IsPlayerSpell(ids.CrimsonTempest) or (NearbyEnemies < 2) or TargetHasDebuff(ids.CrimsonTempest) ) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        -- Dump Shiv on fight end
-        if OffCooldown(ids.Shiv) and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * 8 ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-    end
-    
-    -- Stealthed Actions
-    local Stealthed = function()
-        -- Apply Deathstalkers Mark if it has fallen off or waiting for Rupture in AoE
-        if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and EffectiveComboPoints < Variables.EffectiveSpendCp and ( TargetHasDebuff(ids.Rupture) or NearbyEnemies <= 1 or not IsPlayerSpell(ids.SubterfugeTalent)) ) then
+        -- Use Coup de Grace at low CP if Sinister Strike would otherwise be used.
+        if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace and (not IsStealthed) then
+            KTrig("Dispatch") return true end
+
+        -- Fallback pooling just so Sinister Strike is never casted if Ambush is available for Hidden Opportunity builds
+        if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) ) then
             KTrig("Ambush") return true end
         
-        -- Make sure to have Shiv up during Kingsbane as a final check
-        if OffCooldown(ids.Shiv) and ( IsPlayerSpell(ids.KingsbaneTalent) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) < 8 and ( not TargetHasDebuff(ids.ShivDebuff) or GetRemainingDebuffDuration("target", ids.ShivDebuff) < 1 ) and PlayerHasBuff(ids.EnvenomBuff) ) then
-            -- KTrig("Shiv") return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shiv")
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                KTrig("Shiv")
-                return true
-            end
-        end
-        
-        -- Envenom to maintain the buff during Subterfuge
-        if OffCooldown(ids.Envenom) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and TargetHasDebuff(ids.Kingsbane) and GetRemainingAuraDuration("player", ids.Envenom) <= 3 and (TargetHasDebuff(ids.DeathstalkersMarkDebuff) or PlayerHasBuff(ids.ColdBlood) or PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 7) ) then
-            KTrig("Envenom") return true end
-        
-        -- Envenom during Master Assassin in single target
-        if OffCooldown(ids.Envenom) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and GetRemainingAuraDuration("player", ids.MasterAssassinBuff) < -1 and (NearbyEnemies < 2) and (TargetHasDebuff(ids.DeathstalkersMarkDebuff) or PlayerHasBuff(ids.ColdBlood) or PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 7) ) then
-            KTrig("Envenom") return true end
-        
-        -- Rupture during Indiscriminate Carnage
-        -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
-        -- Kichi --
-        if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and true ) then
-            KTrig("Rupture") return true end
-        
-        -- Improved Garrote: Apply or Refresh with buffed Garrotes, accounting for Indiscriminate Carnage
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyShortGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
-            KTrig("Garrote") return true end
-        
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
-            KTrig("Garrote") return true end
+        if OffCooldown(ids.SinisterStrike) then
+            KTrig("Sinister Strike") return true end
     end
     
-    -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
-    local Vanish = function()
-        -- Vanish to fish for Fateful Ending
-        if OffCooldown(ids.Vanish) and ( not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) ) then
+    local Finish = function()
+        if OffCooldown(ids.KillingSpree) then
+            -- KTrig("Killing Spree") return true end
+            if aura_env.config[tostring(ids.KillingSpree)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Killing Spree")
+            elseif aura_env.config[tostring(ids.KillingSpree)] ~= true then
+                KTrig("Killing Spree")
+                return true
+            end
+        end
+
+        if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace then
+            KTrig("Dispatch") return true end
+        
+        -- Finishers Use Between the Eyes outside of Stealth to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
+        if OffCooldown(ids.BetweenTheEyes) and ( ( PlayerHasBuff(ids.RuthlessPrecisionBuff) or GetRemainingAuraDuration("player", ids.BetweenTheEyesBuff) < 4 or not IsPlayerSpell(ids.MeanStreakTalent) ) and ( not PlayerHasBuff(ids.GreenskinsWickersBuff) or not IsPlayerSpell(ids.GreenskinsWickersTalent) ) ) then
+            KTrig("Between the Eyes") return true end
+        
+        --if OffCooldown(ids.CoupDeGrace) then
+        --    KTrig("Coup De Grace") return true end
+        
+        if OffCooldown(ids.Dispatch) then
+            KTrig("Dispatch") return true end
+    end
+
+    local VanishUsage = function()
+        -- Flex Vanish usage for standard builds. Without Killing Spree, attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active. Also with Keep it Rolling, hold Vanish if we haven't done the first roll after KIR yet.
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and not OffCooldown(ids.BetweenTheEyes) and GetRemainingAuraDuration("player", ids.RuthlessPrecisionBuff) > 4 and ( GetRemainingSpellCooldown(ids.KeepItRolling) > 150 and RTBBuffNormal > 0 or not IsPlayerSpell(ids.KeepItRollingTalent) ) ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+
+        -- Supercharger builds that do not use Killing Spree should also Vanish if Supercharger becomes active.
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and GetUnitChargedPowerPoints("player") ~= nil  ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -485,8 +255,8 @@ env.test = function()
             end
         end
         
-        -- Vanish to spread Garrote during Deathmark without Indiscriminate Carnage
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.MasterAssassinTalent) and not IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 ) and MaxComboPoints - EffectiveComboPoints >= min(NearbyEnemies, 4) ) then
+        -- Builds with Killing Spree can freely Vanish if KS is not up soon.
+        if OffCooldown(ids.Vanish) and ( GetRemainingSpellCooldown(ids.KillingSpree) > 30 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -496,30 +266,8 @@ env.test = function()
             end
         end
         
-        -- Vanish for cleaving Garrotes with Indiscriminate Carnage
-        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.IndiscriminateCarnageTalent) and IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and NearbyEnemies > 2 and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Vanish) > 15  ) ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        -- Vanish fallback for Master Assassin
-        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish", "APL5")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        -- Vanish fallback for Improved Garrote during Deathmark if no add waves are expected
-        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.ImprovedGarroteTalent) and OffCooldown(ids.Garrote) and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and ( TargetHasDebuff(ids.Deathmark) or GetRemainingSpellCooldown(ids.Deathmark) < 4 )  ) then   
+        -- Vanish if about to cap on charges or sim duration is ending.
+        if OffCooldown(ids.Vanish) and ( GetTimeToFullCharges(ids.Vanish) < 15 or FightRemains(60, NearbyRange) < 8 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -530,85 +278,135 @@ env.test = function()
         end
     end
     
-    -- Cooldowns
+    -- Flex Vanish usage for builds lacking one of the mandatory stealth talents. APL support for these builds is considered limited.
+    local VanishUsageOffMeta = function()
+        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and not IsPlayerSpell(ids.CrackshotTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and ( Variables.AmbushCondition or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and ( not OffCooldown(ids.BetweenTheEyes) and PlayerHasBuff(ids.RuthlessPrecisionBuff) or PlayerHasBuff(ids.RuthlessPrecisionBuff) == false or GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 3 ) ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.CrackshotTalent) and Variables.FinishCondition ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.HiddenOpportunityTalent) and not PlayerHasBuff(ids.AudacityBuff) and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) and Variables.AmbushCondition ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and not IsPlayerSpell(ids.HiddenOpportunityTalent) and IsPlayerSpell(ids.FatefulEndingTalent) and ( not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) or PlayerHasBuff(ids.FateboundLuckyCoinBuff) and not OffCooldown(ids.BetweenTheEyes) ) ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and not IsPlayerSpell(ids.HiddenOpportunityTalent) and not IsPlayerSpell(ids.FatefulEndingTalent) and IsPlayerSpell(ids.TakeEmBySurpriseTalent) and not PlayerHasBuff(ids.TakeEmBySurpriseBuff) ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
+    end
+    
     local Cds = function()
-        -- Wait on Deathmark for Garrote with MA and check for Kingsbane
-        Variables.DeathmarkMaCondition = not IsPlayerSpell(ids.MasterAssassinTalent) or TargetHasDebuff(ids.Garrote)
+        -- Maintain Blade Flurry on 2+ targets.
+        if OffCooldown(ids.BladeFlurry) and ( NearbyEnemies >= 2 and GetRemainingAuraDuration("player", ids.BladeFlurry) < BFHeadsup ) then
+            KTrig("Blade Flurry") return true end
         
-        Variables.DeathmarkKingsbaneCondition = not IsPlayerSpell(ids.Kingsbane) or GetRemainingSpellCooldown(ids.Kingsbane) <= 2
+        -- With Deft Maneuvers, build CPs with Blade Flurry at 5+ targets. Trickster builds should avoid this during Disorienting Strikes with 0-3 stacks of Escalating Blade, unless stealth is active.
+        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and not Variables.FinishCondition and NearbyEnemies >= 5 and ( not HasDisorientingStrikes or IsStealthed or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 ) ) then
+            KTrig("Blade Flurry") return true end
         
-        -- Deathmark to be used if not stealthed, Rupture is up, and all other talent conditions are satisfied
-        Variables.DeathmarkCondition = not IsStealthed and GetRemainingAuraDuration("player", ids.SliceAndDice) > 5 and TargetHasDebuff(ids.Rupture) and ( PlayerHasBuff(ids.Envenom) or NearbyEnemies > 1 ) and not TargetHasDebuff(ids.Deathmark) and Variables.DeathmarkMaCondition and Variables.DeathmarkKingsbaneCondition
+        -- Maintain Roll the Bones: cast without any buffs.
+        if OffCooldown(ids.RollTheBones) and ( RTBBuffCount == 0 ) then
+            KTrig("Roll the Bones") return true end
         
-        -- Cast Deathmark if the target will survive long enough
-        if OffCooldown(ids.Deathmark) and ( ( Variables.DeathmarkCondition and TargetTimeToXPct(0, 60) >= 10 ) or FightRemains(60, NearbyRange) <= 20 ) then
-            -- KTrig("Deathmark") return true end
-            if aura_env.config[tostring(ids.Deathmark)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Deathmark")
-            elseif aura_env.config[tostring(ids.Deathmark)] ~= true then
-                KTrig("Deathmark")
+        -- With TWW2 set, recast Roll the Bones if we will roll away between 0-1 buffs. If KIR was recently used on a natural 5 buff, then wait until all buffs are below around 41s remaining.
+        if OffCooldown(ids.RollTheBones) and ( (SetPieces >= 4) and RTBBuffWillLose <= 1 and ( Variables.BuffsAbovePandemic < 5 or RTBBuffMaxRemains < 42 ) ) then
+            KTrig("Roll the Bones") return true end
+        
+        -- With TWW2 set, recast Roll the Bones with at most 2 buffs active regardless of duration. Supercharger builds will also roll if we will lose between 0-4 buffs, but KIR Supercharger builds wait until they are all below 11s remaining.
+        if OffCooldown(ids.RollTheBones) and ( (SetPieces >= 4) and ( RTBBuffCount <= 2 or (RTBBuffMaxRemains < 11 or not IsPlayerSpell(ids.KeepItRolling)) and RTBBuffWillLose < 5 and IsPlayerSpell(ids.SuperchargerTalent) ) ) then
+            KTrig("Roll the Bones") return true end
+        
+        -- Without TWW2 set or Sleight of Hand, recast Roll the Bones to override 1 buff into 2 buffs with Loaded Dice, or reroll any 2 buffs with Loaded Dice+Supercharger. Hidden Opportunity builds can also reroll 2 buffs with Loaded Dice to try for BS/RP/TB.
+        if OffCooldown(ids.RollTheBones) and ( not (SetPieces >= 4) and ( RTBBuffWillLose <= (PlayerHasBuff(ids.LoadedDiceBuff) and 1 or 0) or IsPlayerSpell(ids.SuperchargerTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 or IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 and not PlayerHasBuff(ids.BroadsideBuff) and not PlayerHasBuff(ids.RuthlessPrecisionBuff) and not PlayerHasBuff(ids.TrueBearingBuff) ) ) then
+            KTrig("Roll the Bones") return true end
+        
+        -- If necessary, standard builds prioritize using Vanish at any CP to prevent Adrenaline Rush downtime.
+        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and not IsStealthed and GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 2 and GetRemainingSpellCooldown(ids.AdrenalineRush) > 30 ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
                 return true
-            end
-        end
-        
-        -- Check for Applicable Shiv usage
-        if Shiv() then 
-            -- return true end
-            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Kingsbane) and ( ( TargetHasDebuff(ids.ShivDebuff) or GetRemainingSpellCooldown(ids.Shiv) < 6 ) and ( PlayerHasBuff(ids.Envenom) or NearbyEnemies > 1 ) and ( GetRemainingSpellCooldown(ids.Deathmark) >= 50 or TargetHasDebuff(ids.Deathmark) ) or FightRemains(60, NearbyRange) <= 15 ) then
-            -- KTrig("Kingsbane") return true end
-            if aura_env.config[tostring(ids.Kingsbane)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Kingsbane")
-            elseif aura_env.config[tostring(ids.Kingsbane)] ~= true then
-                KTrig("Kingsbane")
-                return true
-            end
-        end
-        
-        if not IsStealthed and abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) == 0 then
-            if Vanish() then 
-                --return true end end
-                if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
-                elseif aura_env.config[tostring(ids.Shiv)] ~= true then
-                    return true
-                end
             end
         end
 
+        -- If not at risk of losing Adrenaline Rush, run finishers to use Killing Spree or Coup de Grace as a higher priority than Vanish.
+        if not IsStealthed and ( OffCooldown(ids.KillingSpree) and IsPlayerSpell(ids.KillingSpreeTalent) or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 ) and Variables.FinishCondition then
+            Finish() return true end
+        
+        -- If not at risk of losing Adrenaline Rush, call flexible Vanish rules to be used at finisher CPs.
+        if not IsStealthed and IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and Variables.FinishCondition then
+            if VanishUsage() then return true end end
+        
+        if not IsStealthed and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) or not IsPlayerSpell(ids.CrackshotTalent) or not IsPlayerSpell(ids.SubterfugeTalent) ) then
+            if VanishUsageOffMeta() then return true end end
+        
+        -- Use Blade Rush at minimal energy outside of stealth
+        if OffCooldown(ids.BladeRush) and ( CurrentEnergy < BRKSEnergy and not IsStealthed ) then
+            KTrig("Blade Rush") return true end
     end
-
-    -- Call Stealthed Actions
-    if IsStealthed or HasImprovedGarroteBuff or abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) > 0 then
-        if Stealthed() then 
-            -- print("Stealthed")
-            return true end end
+        
+    local Stealth = function()
+        -- High priority Between the Eyes for Crackshot, except not directly out of Shadowmeld.
+        if OffCooldown(ids.BetweenTheEyes) and ( Variables.FinishCondition and IsPlayerSpell(ids.CrackshotTalent) and ( not PlayerHasBuff(ids.Shadowmeld) or IsStealthed ) ) then
+            KTrig("Between the Eyes") return true end
+        
+        if OffCooldown(ids.Dispatch) and ( Variables.FinishCondition ) then
+            KTrig("Dispatch") return true end
+        
+        -- 2 Fan the Hammer Crackshot builds can consume Opportunity in stealth with max stacks, Broadside, and 1 CP, or with Greenskins active
+        if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.CrackshotTalent) and TalentRank(ids.FanTheHammerTalentNode) > 1 and GetPlayerStacks(ids.OpportunityBuff) >= 6 and ( PlayerHasBuff(ids.BroadsideBuff) and CurrentComboPoints <= 1 or PlayerHasBuff(ids.GreenskinsWickersBuff) ) ) then
+            KTrig("Pistol Shot") return true end
+        
+        if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) ) then
+            KTrig("Ambush") return true end
+    end
     
-    -- Call Cooldowns    
-    if Cds() then 
-        -- print("Cds")
-        return true end
+    if Cds() then return true end
     
-    -- Call Core DoT effects
-    if CoreDot() then 
-        -- print("CoreDot")
-        return true end
+    -- High priority stealth list, will fall through if no conditions are met.
+    if IsStealthed then
+        if Stealth() then return true end end
     
-    -- Call AoE DoTs when in AoE
-    if not (NearbyEnemies < 2) then
-        if AoeDot() then 
-            -- print("AoeDot")
-            return true end end
+    if Variables.FinishCondition then
+        Finish() return true end
     
-    -- Call Direct Damage Abilities
-    if Direct() then 
-        -- print("Direct")
-        return true end
-    
-    KTrig("Clear")
-
+    if Build() then return true end
 end

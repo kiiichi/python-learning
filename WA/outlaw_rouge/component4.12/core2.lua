@@ -1,31 +1,18 @@
-env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellID)
-    if sourceGUID ~= UnitGUID("player") then return false end
-    
-    if subEvent == "SPELL_CAST_SUCCESS" then 
-        aura_env.PrevCast = spellID 
-        if spellID == aura_env.ids.Envenom then
-            if IsPlayerSpell(aura_env.ids.TwistTheKnifeTalent) and aura_env.Envenom1 < GetTime() then
-                aura_env.Envenom1 = aura_env.Envenom1
-                aura_env.Envenom2 = aura_env.GetRemainingAuraDuration("player", aura_env.ids.Envenom) + GetTime()
+env.test = function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
+    if sourceGUID == UnitGUID("PLAYER") then
+        if spellId == aura_env.ids.RollTheBones then
+            -- Initial prediction
+            local Expires = GetTime() + 30
+            if aura_env.RTBContainerExpires and aura_env.RTBContainerExpires > GetTime() then
+                local Offset = math.min(aura_env.RTBContainerExpires - GetTime(), 9)
+                aura_env.RTBContainerExpires = Expires + Offset
             else
-                aura_env.Envenom1 = aura_env.GetRemainingAuraDuration("player", aura_env.ids.Envenom) + GetTime()
+                aura_env.RTBContainerExpires = Expires
             end
+        elseif spellId == aura_env.ids.KillingSpree and IsPlayerSpell(aura_env.ids.DisorientingStrikesTalent) then
+            aura_env.DisorientingStrikesCount = 2
+        elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
+            aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
         end
     end
-    
-    if subEvent == "SPELL_AURA_APPLIED" or subEvent == "SPELL_AURA_REFRESH" then
-        if spellID == aura_env.ids.Garrote then
-            local Multiplier = (aura_env.PlayerHasBuff(392403) or aura_env.PlayerHasBuff(392401)) and 1.5 or 1
-            
-            aura_env.GarroteSnapshots[targetGUID] = Multiplier
-        end
-    end
-
-    -- Kichi --
-    if subEvent == "SPELL_AURA_REMOVED" then 
-        if spellID == aura_env.ids.Garrote then
-            aura_env.GarroteSnapshots[targetGUID] = nil
-        end
-    end
-
 end
