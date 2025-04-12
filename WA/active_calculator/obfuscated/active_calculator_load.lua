@@ -1,0 +1,1 @@
+WeakAuras.WatchGCD();aura_env.showTime=0 -0 ;aura_env.showPercent=286 -186 ;aura_env.lastCast=0 -0 ;aura_env.wasteGCDTime=0 -0 ;aura_env.battleDuration=0;aura_env.battleStartTime=619 -(555 + 64) ;aura_env.playerInCombat=false;
