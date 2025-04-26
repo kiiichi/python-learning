@@ -522,7 +522,7 @@ function()
                 return true
             end
         end
-        
+
         if OffCooldown(ids.DeathCoil) and ( FindSpellOverrideByID(ids.ScourgeStrike) ~= ids.VampiricStrike and NearbyEnemies < Variables.EpidemicTargets and ( not IsPlayerSpell(ids.BurstingSoresTalent) or IsPlayerSpell(ids.BurstingSoresTalent) and TargetsWithFesteringWounds < NearbyEnemies and TargetsWithFesteringWounds < NearbyEnemies * 0.4 and PlayerHasBuff(ids.SuddenDoomBuff) or PlayerHasBuff(ids.SuddenDoomBuff) and ( IsPlayerSpell(ids.DoomedBiddingTalent) and IsPlayerSpell(ids.MenacingMagusTalent) or IsPlayerSpell(ids.RottenTouchTalent) or GetRemainingDebuffDuration("target", ids.DeathRotDebuff) < WeakAuras.gcdDuration() ) or CurrentRunes < 2 ) or
         ( (CurrentRunes < 4 or NearbyEnemies < 4) and NearbyEnemies < Variables.EpidemicTargets and PlayerHasBuff(ids.GiftOfTheSanlaynBuff) and WeakAuras.gcdDuration() <= 1.0 and ( FightRemains(60, NearbyRange) > GetRemainingAuraDuration("pet", ids.DarkTransformationBuff) * 2 ) ) ) then
             KTrig("Death Coil") return true end
@@ -543,7 +543,7 @@ function()
         if OffCooldown(ids.DeathCoil) and ( NearbyEnemies < Variables.EpidemicTargets ) then
             KTrig("Death Coil") return true end
         
-        if OffCooldown(ids.Epidemic) and ( Variables.EpidemicTargets < NearbyEnemies ) then
+        if OffCooldown(ids.Epidemic) and ( Variables.EpidemicTargets <= NearbyEnemies ) then
             KTrig("Epidemic") return true end
         
         -- Kichi for Scourge Scy modify --
