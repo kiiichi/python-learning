@@ -1,21 +1,17 @@
-----------------
--- 核心触发器2 --
-----------------
-aura_env.test = function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
+env.test = function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
     if sourceGUID ~= UnitGUID("player") then return false end
-    aura_env.PrevCast3 = aura_env.PrevCast2
-    aura_env.PrevCast2 = aura_env.PrevCast
     aura_env.PrevCast = spellID
-    aura_env.PrevCastTime = GetTime()
-    
-    if spellID == aura_env.ids.FrozenOrb then
-        aura_env.FrozenOrbRemains = GetTime() + 15
-    elseif spellID == aura_env.ids.ConeOfCold then
-        aura_env.ConeOfColdLastUsed = GetTime()
+    if spellID == aura_env.ids.ArcaneBlast then
+        aura_env.NeedArcaneBlastSpark = false
+        aura_env.PrevArcaneBlast = GetTime()
+    elseif spellID == aura_env.ids.ArcaneOrb then
+        aura_env.UsedOrb = true
+    elseif spellID == aura_env.ids.ArcaneMissiles then
+        aura_env.UsedMissiles = true
+    elseif spellID == aura_env.ids.ArcaneBarrage then
+        aura_env.UsedBarrage = true
+    elseif spellID == aura_env.ids.TouchOfTheMagi then
+        aura_env.NeedArcaneBlastSpark = true
     end
-    
-    local KTrigCD = aura_env.KTrigCD
-    KTrigCD("Clear")
-
     return
 end

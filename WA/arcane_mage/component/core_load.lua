@@ -1,69 +1,77 @@
 WeakAuras.WatchGCD()
 
-aura_env.FrozenOrbRemains = 0
-aura_env.ConeOfColdLastUsed = 0
-aura_env.FlagKTrigCD = true
+aura_env.PrevArcaneBlast = 0
+aura_env.UsedOrb = false
+aura_env.UsedMissiles = false
+aura_env.UsedBarrage = false
+aura_env.NeedArcaneBlastSpark = false
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
+    ArcaneBarrage = 44425,
+    ArcaneBlast = 30451,
     ArcaneExplosion = 1449,
-    Blizzard = 190356,
-    CometStorm = 153595,
-    ConeOfCold = 120,
-    Flurry = 44614,
-    Freeze = 33395,
-    FrostNova = 122,
-    FrostfireBolt = 431044,
-    FrozenOrb = 84714,
-    Frostbolt = 116,
-    GlacialSpike = 199786,
-    IceLance = 30455,
-    IceNova = 157997,
-    IcyVeins = 12472,
-    RayOfFrost = 205021,
+    ArcaneMissiles = 5143,
+    ArcaneOrb = 153626,
+    ArcaneSurge = 365350,
+    Evocation = 12051,
+    PresenceOfMind = 205025,
     ShiftingPower = 382440,
+    Supernova = 157980,
+    TouchOfTheMagi = 321507,
     
     -- Talents
-    ColdestSnapTalent = 417493,
-    ColdFrontTalent = 382110,
-    CometStormTalent = 153595,
-    DeathsChillTalent = 450331,
-    DeepShatterTalent = 378749,
-    ExcessFrostTalent = 438611,
-    FreezingRainTalent = 270233,
-    FreezingWindsTalent = 382103,
-    FrostfireBoltTalent = 431044,
-    FrozenTouchTalent = 205030,
-    IceCallerTalent = 236662,
-    IsothermicCoreTalent = 431095,
-    RayOfFrostTalent = 205021,
-    SlickIceTalent = 382144,
-    SplinteringColdTalent = 379049,
-    SplinteringRayTalent = 418733,
-    SplinterstormTalent = 443742,
-    GlacialSpikeTalent = 199786,
+    ArcaneBombardmentTalent = 384581,
+    ArcingCleaveTalent = 231564,
+    ArcaneTempoTalent = 383980,
+    ArcaneHarmonyTalent = 384452,
+    ChargedOrbTalent = 384651,
+    ConsortiumsBaubleTalent = 461260,
+    EnlightenedTalent = 321387,
+    ImpetusTalent = 383676,
+    LeydrinkerTalent = 452196,
+    MagisSparkTalent = 454016,
+    SplinteringSorceryTalent = 443739,
+    HighVoltageTalent = 461248,
+    ShiftingShardsTalent = 444675,
+    OrbBarrageTalent = 384858,
+    ResonanceTalent = 205028,
+    ReverberateTalent = 281482,
+    SpellfireSpheresTalent = 448601,
+    TimeLoopTalent = 452924,
     
     -- Buffs
-    BrainFreezeBuff = 190446,
-    DeathsChillBuff = 454371,
-    ExcessFireBuff = 438624,
-    ExcessFrostBuff = 438611,
-    FingersOfFrostBuff = 44544,
-    FreezingRainBuff = 270232,
-    FrostfireEmpowermentBuff = 431177,
-    IciclesBuff = 205473,
-    IcyVeinsBuff = 12472,
-    SpymastersWebBuff = 444959,
-    WintersChillDebuff = 228358,
+    AetherAttunementBuff = 453601,
+    AethervisionBuff = 467634,
+    ArcaneHarmonyBuff = 384455,
+    ArcaneSurgeBuff = 365362,
+    ArcaneTempoBuff = 383997,
+    ClearcastingBuff = 263725,
+    LeydrinkerBuff = 453758,
+    NetherPrecisionBuff = 383783,
+    IntuitionBuff = 449394,
+    UnerringProficiencyBuff = 444981,
+    SiphonStormBuff = 384267,
+    BurdenOfPowerBuff = 451049,
+    GloriousIncandescenceBuff = 451073,
+    ArcaneSoulBuff = 451038,
+    TouchOfTheMagiDebuff = 210824,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
+-- Kichi --
+-- Kichi --
 aura_env.KTrig = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
+
+    -- Update to check if the spell power is enough --
+    local spellID = aura_env.ids[Name:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")]
+    local _, insufficientPower = C_Spell.IsSpellUsable(spellID)
+
+    WeakAuras.ScanEvents("K_TRIGED", Name, insufficientPower, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     if aura_env.FlagKTrigCD then
         WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
@@ -72,6 +80,7 @@ aura_env.KTrig = function(Name, ...)
 end
 
 aura_env.KTrigCD = function(Name, ...)
+
     WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     aura_env.FlagKTrigCD = false
@@ -83,21 +92,28 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
+    -- Kichi --
     -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    if (not usable) and (not nomana) then return false end
+    if (not usable) or nomana then return false end
     
-    local Duration = C_Spell.GetSpellCooldown(spellID).duration
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    -- Kichi --
+    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+    local Cooldown = C_Spell.GetSpellCooldown(spellID)
+    local Duration = Cooldown.duration
+    local Remaining = Cooldown.startTime + Duration - GetTime()
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
+
     if not OffCooldown then return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
     local InRange = (SpellIdx and C_SpellBook.IsSpellBookItemInRange(SpellIdx, SpellBank, "target")) -- safety
     
-    if InRange == 0 then
+    if InRange == false then
         aura_env.OutOfRange = true
-        return false
+        --return false
     end
     
     return true
@@ -139,8 +155,11 @@ aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
     return Expiration - GetTime()
 end
 
+-- Kichi --
 aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
+    if duration == nil then duration = 0 end
+    return duration
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -238,3 +257,22 @@ aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
 
+-- Kichi --
+aura_env.FullGCD = function()
+    local baseGCD = 1.5
+    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    return FullGCDnum
+end
+
+aura_env.TalentRank = function(nodeID)
+    -- Need Kichi‘s custom WA to get the nodeID, it's not the spellID.
+    local configID = C_ClassTalents.GetActiveConfigID()
+    if configID then
+        local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+        if nodeInfo and nodeInfo.currentRank then
+            -- print("天赋层数:", nodeInfo.currentRank)
+            return nodeInfo.currentRank
+        end
+    end
+    if nodeInfo == nil then return 0 end
+end
