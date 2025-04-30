@@ -732,6 +732,11 @@ function()
         Finish() return true end
     
     if Build() then return true end
+
+    -- Kichi --
+    KTrig("Clear")
+    -- KTrigCD("Clear")
+
 end
 
 ----------------------------------------------------------------------------------------------------------------------
