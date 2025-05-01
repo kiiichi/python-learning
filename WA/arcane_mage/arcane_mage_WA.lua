@@ -483,9 +483,10 @@ function()
         if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (SetPieces >= 4) ) then
             KTrig("Arcane Missiles") return true end
         
-        -- Barrage if Touch is up or will be up while Barrage is in the air.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
-            KTrig("Arcane Barrage") return true end
+        -- Kichi use micro to instead
+        -- -- Barrage if Touch is up or will be up while Barrage is in the air.
+        -- if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
+        --     KTrig("Arcane Barrage") return true end
 
         -- Barrage in AOE if you can refund Charges through High Voltage as soon as possible if you have Aether Attunement and Nether Precision up.
         if OffCooldown(ids.ArcaneBarrage) and ( IsPlayerSpell(ids.HighVoltageTalent) and IsPlayerSpell(ids.OrbBarrageTalent) and CurrentArcaneCharges > 1 and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.AetherAttunementBuff) and ( NetherPrecisionStacks == 1 or ( (NetherPrecisionStacks > 0) and NearbyEnemies > 1 ) or ( ( (NetherPrecisionStacks > 0) or ( GetPlayerStacks(ids.ClearcastingBuff) < 3 and not PlayerHasBuff(ids.IntuitionBuff) ) ) and NearbyEnemies > 3 ) ) ) then
@@ -537,12 +538,14 @@ function()
         if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies <= 1 and ( IsPlayerSpell(ids.OrbBarrageTalent) or ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ArcaneBombardmentTalent) ) ) and ( GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and CurrentArcaneCharges == 4 and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 6 or not IsPlayerSpell(ids.MagisSparkTalent) ) and ( (NetherPrecisionStacks == 0) or ( NetherPrecisionStacks == 1 and GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) ) then
             KTrig("Arcane Barrage") return true end
         
+        -- Kichi add distance check for Arcane Explosion
         -- Use Explosion for your first charge or if you have High Voltage you can use it for charge 2 and 3, but at a slightly higher target count.
-        if OffCooldown(ids.ArcaneExplosion) and ( NearbyEnemies > 1 and ( ( CurrentArcaneCharges < 1 and not IsPlayerSpell(ids.HighVoltageTalent) ) or ( CurrentArcaneCharges < 3 and ( GetPlayerStacks(ids.ClearcastingBuff) == 0 or IsPlayerSpell(ids.ReverberateTalent) ) ) ) ) then   
+        if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( NearbyEnemies > 1 and ( ( CurrentArcaneCharges < 1 and not IsPlayerSpell(ids.HighVoltageTalent) ) or ( CurrentArcaneCharges < 3 and ( GetPlayerStacks(ids.ClearcastingBuff) == 0 or IsPlayerSpell(ids.ReverberateTalent) ) ) ) ) then   
             KTrig("Arcane Explosion") return true end
 
+        -- Kichi add distance check for Arcane Explosion
         -- Arcane Explosion in single target for your first 2 charges when you have no Clearcasting procs and aren't out of mana.
-        if OffCooldown(ids.ArcaneExplosion) and ( NearbyEnemies == 1 and CurrentArcaneCharges < 2 and not PlayerHasBuff(ids.ClearcastingBuff) and (CurrentMana/MaxMana*100) > 10 ) then
+        if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( NearbyEnemies == 1 and CurrentArcaneCharges < 2 and not PlayerHasBuff(ids.ClearcastingBuff) and (CurrentMana/MaxMana*100) > 10 ) then
             KTrig("Arcane Explosion") return true end
         
         -- Barrage in execute if you're at the end of Touch or at the end of Surge windows.
