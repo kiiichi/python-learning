@@ -1,4 +1,4 @@
-env.test = function()
+env123.test123 = function()
     if (aura_env.LastUpdate and aura_env.LastUpdate > GetTime() - aura_env.config["UpdateFrequency"])
     then
         return
@@ -101,8 +101,9 @@ env.test = function()
     Variables.AoeList = aura_env.config["AoeList"]
     
     local CdOpener = function()
+        -- Kichi remove (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) because use TouchOfTheMagi macro --
         -- Touch of the Magi used when Arcane Barrage is mid-flight or if you just used Arcane Surge and you don't have 4 Arcane Charges, the wait simulates the time it takes to queue another spell after Touch when you Surge into Touch, throws up Touch as soon as possible even without Barraging first if it's ready for miniburn.
-        if OffCooldown(ids.TouchOfTheMagi) and ( (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) and ( PlayerHasBuff(ids.ArcaneSurgeBuff) or GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 ) or ( (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) and (CurrentArcaneCharges < 4 or NetherPrecisionStacks == 0 )) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) ) ) then
+        if OffCooldown(ids.TouchOfTheMagi) and ( true and ( PlayerHasBuff(ids.ArcaneSurgeBuff) or IsCasting(ids.ArcaneSurge) or GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 ) or ( (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) and (CurrentArcaneCharges < 4 or NetherPrecisionStacks == 0 )) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) ) ) then
             -- KTrig("Touch Of The Magi") return true end
             if aura_env.config[tostring(ids.TouchOfTheMagi)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Touch Of The Magi")
@@ -192,7 +193,7 @@ env.test = function()
         if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (SetPieces >= 4) ) then
             KTrig("Arcane Missiles") return true end
         
-        -- Kichi use micro to instead
+        -- Kichi use micro to instead --
         -- -- Barrage if Touch is up or will be up while Barrage is in the air.
         -- if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
         --     KTrig("Arcane Barrage") return true end
