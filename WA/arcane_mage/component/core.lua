@@ -103,7 +103,7 @@ env123.test123 = function()
     local CdOpener = function()
         -- Kichi remove (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) because use TouchOfTheMagi macro --
         -- Touch of the Magi used when Arcane Barrage is mid-flight or if you just used Arcane Surge and you don't have 4 Arcane Charges, the wait simulates the time it takes to queue another spell after Touch when you Surge into Touch, throws up Touch as soon as possible even without Barraging first if it's ready for miniburn.
-        if OffCooldown(ids.TouchOfTheMagi) and ( true and ( PlayerHasBuff(ids.ArcaneSurgeBuff) or IsCasting(ids.ArcaneSurge) or GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 ) or ( (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) and (CurrentArcaneCharges < 4 or NetherPrecisionStacks == 0 )) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) ) ) then
+        if OffCooldown(ids.TouchOfTheMagi) and ( true and ( GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) > 5 or IsCasting(ids.ArcaneSurge) or GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 ) or ( (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) and (CurrentArcaneCharges < 4 or NetherPrecisionStacks == 0 )) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) ) ) then
             -- KTrig("Touch Of The Magi") return true end
             if aura_env.config[tostring(ids.TouchOfTheMagi)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Touch Of The Magi")
@@ -145,7 +145,8 @@ env123.test123 = function()
         if OffCooldown(ids.ArcaneMissiles) and not aura_env.UsedMissiles and ( (((aura_env.PrevCast == ids.Evocation or IsCasting(ids.Evocation)) or (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge))) or Variables.Opener ) and NetherPrecisionStacks == 0 and (not PlayerHasBuff(ids.AetherAttunementBuff) or SetPieces >= 4 ) ) then
             KTrig("Arcane Missiles") return true end
         
-        if OffCooldownNotCasting(ids.ArcaneSurge) and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < ( max(C_Spell.GetSpellInfo(ids.ArcaneSurge).castTime/1000, WeakAuras.gcdDuration()) + ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( (CurrentArcaneCharges == 4) and 1 or 0 ) ) ) ) then
+        -- Kichi modify this via add "or TargetHasDebuff(ids.TouchOfTheMagiDebuff)" to fix if good luck to get ArcaneSurge --
+        if OffCooldownNotCasting(ids.ArcaneSurge) and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < ( max(C_Spell.GetSpellInfo(ids.ArcaneSurge).castTime/1000, WeakAuras.gcdDuration()) + ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( (CurrentArcaneCharges == 4) and 1 or 0 ) ) ) or TargetHasDebuff(ids.TouchOfTheMagiDebuff) ) then
             -- KTrig("Arcane Surge") return true end
             if aura_env.config[tostring(ids.ArcaneSurge)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Arcane Surge")

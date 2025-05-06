@@ -44,7 +44,8 @@ aura_env.ids = {
     ClearcastingBuff = 263725,
     LeydrinkerBuff = 453758,
     NetherPrecisionBuff = 383783,
-    IntuitionBuff = 449394,
+    -- Kichi fix this id beacause it is wrong --
+    IntuitionBuff = 1223797,
     UnerringProficiencyBuff = 444981,
     SiphonStormBuff = 384267,
     BurdenOfPowerBuff = 451049,

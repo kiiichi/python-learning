@@ -1,0 +1,1 @@
+function(v1,v2) if (v2~=nil) then aura_env.ShadowfiendExpiration=v2;end end;
