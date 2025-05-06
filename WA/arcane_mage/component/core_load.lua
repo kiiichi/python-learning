@@ -67,12 +67,7 @@ aura_env.OutOfRange = false
 -- Kichi --
 -- Kichi --
 aura_env.KTrig = function(Name, ...)
-
-    -- Update to check if the spell power is enough --
-    local spellID = aura_env.ids[Name:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")]
-    local _, insufficientPower = C_Spell.IsSpellUsable(spellID)
-
-    WeakAuras.ScanEvents("K_TRIGED", Name, insufficientPower, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     if aura_env.FlagKTrigCD then
         WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
@@ -81,7 +76,6 @@ aura_env.KTrig = function(Name, ...)
 end
 
 aura_env.KTrigCD = function(Name, ...)
-
     WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     aura_env.FlagKTrigCD = false
