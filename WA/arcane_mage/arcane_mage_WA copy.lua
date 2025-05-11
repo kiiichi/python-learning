@@ -582,17 +582,20 @@ function()
         
         if OffCooldown(ids.ArcaneBarrage) and ( ( IsPlayerSpell(ids.OrbBarrageTalent) and NearbyEnemies > 1 and GetPlayerStacks(ids.ArcaneHarmonyBuff) >= 18 and ( ( NearbyEnemies > 3 and ( IsPlayerSpell(ids.ResonanceTalent) or IsPlayerSpell(ids.HighVoltageTalent) ) ) or (NetherPrecisionStacks == 0) or NetherPrecisionStacks == 1 or ( NetherPrecisionStacks == 2 and GetPlayerStacks(ids.ClearcastingBuff) == 3 ) ) ) ) then
             KTrig("Arcane Barrage") return true end
-        
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (SetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 3 - ( 1.5 * ( NearbyEnemies > 3 and ( not IsPlayerSpell(ids.TimeLoopTalent) or IsPlayerSpell(ids.ResonanceTalent) ) ) ) ) ) then
+                
+        -- if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (SetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 3 - ( 1.5 * ( NearbyEnemies > 3 and ( not IsPlayerSpell(ids.TimeLoopTalent) or IsPlayerSpell(ids.ResonanceTalent) ) ) ) ) ) then
+        -- Kichi fix for error： attempt to perform arithmetic on a boolean value
+        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (SetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 3 - ( 1.5 * (( NearbyEnemies > 3 and ( not IsPlayerSpell(ids.TimeLoopTalent) or IsPlayerSpell(ids.ResonanceTalent) ) ) and 1 or 0) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Blast whenever you have the bonus from Leydrinker or Magi's Spark up, don't let spark expire in AOE.
         if OffCooldown(ids.ArcaneBlast) and ( ( ( aura_env.NeedArcaneBlastSpark and ( ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) < ( (C_Spell.GetSpellInfo(ids.ArcaneBlast).castTime/1000) + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) or NearbyEnemies <= 1 or IsPlayerSpell(ids.LeydrinkerTalent) ) ) or PlayerHasBuff(ids.LeydrinkerBuff) ) and CurrentArcaneCharges == 4 and ( (NetherPrecisionStacks > 0) or GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) then
             KTrig("Arcane Blast") return true end
         
-        -- Barrage into Touch if you have charges when it comes up.
-        if OffCooldown(ids.ArcaneBarrage) and ( CurrentArcaneCharges == 4 and ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
-            KTrig("Arcane Barrage") return true end
+        -- Kichi use micro to instead --
+        -- -- Barrage into Touch if you have charges when it comes up.
+        -- if OffCooldown(ids.ArcaneBarrage) and ( CurrentArcaneCharges == 4 and ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
+        --     KTrig("Arcane Barrage") return true end
 
         -- AOE Barrage conditions are optimized for funnel, avoids overcapping Harmony stacks (line below Tempo line above), spending Charges when you have a way to recoup them via High Voltage or Orb while pooling sometimes for Touch with various talent optimizations.
         if OffCooldown(ids.ArcaneBarrage) and ( ( IsPlayerSpell(ids.HighVoltageTalent) and NearbyEnemies > 1 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and NetherPrecisionStacks == 1 ) ) then
@@ -634,7 +637,8 @@ function()
         --if OffCooldown(ids.PresenceOfMind) and ( ( CurrentArcaneCharges == 3 or CurrentArcaneCharges == 2 ) and NearbyEnemies >= 3 ) then
         --    KTrig("Presence Of Mind") return true end
         
-        if OffCooldown(ids.ArcaneExplosion) and ( CurrentArcaneCharges < 2 and NearbyEnemies > 1 ) then
+        -- Kichi add distance check for Arcane Explosion
+        if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( CurrentArcaneCharges < 2 and NearbyEnemies > 1 ) then
             KTrig("Arcane Explosion") return true end
         
         if OffCooldown(ids.ArcaneBlast) then
