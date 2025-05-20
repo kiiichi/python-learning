@@ -1,4 +1,4 @@
-mage="TWW2_Mage_Arcane_Spellslinger_4.14"
+mage="TWW2_Mage_Arcane_Spellslinger_4.14_fixed"
 source=default
 spec=arcane
 level=80
@@ -116,6 +116,10 @@ actions.spellslinger+=/arcane_barrage,if=active_enemies=1&talent.high_voltage&bu
 actions.spellslinger+=/arcane_barrage,if=cooldown.arcane_orb.remains<gcd.max&buff.arcane_charge.stack=4&buff.nether_precision.down&talent.orb_barrage&(cooldown.touch_of_the_magi.remains>gcd.max*6|!talent.magis_spark)
 # Barrage with Orb Barrage or execute if you have orb up and no Nether Precision or no way to get another.
 actions.spellslinger+=/arcane_barrage,if=active_enemies=1&(talent.orb_barrage|(target.health.pct<35&talent.arcane_bombardment))&(cooldown.arcane_orb.remains<gcd.max)&buff.arcane_charge.stack=4&(cooldown.touch_of_the_magi.remains>gcd.max*6|!talent.magis_spark)&(buff.nether_precision.down|(buff.nether_precision.stack=1&buff.clearcasting.stack=0))
+# Kichi modify this to lower arcane_blast frequency in AOE
+actions.spellslinger+=/arcane_barrage,if=active_enemies>1&(debuff.magis_spark_arcane_blast.down|!talent.magis_spark)&buff.arcane_charge.stack>2
+# Kichi modify this to lower arcane_blast frequency in AOE
+actions.spellslinger+=/arcane_missiles,if=talent.high_voltage&buff.clearcasting.react&buff.arcane_charge.stack<3,interrupt_if=tick_time>gcd.remains&(buff.aether_attunement.react=0|(active_enemies>3&(!talent.time_loop|talent.resonance))),interrupt_immediate=1,interrupt_global=1,chain=1
 # Use Explosion for your first charge or if you have High Voltage you can use it for charge 2 and 3, but at a slightly higher target count.
 actions.spellslinger+=/arcane_explosion,if=active_enemies>1&((buff.arcane_charge.stack<1&!talent.high_voltage)|(buff.arcane_charge.stack<3&(buff.clearcasting.react=0|talent.reverberate)))
 # Arcane Explosion in single target for your first 2 charges when you have no Clearcasting procs and aren't out of mana.
