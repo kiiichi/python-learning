@@ -1,63 +1,50 @@
 WeakAuras.WatchGCD()
 
-aura_env.PrevArcaneBlast = 0
-aura_env.UsedOrb = false
-aura_env.UsedMissiles = false
-aura_env.UsedBarrage = false
-aura_env.NeedArcaneBlastSpark = false
-
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
-    ArcaneBarrage = 44425,
-    ArcaneBlast = 30451,
-    ArcaneExplosion = 1449,
-    ArcaneMissiles = 5143,
-    ArcaneOrb = 153626,
-    ArcaneSurge = 365350,
-    Evocation = 12051,
-    PresenceOfMind = 205025,
-    ShiftingPower = 382440,
-    Supernova = 157980,
-    TouchOfTheMagi = 321507,
+    AimedShot = 19434,
+    ArcaneShot = 185358,
+    BlackArrow = 466930,
+    ExplosiveShot = 212431,
+    KillShot = 53351,
+    Multishot = 257620,
+    RapidFire = 257044,
+    SteadyShot = 56641,
+    Trueshot = 288613,
+    Volley = 260243,
     
     -- Talents
-    ArcaneBombardmentTalent = 384581,
-    ArcingCleaveTalent = 231564,
-    ArcaneTempoTalent = 383980,
-    ArcaneHarmonyTalent = 384452,
-    ChargedOrbTalent = 384651,
-    ConsortiumsBaubleTalent = 461260,
-    EnlightenedTalent = 321387,
-    ImpetusTalent = 383676,
-    LeydrinkerTalent = 452196,
-    MagisSparkTalent = 454016,
-    SplinteringSorceryTalent = 443739,
-    HighVoltageTalent = 461248,
-    ShiftingShardsTalent = 444675,
-    OrbBarrageTalent = 384858,
-    ResonanceTalent = 205028,
-    ReverberateTalent = 281482,
-    SpellfireSpheresTalent = 448601,
-    TimeLoopTalent = 452924,
+    AspectOfTheHydraTalent = 470945,
+    BlackArrowTalent = 466932,
+    BulletstormTalent = 389019,
+    DoubleTapTalent = 473370,
+    HeadshotTalent = 471363,
+    LunarStormTalent = 450385,
+    NoScopeTalent = 473385,
+    PrecisionDetonationTalent = 471369,
+    RazorFragmentsTalent = 384790,
+    SentinelTalent = 450369,
+    SmallGameHunterTalent = 459802,
+    SymphonicArsenalTalent = 450383,
+    TrickShotsTalent = 257621,
+    VolleyTalent = 260243,
+    WindrunnerQuiverTalent = 473523,
     
-    -- Buffs
-    AetherAttunementBuff = 453601,
-    AethervisionBuff = 467634,
-    ArcaneHarmonyBuff = 384455,
-    ArcaneSurgeBuff = 365362,
-    ArcaneTempoBuff = 383997,
-    ClearcastingBuff = 263725,
-    LeydrinkerBuff = 453758,
-    NetherPrecisionBuff = 383783,
-    IntuitionBuff = 449394,
-    UnerringProficiencyBuff = 444981,
-    SiphonStormBuff = 384267,
-    BurdenOfPowerBuff = 451049,
-    GloriousIncandescenceBuff = 451073,
-    ArcaneSoulBuff = 451038,
-    TouchOfTheMagiDebuff = 210824,
+    -- Buffs/Debuffs
+    BulletstormBuff = 389020,
+    DoubleTapBuff = 260402,
+    LockAndLoadBuff = 194594,
+    LunarStormCooldownBuff = 451803,
+    LunarStormReadyBuff = 451805,
+    MovingTargetBuff = 474293,
+    PreciseShotsBuff = 260242,
+    RazorFragmentsBuff = 388998,
+    SpottersMarkDebuff = 466872,
+    TrickShotsBuff = 257622,
+    TrueshotBuff = 288613,
+    WitheringFireBuff = 466991,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -66,12 +53,7 @@ aura_env.OutOfRange = false
 -- Kichi --
 -- Kichi --
 aura_env.KTrig = function(Name, ...)
-
-    -- Update to check if the spell power is enough --
-    local spellID = aura_env.ids[Name:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")]
-    local _, insufficientPower = C_Spell.IsSpellUsable(spellID)
-
-    WeakAuras.ScanEvents("K_TRIGED", Name, insufficientPower, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     if aura_env.FlagKTrigCD then
         WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
@@ -80,7 +62,6 @@ aura_env.KTrig = function(Name, ...)
 end
 
 aura_env.KTrigCD = function(Name, ...)
-
     WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     aura_env.FlagKTrigCD = false
@@ -155,11 +136,8 @@ aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
     return Expiration - GetTime()
 end
 
--- Kichi --
 aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
-    if duration == nil then duration = 0 end
-    return duration
+    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -255,24 +233,4 @@ end
 
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
-end
-
--- Kichi --
-aura_env.FullGCD = function()
-    local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
-    return FullGCDnum
-end
-
-aura_env.TalentRank = function(nodeID)
-    -- Need Kichi‘s custom WA to get the nodeID, it's not the spellID.
-    local configID = C_ClassTalents.GetActiveConfigID()
-    if configID then
-        local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
-        if nodeInfo and nodeInfo.currentRank then
-            -- print("天赋层数:", nodeInfo.currentRank)
-            return nodeInfo.currentRank
-        end
-    end
-    if nodeInfo == nil then return 0 end
 end
