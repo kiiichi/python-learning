@@ -42,7 +42,7 @@ function()
     local NearbyRange = 40
     for i = 1, 40 do
         local unit = "nameplate"..i
-        if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") and (UnitAffectingCombat(unit) or aura_env.config["BypassCombatRequirement"]) then
+        if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, NearbyRange, "<=") and (UnitAffectingCombat(unit) or aura_env.config["BypassCombatRequirement"]) and select(6, strsplit("-", UnitGUID(unit))) ~= "229296" then -- Skip Orb of Ascendance
             NearbyEnemies = NearbyEnemies + 1
         end
     end
@@ -60,9 +60,11 @@ function()
     local ExtraGlows = {}
     
     -- Icy Veins
-    if OffCooldown(ids.IcyVeins) and (GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
-        ExtraGlows.IcyVeins = true
-    end
+    if OffCooldown(ids.IcyVeins) and ( GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < 1.5 and ( IsPlayerSpell(ids.FrostfireBoltTalent) or NearbyEnemies >= 3 ) ) then
+        ExtraGlows.IcyVeins = true end
+    
+    if OffCooldown(ids.IcyVeins) and ( GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < 1.5 and IsPlayerSpell(ids.SplinterstormTalent) ) then
+        ExtraGlows.IcyVeins = true end
     
     WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows, nil)
     
@@ -73,106 +75,118 @@ function()
     Variables.TargetIsFrozen = TargetHasDebuff(ids.IceNova) or TargetHasDebuff(ids.Freeze) or TargetHasDebuff(ids.FrostNova)
     
     local Movement = function()
+        --if OffCooldown(ids.IceFloes) and ( PlayerHasBuff(ids.IceFloesBuff) == false ) then
+        --    NGSend("Ice Floes") return true end
+        
         if OffCooldown(ids.IceNova) then
             NGSend("Ice Nova") return true end
         
         if OffCooldown(ids.ConeOfCold) and ( not IsPlayerSpell(ids.ColdestSnapTalent) and NearbyEnemies >= 2 ) then
             NGSend("Cone of Cold") return true end
         
-        if OffCooldown(ids.ArcaneExplosion) and ( (CurrentMana/MaxMana*100) > 30 and NearbyEnemies >= 2 ) then
-            NGSend("Arcane Explosion") return true end
+        --if OffCooldown(ids.ArcaneExplosion) and ( (CurrentMana/MaxMana*100) > 30 and NearbyEnemies >= 2 ) then
+        --    NGSend("Arcane Explosion") return true end
+        
+        --if OffCooldown(ids.FireBlast) then
+        --    NGSend("Fire Blast") return true end
         
         if OffCooldown(ids.IceLance) then
             NGSend("Ice Lance") return true end
     end
-    
-    local AoeFf = function()
-        if OffCooldown(ids.ConeOfCold) and ( IsPlayerSpell(ids.ColdestSnapTalent) and (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) ) then
-            NGSend("Cone of Cold") return true end
         
+    local AoeFf = function()
         if OffCooldown(ids.FrostfireBolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 9 or GetPlayerStacks(ids.DeathsChillBuff) == 9 and not (aura_env.PrevCast == ids.FrostfireBolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             NGSend("Frostfire Bolt") return true end
         
-        --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) ) then
+        if OffCooldown(ids.ConeOfCold) and ( IsPlayerSpell(ids.ColdestSnapTalent) and (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) ) then
+            NGSend("Cone of Cold") return true end
+        
+        --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and TIME SINCE FIGHT START REMOVE MANUALLY - aura_env.ConeOfColdLastUsed > 8 ) ) then
         --    NGSend("Freeze") return true end
         
-        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and GetRemainingSpellCooldown(ids.ConeOfCold) and not (aura_env.PrevCast2 == ids.ConeOfCold) ) and not (aura_env.PrevCast == ids.Freeze) ) then
+        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) and CurrentTime - aura_env.ConeOfColdLastUsed > 8 ) ) then
             NGSend("Ice Nova") return true end
         
-        if OffCooldown(ids.FrozenOrb) and ( not (aura_env.PrevCast == ids.ConeOfCold or IsCasting(ids.ConeOfCold)) ) then
+        if OffCooldown(ids.FrozenOrb) then
             NGSend("Frozen Orb") return true end
         
-        if OffCooldown(ids.CometStorm) and ( GetRemainingSpellCooldown(ids.ConeOfCold) > 6 or OffCooldown(ids.ConeOfCold) ) then
-            NGSend("Comet Storm") return true end
+        if OffCooldown(ids.IceLance) and ( GetPlayerStacks(ids.ExcessFireBuff) == 2 and OffCooldown(ids.CometStorm) ) then
+            NGSend("Ice Lance") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and ( PlayerHasBuff(ids.ExcessFrostBuff) and GetRemainingSpellCooldown(ids.CometStorm) > 5 or (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) ) then
-            NGSend("Flurry") return true end
-        
-        if OffCooldown(ids.Blizzard) and ( IsPlayerSpell(ids.IceCallerTalent) ) then
+        if OffCooldown(ids.Blizzard) and ( IsPlayerSpell(ids.IceCallerTalent) or IsPlayerSpell(ids.FreezingRainTalent) ) then
             NGSend("Blizzard") return true end
         
-        if OffCooldown(ids.RayOfFrost) and ( IsPlayerSpell(ids.SplinteringRayTalent) and GetTargetStacks(ids.WintersChillDebuff) == 2 ) then
+        if OffCooldown(ids.CometStorm) and ( GetRemainingSpellCooldown(ids.ConeOfCold) > 10 or OffCooldown(ids.ConeOfCold) ) then
+            NGSend("Comet Storm") return true end
+        
+        if OffCooldown(ids.RayOfFrost) and ( IsPlayerSpell(ids.SplinteringRayTalent) and GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ray of Frost") return true end
         
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
-            NGSend("Shifting Power") return true end
+        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 ) then
+            NGSend("Glacial Spike") return true end
         
-        if OffCooldown(ids.FrostfireBolt) and ( PlayerHasBuff(ids.FrostfireEmpowermentBuff) and not PlayerHasBuff(ids.ExcessFrostBuff) and not PlayerHasBuff(ids.ExcessFireBuff) ) then
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and PlayerHasBuff(ids.ExcessFireBuff) and PlayerHasBuff(ids.ExcessFrostBuff) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.FrostfireBolt) and ( PlayerHasBuff(ids.FrostfireEmpowermentBuff) and not PlayerHasBuff(ids.ExcessFireBuff) ) then
             NGSend("Frostfire Bolt") return true end
         
-        if OffCooldown(ids.GlacialSpike) and ( ( NearbyEnemies <= 6 or not IsPlayerSpell(ids.IceCallerTalent) ) and CurrentIcicles == 5 ) then
-            NGSend("Glacial Spike") return true end
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) ) then
+            NGSend("Shifting Power") return true end
         
         if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ice Lance") return true end
-        
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 ) then
-            NGSend("Flurry") return true end
         
         if OffCooldown(ids.FrostfireBolt) then
             NGSend("Frostfire Bolt") return true end
         
         if Movement() then return true end
     end
-    
+        
     local AoeSs = function()
-        if OffCooldown(ids.ConeOfCold) and ( IsPlayerSpell(ids.ColdestSnapTalent) and not OffCooldown(ids.FrozenOrb) and ( (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) or (aura_env.PrevCast == ids.FrozenOrb or IsCasting(ids.FrozenOrb)) and GetRemainingSpellCooldown(ids.CometStorm) > 5 ) and ( not IsPlayerSpell(ids.DeathsChillTalent) or GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < 9 or GetPlayerStacks(ids.DeathsChillBuff) >= 12 ) ) then
+        if OffCooldown(ids.ConeOfCold) and ( IsPlayerSpell(ids.ColdestSnapTalent) and not OffCooldown(ids.FrozenOrb) and ( (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) or (aura_env.PrevCast == ids.FrozenOrb or IsCasting(ids.FrozenOrb)) and GetRemainingSpellCooldown(ids.CometStorm) > 5 ) and ( not IsPlayerSpell(ids.DeathsChillTalent) or GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < 9 or GetPlayerStacks(ids.DeathsChillBuff) >= 15 ) ) then
             NGSend("Cone of Cold") return true end
         
-        --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
+        --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or not IsPlayerSpell(ids.GlacialSpikeTalent) ) ) then
         --    NGSend("Freeze") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
             NGSend("Flurry") return true end
         
-        if OffCooldown(ids.IceNova) and ( NearbyEnemies < 5 and (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false or NearbyEnemies >= 5 and CurrentTime - aura_env.ConeOfColdLastUsed < 6 and CurrentTime - aura_env.ConeOfColdLastUsed > 6 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
+        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
+            NGSend("Ice Nova") return true end
+        
+        if OffCooldown(ids.IceNova) and ( IsPlayerSpell(ids.UnerringProficiencyTalent) and CurrentTime - aura_env.ConeOfColdLastUsed < 10 and CurrentTime - aura_env.ConeOfColdLastUsed > 7 ) then
             NGSend("Ice Nova") return true end
         
         if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) ) then
             NGSend("Frozen Orb") return true end
         
-        if OffCooldown(ids.Frostbolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 9 or GetPlayerStacks(ids.DeathsChillBuff) == 9 and not (aura_env.PrevCast == ids.Frostbolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
+        if OffCooldown(ids.Blizzard) and ( IsPlayerSpell(ids.IceCallerTalent) or IsPlayerSpell(ids.FreezingRainTalent) ) then
+            NGSend("Blizzard") return true end
+        
+        if OffCooldown(ids.Frostbolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 12 or GetPlayerStacks(ids.DeathsChillBuff) == 12 and not (aura_env.PrevCast == ids.Frostbolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             NGSend("Frostbolt") return true end
         
         if OffCooldown(ids.CometStorm) then
             NGSend("Comet Storm") return true end
         
-        if OffCooldown(ids.RayOfFrost) and ( IsPlayerSpell(ids.SplinteringRayTalent) and (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) ) then
+        if OffCooldown(ids.RayOfFrost) and ( IsPlayerSpell(ids.SplinteringRayTalent) and GetTargetStacks(ids.WintersChillDebuff) > 0 and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
             NGSend("Ray of Frost") return true end
         
-        if OffCooldown(ids.Blizzard) and ( IsPlayerSpell(ids.IceCallerTalent) or IsPlayerSpell(ids.FreezingRainTalent) or NearbyEnemies >= 5 ) then
-            NGSend("Blizzard") return true end
-        
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
-            NGSend("Shifting Power") return true end
-        
-        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) > 0 or NearbyEnemies < 5 and (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and OffCooldown(ids.IceNova) and not PlayerHasBuff(ids.FingersOfFrostBuff) ) ) then
+        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) > 0 or (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and OffCooldown(ids.IceNova) ) ) then
             NGSend("Glacial Spike") return true end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+            NGSend("Shifting Power") return true end
+        
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ice Lance") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 ) then
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
             NGSend("Flurry") return true end
         
         if OffCooldown(ids.Frostbolt) then
@@ -180,12 +194,9 @@ function()
         
         if Movement() then return true end
     end
-    
-    local CleaveFf = function()
-        if OffCooldown(ids.CometStorm) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) ) then
-            NGSend("Comet Storm") return true end
         
-        if OffCooldown(ids.FrostfireBolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 6 or GetPlayerStacks(ids.DeathsChillBuff) == 6 and not (aura_env.PrevCast == ids.FrostfireBolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
+    local CleaveFf = function()
+        if OffCooldown(ids.FrostfireBolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 4 or GetPlayerStacks(ids.DeathsChillBuff) == 4 and not (aura_env.PrevCast == ids.FrostfireBolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             NGSend("Frostfire Bolt") return true end
         
         --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
@@ -194,28 +205,37 @@ function()
         if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and not (aura_env.PrevCast == ids.Freeze) ) then
             NGSend("Ice Nova") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or CurrentIcicles >= 3 ) and not (aura_env.PrevCast == ids.Freeze) ) then
-            NGSend("Flurry") return true end
-        
         if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and not (aura_env.PrevCast == ids.Freeze) ) then
             NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and ( CurrentIcicles < 5 or not IsPlayerSpell(ids.GlacialSpikeTalent) ) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.FrostfireBolt or IsCasting(ids.FrostfireBolt)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) ) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and ( CurrentIcicles < 5 or not IsPlayerSpell(ids.GlacialSpikeTalent) ) and PlayerHasBuff(ids.ExcessFireBuff) and PlayerHasBuff(ids.ExcessFrostBuff) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.CometStorm) then
+            NGSend("Comet Storm") return true end
+        
+        if OffCooldown(ids.FrozenOrb) then
+            NGSend("Frozen Orb") return true end
+        
+        if OffCooldown(ids.Blizzard) and ( PlayerHasBuff(ids.FreezingRainBuff) and IsPlayerSpell(ids.IceCallerTalent) ) then
+            NGSend("Blizzard") return true end
         
         if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 ) then
             NGSend("Glacial Spike") return true end
         
-        if OffCooldown(ids.RayOfFrost) and ( GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.RayOfFrost) and ( GetTargetStacks(ids.WintersChillDebuff) == 1 ) then
             NGSend("Ray of Frost") return true end
         
-        if OffCooldown(ids.FrostfireBolt) and ( PlayerHasBuff(ids.FrostfireEmpowermentBuff) and not PlayerHasBuff(ids.ExcessFrostBuff) and not PlayerHasBuff(ids.ExcessFireBuff) ) then
+        if OffCooldown(ids.FrostfireBolt) and ( PlayerHasBuff(ids.FrostfireEmpowermentBuff) and not PlayerHasBuff(ids.ExcessFireBuff) ) then
             NGSend("Frostfire Bolt") return true end
         
-        if OffCooldown(ids.FrozenOrb) and ( not PlayerHasBuff(ids.FingersOfFrostBuff) ) then
-            NGSend("Frozen Orb") return true end
-        
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) ) then
             NGSend("Shifting Power") return true end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 and not Variables.Boltspam ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ice Lance") return true end
         
         if OffCooldown(ids.FrostfireBolt) then
@@ -223,39 +243,45 @@ function()
         
         if Movement() then return true end
     end
-    
+        
     local CleaveSs = function()
-        if OffCooldown(ids.CometStorm) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) and ( PlayerHasBuff(ids.IcyVeinsBuff) == false ) ) then
-            NGSend("Comet Storm") return true end
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and not (aura_env.PrevCast == ids.Freeze) ) then
+            NGSend("Flurry") return true end
         
         --if OffCooldown(ids.Freeze) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
         --    NGSend("Freeze") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.Frostbolt or IsCasting(ids.Frostbolt)) or (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) ) then
-            NGSend("Flurry") return true end
-        
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
-            NGSend("Flurry") return true end
-        
-        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false ) then
+        if OffCooldown(ids.IceNova) and ( (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and not (aura_env.PrevCast == ids.Freeze) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) then
             NGSend("Ice Nova") return true end
         
-        if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 22 or PlayerHasBuff(ids.IcyVeinsBuff) ) ) then
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and TargetHasDebuff(ids.WintersChillDebuff) == false and GetTargetStacks(ids.WintersChillDebuff) == 0 and (aura_env.PrevCast == ids.Frostbolt or IsCasting(ids.Frostbolt)) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) == 2 ) then
+            NGSend("Ice Lance") return true end
+        
+        if OffCooldown(ids.CometStorm) and ( GetTargetStacks(ids.WintersChillDebuff) > 0 and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
+            NGSend("Comet Storm") return true end
+        
+        if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 30 or PlayerHasBuff(ids.IcyVeinsBuff) ) ) then
             NGSend("Frozen Orb") return true end
         
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and not OffCooldown(ids.Flurry) and ( PlayerHasBuff(ids.IcyVeinsBuff) == false or GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
-            NGSend("Shifting Power") return true end
-        
-        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) > 0 or (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and OffCooldown(ids.IceNova) and not PlayerHasBuff(ids.FingersOfFrostBuff) ) ) then
-            NGSend("Glacial Spike") return true end
-        
-        if OffCooldown(ids.RayOfFrost) and ( GetTargetStacks(ids.WintersChillDebuff) > 0 and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
+        if OffCooldown(ids.RayOfFrost) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
             NGSend("Ray of Frost") return true end
         
-        if OffCooldown(ids.Frostbolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < ( 8 + 4 * (IsPlayerSpell(ids.SlickIceTalent) and 1 or 0) ) or GetPlayerStacks(ids.DeathsChillBuff) == ( 8 + 4 * (IsPlayerSpell(ids.SlickIceTalent) and 1 or 0) ) and not (aura_env.PrevCast == ids.Frostbolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
+        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) > 0 or (UnitLevel("target") > 0 and not Variables.TargetIsFrozen) and OffCooldown(ids.IceNova) ) ) then
+            NGSend("Glacial Spike") return true end
+        
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and not OffCooldown(ids.Flurry) and ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+            NGSend("Shifting Power") return true end
+        
+        if OffCooldown(ids.Frostbolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 6 or GetPlayerStacks(ids.DeathsChillBuff) == 6 and not (aura_env.PrevCast == ids.Frostbolt and GetTime() - aura_env.PrevCastTime < 0.15) ) ) then
             NGSend("Frostbolt") return true end
         
-        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or not Variables.Boltspam and GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
+        if OffCooldown(ids.Blizzard) and ( IsPlayerSpell(ids.FreezingRainTalent) and IsPlayerSpell(ids.IceCallerTalent) ) then
+            NGSend("Blizzard") return true end
+        
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ice Lance") return true end
         
         if OffCooldown(ids.Frostbolt) then
@@ -263,33 +289,30 @@ function()
         
         if Movement() then return true end
     end
-    
+        
     local StFf = function()
-        if OffCooldown(ids.CometStorm) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) ) then
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and ( CurrentIcicles < 5 or not IsPlayerSpell(ids.GlacialSpikeTalent) ) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.FrostfireBolt or IsCasting(ids.FrostfireBolt)) or (aura_env.PrevCast == ids.CometStorm or IsCasting(ids.CometStorm)) ) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and ( CurrentIcicles < 5 or not IsPlayerSpell(ids.GlacialSpikeTalent) ) and PlayerHasBuff(ids.ExcessFireBuff) and PlayerHasBuff(ids.ExcessFrostBuff) ) then
+            NGSend("Flurry") return true end
+        
+        if OffCooldown(ids.CometStorm) then
             NGSend("Comet Storm") return true end
-        
-        if OffCooldown(ids.Flurry) and ( Variables.Boltspam and OffCooldown(ids.Flurry) and CurrentIcicles < 5 and GetTargetStacks(ids.WintersChillDebuff) == 0 ) then
-            NGSend("Flurry") return true end
-        
-        if OffCooldown(ids.Flurry) and ( not Variables.Boltspam and OffCooldown(ids.Flurry) and CurrentIcicles < 5 and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.FrostfireBolt or IsCasting(ids.FrostfireBolt)) or (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) ) then
-            NGSend("Flurry") return true end
-        
-        if OffCooldown(ids.IceLance) and ( Variables.Boltspam and PlayerHasBuff(ids.ExcessFireBuff) and not PlayerHasBuff(ids.BrainFreezeBuff) ) then
-            NGSend("Ice Lance") return true end
         
         if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 ) then
             NGSend("Glacial Spike") return true end
         
-        if OffCooldown(ids.RayOfFrost) and ( GetTargetStacks(ids.WintersChillDebuff) > 0 and ( not Variables.Boltspam or GetRemainingAuraDuration("player", ids.IcyVeinsBuff) < 15 ) ) then
+        if OffCooldown(ids.RayOfFrost) and ( GetTargetStacks(ids.WintersChillDebuff) == 1 ) then
             NGSend("Ray of Frost") return true end
         
-        if OffCooldown(ids.FrozenOrb) and ( Variables.Boltspam and PlayerHasBuff(ids.IcyVeinsBuff) == false or not Variables.Boltspam and not PlayerHasBuff(ids.FingersOfFrostBuff) ) then
+        if OffCooldown(ids.FrozenOrb) then
             NGSend("Frozen Orb") return true end
         
-        if OffCooldown(ids.ShiftingPower) and ( ( PlayerHasBuff(ids.IcyVeinsBuff) == false or not Variables.Boltspam ) and GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and GetRemainingSpellCooldown(ids.FrozenOrb) > 10 and ( not IsPlayerSpell(ids.CometStormTalent) or GetRemainingSpellCooldown(ids.CometStorm) > 10 ) and ( not IsPlayerSpell(ids.RayOfFrostTalent) or GetRemainingSpellCooldown(ids.RayOfFrost) > 10 ) ) then
             NGSend("Shifting Power") return true end
         
-        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) then
             NGSend("Ice Lance") return true end
         
         if OffCooldown(ids.FrostfireBolt) then
@@ -297,36 +320,27 @@ function()
         
         if Movement() then return true end
     end
-    
-    local StSs = function()
-        if OffCooldown(ids.CometStorm) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
-            NGSend("Comet Storm") return true end
         
-        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and GetTargetStacks(ids.WintersChillDebuff) == 0 and TargetHasDebuff(ids.WintersChillDebuff) == false and ( (aura_env.PrevCast == ids.Frostbolt or IsCasting(ids.Frostbolt)) or (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) ) ) then
+    local StSs = function()
+        if OffCooldown(ids.Flurry) and ( OffCooldown(ids.Flurry) and TargetHasDebuff(ids.WintersChillDebuff) == false and GetTargetStacks(ids.WintersChillDebuff) == 0 and ( (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or (aura_env.PrevCast == ids.Frostbolt or IsCasting(ids.Frostbolt)) ) ) then
             NGSend("Flurry") return true end
         
-        if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 22 or PlayerHasBuff(ids.IcyVeinsBuff) ) ) then
+        if OffCooldown(ids.CometStorm) and ( GetTargetStacks(ids.WintersChillDebuff) and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
+            NGSend("Comet Storm") return true end
+        
+        if OffCooldown(ids.FrozenOrb) and ( OffCooldown(ids.FrozenOrb) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 30 or PlayerHasBuff(ids.IcyVeinsBuff) ) ) then
             NGSend("Frozen Orb") return true end
         
-        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) > 0 or GetRemainingSpellCooldown(ids.Flurry) < max(C_Spell.GetSpellInfo(ids.GlacialSpike).castTime/1000, WeakAuras.gcdDuration()) and GetRemainingSpellCooldown(ids.Flurry) > 0 ) ) then
+        if OffCooldown(ids.RayOfFrost) and ( (aura_env.PrevCast == ids.Flurry or IsCasting(ids.Flurry)) ) then
+            NGSend("Ray of Frost") return true end
+        
+        if OffCooldown(ids.GlacialSpike) and ( CurrentIcicles == 5 and ( OffCooldown(ids.Flurry) or GetTargetStacks(ids.WintersChillDebuff) ) ) then
             NGSend("Glacial Spike") return true end
         
-        if OffCooldown(ids.RayOfFrost) and ( Variables.Boltspam and GetTargetStacks(ids.WintersChillDebuff) > 0 and PlayerHasBuff(ids.IcyVeinsBuff) == false ) then
-            NGSend("Ray of Frost") return true end
-        
-        if OffCooldown(ids.RayOfFrost) and ( not Variables.Boltspam and GetTargetStacks(ids.WintersChillDebuff) == 1 ) then
-            NGSend("Ray of Frost") return true end
-        
-        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and not OffCooldown(ids.Flurry) and ( Variables.Boltspam or PlayerHasBuff(ids.IcyVeinsBuff) == false or GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 10 ) and ( FightRemains(60, NearbyRange) + 10 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( GetRemainingSpellCooldown(ids.IcyVeins) > 10 and not OffCooldown(ids.Flurry) and ( FightRemains(60, NearbyRange) + 15 > GetRemainingSpellCooldown(ids.IcyVeins) ) ) then
             NGSend("Shifting Power") return true end
         
-        if OffCooldown(ids.Frostbolt) and ( Variables.Boltspam and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and GetPlayerStacks(ids.DeathsChillBuff) < 8 ) then
-            NGSend("Frostbolt") return true end
-        
-        if OffCooldown(ids.IceLance) and ( Variables.Boltspam and ( GetTargetStacks(ids.WintersChillDebuff) == 2 or GetTargetStacks(ids.WintersChillDebuff) > 0 and OffCooldown(ids.Flurry) ) ) then
-            NGSend("Ice Lance") return true end
-        
-        if OffCooldown(ids.IceLance) and ( not Variables.Boltspam and ( PlayerHasBuff(ids.FingersOfFrostBuff) and not (aura_env.PrevCast == ids.GlacialSpike or IsCasting(ids.GlacialSpike)) or GetTargetStacks(ids.WintersChillDebuff) > 0 ) ) then
+        if OffCooldown(ids.IceLance) and ( PlayerHasBuff(ids.FingersOfFrostBuff) or GetTargetStacks(ids.WintersChillDebuff) ) then
             NGSend("Ice Lance") return true end
         
         if OffCooldown(ids.Frostbolt) then
@@ -334,7 +348,7 @@ function()
         
         if Movement() then return true end
     end
-    
+
     if IsPlayerSpell(ids.FrostfireBoltTalent) and NearbyEnemies >= 3 then
         AoeFf() return true end
     
@@ -348,11 +362,9 @@ function()
         CleaveSs() return true end
     
     if IsPlayerSpell(ids.FrostfireBoltTalent) then
-        StFf() return true
-    else
-        StSs() return true 
-    end
+        StFf() return true end
+    
+    if StSs() then return true end
     
     NGSend("Clear")
 end
-

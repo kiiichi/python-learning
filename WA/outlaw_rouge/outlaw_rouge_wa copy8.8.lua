@@ -6,6 +6,12 @@
 
 WeakAuras.WatchGCD()
 
+aura_env.RTBContainerExpires = 0
+aura_env.DisorientingStrikesCount = 0
+aura_env.HasTww34PcTricksterBuff = false
+aura_env.LastKillingSpree = 0
+aura_env.PrevCoupCast = 99999999
+
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
@@ -33,6 +39,7 @@ aura_env.ids = {
     Vanish = 1856,
     
     -- Talents
+    CoupDeGraceTalent = 441423,
     CrackshotTalent = 423703,
     DeftManeuversTalent = 381878,
     DisorientingStrikesTalent = 441274,
@@ -60,6 +67,7 @@ aura_env.ids = {
     SurprisingStrikesTalent = 441273,
     TakeEmBySurpriseTalent = 382742,
     UnderhandedUpperHandTalent = 424044,
+    UnseenBladeTalent = 441146,
     WithoutATraceTalent = 382513,
     
     -- Buffs
@@ -87,9 +95,6 @@ aura_env.ids = {
     KillingSpreeBuff = 51690,
 }
 
-aura_env.RTBContainerExpires = 0
-aura_env.DisorientingStrikesCount = 0
-
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
@@ -116,29 +121,56 @@ aura_env.KTrigCD = function(Name, ...)
     aura_env.FlagKTrigCD = false
 end
 
--- Kichi --
+-- Try Killing Spree for Kichi --
+-- -- Kichi --
+-- aura_env.OffCooldown = function(spellID)
+--     if spellID == nil then
+--         local c = a < b -- Throw an error
+--     end
+    
+--     if not IsPlayerSpell(spellID) then return false end
+--     -- Kichi --
+--     -- if aura_env.config[tostring(spellID)] == false then return false end
+    
+--     local usable, nomana = C_Spell.IsSpellUsable(spellID)
+--     -- Kichi only for outlaw killing spree --
+--     -- if (not usable) and (not nomana) then return false end
+--     if (not usable) and not(WA_GetUnitBuff("player", 51690) ~= nil) and (not nomana) then return false end
+    
+--     -- Kichi --
+--     -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
+--     -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
+--     local Cooldown = C_Spell.GetSpellCooldown(spellID)
+--     local Duration = Cooldown.duration
+--     local Remaining = Cooldown.startTime + Duration - GetTime()
+--     local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
+
+--     if not OffCooldown then return false end
+    
+--     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
+--     local InRange = (SpellIdx and C_SpellBook.IsSpellBookItemInRange(SpellIdx, SpellBank, "target")) -- safety
+    
+--     if InRange == false then
+--         aura_env.OutOfRange = true
+--         --return false
+--     end
+    
+--     return true
+-- end
+
 aura_env.OffCooldown = function(spellID)
     if spellID == nil then
         local c = a < b -- Throw an error
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    -- Kichi --
-    -- if aura_env.config[tostring(spellID)] == false then return false end
+    if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    -- Kichi only for outlaw killing spree --
-    -- if (not usable) and (not nomana) then return false end
-    if (not usable) and not(WA_GetUnitBuff("player", 51690) ~= nil) and (not nomana) then return false end
+    if (not usable) and (not nomana) then return false end
     
-    -- Kichi --
-    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
-    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
-    local Cooldown = C_Spell.GetSpellCooldown(spellID)
-    local Duration = Cooldown.duration
-    local Remaining = Cooldown.startTime + Duration - GetTime()
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
-
+    local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
     if not OffCooldown then return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
@@ -367,7 +399,8 @@ function()
     
     ---- Setup Data -----------------------------------------------------------------------------------------------    
     local Variables = {}
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1876)
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1928)
+    local OldSetPieces = WeakAuras.GetNumSetItemsEquipped(1876)
     local CurrentComboPoints = UnitPower("player", Enum.PowerType.ComboPoints)
     local MaxComboPoints = UnitPowerMax("player", Enum.PowerType.ComboPoints)
     
@@ -454,13 +487,8 @@ function()
             return end
     end
     
-    -- Maintain Adrenaline Rush if it is not active. Use at low CPs with Improved AR.
-    if OffCooldown(ids.AdrenalineRush) and ( not PlayerHasBuff(ids.AdrenalineRush) and ( not Variables.FinishCondition or not IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) ) ) then
-        ExtraGlows.AdrenalineRush = true
-    end
-    
-    -- If using Improved AR, recast AR if it is already active at low CPs.
-    if OffCooldown(ids.AdrenalineRush) and ( PlayerHasBuff(ids.AdrenalineRush) and IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) and CurrentComboPoints <= 2 ) then
+    -- Maintain Adrenaline Rush. With Improved AR, recast at low CPs even if already active.
+    if OffCooldown(ids.AdrenalineRush) and ( not PlayerHasBuff(ids.AdrenalineRush) and ( not Variables.FinishCondition or not IsPlayerSpell(ids.ImprovedAdrenalineRushTalent) ) or PlayerHasBuff(ids.AdrenalineRushBuff) and CurrentComboPoints <= 2 ) then
         ExtraGlows.AdrenalineRush = true
     end
     
@@ -470,12 +498,12 @@ function()
     end
     
     -- Thistle Tea
-    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTea) and ( CurrentEnergy < aura_env.config["ThistleTeaEnergy"] or TargetTimeToXPct(0, 999) < C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) ) then
+    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTea) and ( CurrentEnergy < ThistleTeaEnergy or TargetTimeToXPct(0, 999) < C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) ) then
         ExtraGlows.ThistleTea = true
     end
     
-    -- With a natural 5 buff roll, use Keep it Rolling when you obtain the remaining buff from Count the Odds.
-    if OffCooldown(ids.KeepItRolling) and ( RTBBuffNormal >= 5 and RTBBuffCount == 6 ) then
+    -- Use Keep it Rolling immediately with any 4 RTB buffs. If a natural 5 buff is rolled, then wait until the final 6th buff is obtained from Count the Odds.
+    if OffCooldown(ids.KeepItRolling) and ( RTBBuffCount >= 4 and RTBBuffNormal <= 2 or RTBBuffNormal >= 5 and RTBBuffCount == 6 ) then
         ExtraGlows.KeepItRolling = true
     end
     
@@ -501,20 +529,24 @@ function()
     
     -- Builders
     local Build = function()
-        -- High priority Ambush for Hidden Opportunity builds.
+        -- High priority Ambush with Hidden Opportunity.
         if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.AudacityBuff) ) then
             KTrig("Ambush") return true end
 
-        -- Trickster builds should prioritize Sinister Strike during Disorienting Strikes. HO builds prefer to do this only at 3 Escalating Blade stacks and not at max Opportunity stacks.
-        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and ( GetPlayerStacks(ids.EscalatingBladeBuff) > 2 and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 ) then
+        -- Outside of stealth, Trickster builds should prioritize Sinister Strike when Unseen Blade is guaranteed. This is mostly neutral/irrelevant for Hidden Opportunity builds.
+        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and not IsPlayerSpell(ids.HiddenOpportunityTalent) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 and not aura_env.HasTww34PcTricksterBuff) then
             KTrig("Sinister Strike") return true end
             
         -- With Audacity + Hidden Opportunity + Fan the Hammer, consume Opportunity to proc Audacity any time Ambush is not available.
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and IsPlayerSpell(ids.AudacityBuff) and IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.OpportunityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) then
             KTrig("Pistol Shot") return true end
         
-        -- Without Hidden Opportunity, prioritize building CPs with Blade Flurry at 4+ targets, with low CPs unless AR isn't active.
-        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and NearbyEnemies >= 4 and ( CurrentComboPoints <= 2 or not PlayerHasBuff(ids.AdrenalineRushBuff) ) ) then
+        -- Without Hidden Opportunity, prioritize building CPs with Blade Flurry at 4+ targets. Trickster shoulds prefer to use this at low CPs unless AR isn't active.
+        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and NearbyEnemies >= 4 and ( CurrentComboPoints <= 2 or not PlayerHasBuff(ids.AdrenalineRushBuff) or not IsPlayerSpell(ids.UnseenBladeTalent)) ) then
+            KTrig("Blade Flurry") return true end
+
+        -- At sustain 3 targets (2 target for Fatebound 1FTH), Blade Flurry can be used to build CPs if we are missing CPs equal to the amount it will give.
+        if OffCooldown(ids.BladeFlurry) and ( IsPlayerSpell(ids.DeftManeuversTalent) and MaxComboPoints - CurrentComboPoints == NearbyEnemies + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) and NearbyEnemies >= 3 - (IsPlayerSpell(ids.HandOfFateTalent) and 1 or 0) and IsPlayerSpell(ids.FanTheHammerTalent) ) then
             KTrig("Blade Flurry") return true end
 
         -- With 2 ranks in Fan the Hammer, consume Opportunity as a higher priority if at max stacks or if it will expire.
@@ -529,11 +561,11 @@ function()
         if OffCooldown(ids.PistolShot) and ( not IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( MaxEnergy - CurrentEnergy > 75 or MaxComboPoints - CurrentComboPoints <= 1 + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) or IsPlayerSpell(ids.QuickDrawTalent) or IsPlayerSpell(ids.AudacityBuff) and not PlayerHasBuff(ids.AudacityBuff) ) ) then
             KTrig("Pistol Shot") return true end
 
-        -- Use Coup de Grace at low CP if Sinister Strike would otherwise be used.
+        -- Use Coup de Grace at low CPs if Sinister Strike would otherwise be used.
         if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace and (not IsStealthed) then
             KTrig("Dispatch") return true end
 
-        -- Fallback pooling just so Sinister Strike is never casted if Ambush is available for Hidden Opportunity builds
+        -- Fallback pooling just so Sinister Strike is never casted if Ambush is available with Hidden Opportunity.
         if OffCooldown(ids.Ambush) and ( IsPlayerSpell(ids.HiddenOpportunityTalent) ) then
             KTrig("Ambush") return true end
         
@@ -542,6 +574,7 @@ function()
     end
     
     local Finish = function()
+        -- Keep it Rolling builds should cancel Killing Spree after reaching max CPs during the animation.
         if OffCooldown(ids.KillingSpree) then
             -- KTrig("Killing Spree") return true end
             if aura_env.config[tostring(ids.KillingSpree)] == true and aura_env.FlagKTrigCD then
@@ -555,7 +588,7 @@ function()
         if FindSpellOverrideByID(ids.Dispatch) == ids.CoupDeGrace then
             KTrig("Dispatch") return true end
         
-        -- Finishers Use Between the Eyes outside of Stealth to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
+        -- Outside of stealth, use Between the Eyes to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
         if OffCooldown(ids.BetweenTheEyes) and ( ( PlayerHasBuff(ids.RuthlessPrecisionBuff) or GetRemainingAuraDuration("player", ids.BetweenTheEyesBuff) < 4 or not IsPlayerSpell(ids.MeanStreakTalent) ) and ( not PlayerHasBuff(ids.GreenskinsWickersBuff) or not IsPlayerSpell(ids.GreenskinsWickersTalent) ) ) then
             KTrig("Between the Eyes") return true end
         
@@ -566,9 +599,9 @@ function()
             KTrig("Dispatch") return true end
     end
 
-    local VanishUsage = function()
-        -- Flex Vanish usage for standard builds. Without Killing Spree, attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active. Also with Keep it Rolling, hold Vanish if we haven't done the first roll after KIR yet.
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and not OffCooldown(ids.BetweenTheEyes) and GetRemainingAuraDuration("player", ids.RuthlessPrecisionBuff) > 4 and ( GetRemainingSpellCooldown(ids.KeepItRolling) > 150 and RTBBuffNormal > 0 or not IsPlayerSpell(ids.KeepItRollingTalent) ) ) then
+    local Vanish = function()
+        -- Vanish usage for standard builds  Fatebound or builds without Killing Spree attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active.
+        if OffCooldown(ids.Vanish) and ( ( not IsPlayerSpell(ids.UnseenBladeTalent) or not IsPlayerSpell(ids.KillingSpreeTalent) ) and not OffCooldown(ids.BetweenTheEyes) and GetRemainingAuraDuration("player", ids.RuthlessPrecisionBuff) > 4 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -578,8 +611,8 @@ function()
             end
         end
 
-        -- Supercharger builds that do not use Killing Spree should also Vanish if Supercharger becomes active.
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.KillingSpreeTalent) and GetUnitChargedPowerPoints("player") ~= nil  ) then
+        -- Fatebound or builds without Killing Spree should also Vanish if Supercharger becomes active.
+        if OffCooldown(ids.Vanish) and ( ( not IsPlayerSpell(ids.UnseenBladeTalent) or not IsPlayerSpell(ids.KillingSpreeTalent) ) and GetUnitChargedPowerPoints("player") ~= nil ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -589,8 +622,8 @@ function()
             end
         end
         
-        -- Builds with Killing Spree can freely Vanish if KS is not up soon.
-        if OffCooldown(ids.Vanish) and ( GetRemainingSpellCooldown(ids.KillingSpree) > 30 ) then
+        -- Trickster builds with Killing Spree should Vanish if Killing Spree is not up soon. With TWW3 Trickster, attempt to align Vanish with a recently used Coup de Grace.
+        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnseenBladeTalent) and IsPlayerSpell(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastKillingSpree) <= 10 or not (SetPieces >= 4) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -600,7 +633,7 @@ function()
             end
         end
         
-        -- Vanish if about to cap on charges or sim duration is ending.
+        -- Vanish if it is about to cap charges or sim duration is ending soon.
         if OffCooldown(ids.Vanish) and ( GetTimeToFullCharges(ids.Vanish) < 15 or FightRemains(60, NearbyRange) < 8 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
@@ -612,79 +645,39 @@ function()
         end
     end
     
-    -- Flex Vanish usage for builds lacking one of the mandatory stealth talents. APL support for these builds is considered limited.
-    local VanishUsageOffMeta = function()
-        if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and not IsPlayerSpell(ids.CrackshotTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and ( Variables.AmbushCondition or not IsPlayerSpell(ids.HiddenOpportunityTalent) ) and ( not OffCooldown(ids.BetweenTheEyes) and PlayerHasBuff(ids.RuthlessPrecisionBuff) or PlayerHasBuff(ids.RuthlessPrecisionBuff) == false or GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 3 ) ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.CrackshotTalent) and Variables.FinishCondition ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.HiddenOpportunityTalent) and not PlayerHasBuff(ids.AudacityBuff) and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) and Variables.AmbushCondition ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and not IsPlayerSpell(ids.HiddenOpportunityTalent) and IsPlayerSpell(ids.FatefulEndingTalent) and ( not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) or PlayerHasBuff(ids.FateboundLuckyCoinBuff) and not OffCooldown(ids.BetweenTheEyes) ) ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.Vanish) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) and not IsPlayerSpell(ids.CrackshotTalent) and not IsPlayerSpell(ids.HiddenOpportunityTalent) and not IsPlayerSpell(ids.FatefulEndingTalent) and IsPlayerSpell(ids.TakeEmBySurpriseTalent) and not PlayerHasBuff(ids.TakeEmBySurpriseBuff) ) then
-            -- KTrig("Vanish") return true end
-            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish")
-            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
-                KTrig("Vanish")
-                return true
-            end
-        end
-    end
-    
-    local Cds = function()
-        -- Maintain Blade Flurry on 2+ targets.
-        if OffCooldown(ids.BladeFlurry) and ( NearbyEnemies >= 2 and GetRemainingAuraDuration("player", ids.BladeFlurry) < BFHeadsup ) then
-            KTrig("Blade Flurry") return true end
-        
+    local RollTheBones = function()
         -- Maintain Roll the Bones: cast without any buffs.
         if OffCooldown(ids.RollTheBones) and ( RTBBuffCount == 0 ) then
             KTrig("Roll the Bones") return true end
         
-        -- With TWW2 set, recast Roll the Bones if we will roll away between 0-1 buffs. If KIR was recently used on a natural 5 buff, then wait until all buffs are below around 41s remaining.
-        if OffCooldown(ids.RollTheBones) and ( (SetPieces >= 4) and RTBBuffWillLose <= 1 and ( Variables.BuffsAbovePandemic < 5 or RTBBuffMaxRemains < 42 ) ) then
+        -- With TWW2 (old tier), roll if you will lose 0 or 1 buffs. This includes rolling immediately after KIR. If you KIR'd a natural 5 roll, then wait until they approach pandemic range.
+        if OffCooldown(ids.RollTheBones) and ( (OldSetPieces >= 4) and RTBBuffWillLose <= 1 and ( Variables.BuffsAbovePandemic < 5 or RTBBuffMaxRemains < 42 ) ) then
             KTrig("Roll the Bones") return true end
         
-        -- With TWW2 set, recast Roll the Bones with at most 2 buffs active regardless of duration. Supercharger builds will also roll if we will lose between 0-4 buffs, but KIR Supercharger builds wait until they are all below 11s remaining.
-        if OffCooldown(ids.RollTheBones) and ( (SetPieces >= 4) and ( RTBBuffCount <= 2 or (RTBBuffMaxRemains < 11 or not IsPlayerSpell(ids.KeepItRolling)) and RTBBuffWillLose < 5 and IsPlayerSpell(ids.SuperchargerTalent) ) ) then
+        --  With TWW2 (old tier), roll over any 2 buffs. HO builds also roll if you will lose 3-4 buffs, while KIR builds wait until they approach ~10s remaining.
+        if OffCooldown(ids.RollTheBones) and ( (OldSetPieces >= 4) and ( RTBBuffCount <= 2 or (RTBBuffMaxRemains < 11 or not IsPlayerSpell(ids.KeepItRolling)) and RTBBuffWillLose < 5 and IsPlayerSpell(ids.SuperchargerTalent) and RTBBuffNormal > 0 ) ) then
+            KTrig("Roll the Bones") return true end
+
+        -- Without TWW2, roll if you will lose 0 buffs, or 1 buff with Loaded Dice active. This includes rolling immediately after KIR.
+        if OffCooldown(ids.RollTheBones) and ( OldSetPieces < 4 and RTBBuffWillLose <= (PlayerHasBuff(ids.LoadedDiceBuff) and 1 or 0) ) then
             KTrig("Roll the Bones") return true end
         
-        -- Without TWW2 set or Sleight of Hand, recast Roll the Bones to override 1 buff into 2 buffs with Loaded Dice, or reroll any 2 buffs with Loaded Dice+Supercharger. Hidden Opportunity builds can also reroll 2 buffs with Loaded Dice to try for BS/RP/TB.
-        if OffCooldown(ids.RollTheBones) and ( not (SetPieces >= 4) and ( RTBBuffWillLose <= (PlayerHasBuff(ids.LoadedDiceBuff) and 1 or 0) or IsPlayerSpell(ids.SuperchargerTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 or IsPlayerSpell(ids.HiddenOpportunityTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 and not PlayerHasBuff(ids.BroadsideBuff) and not PlayerHasBuff(ids.RuthlessPrecisionBuff) and not PlayerHasBuff(ids.TrueBearingBuff) ) ) then
+        -- Without TWW2, roll over exactly 2 buffs with Loaded Dice and Supercharger.
+        if OffCooldown(ids.RollTheBones) and ( OldSetPieces < 4 and IsPlayerSpell(ids.SuperchargerTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 ) then
             KTrig("Roll the Bones") return true end
+        
+        -- Without TWW2, HO builds without Supercharger can roll over 2 buffs with Loaded Dice active and you won't lose Broadside, Ruthless Precision, or True Bearing.
+        if OffCooldown(ids.RollTheBones) and ( not (OldSetPieces >= 4) and not IsPlayerSpell(ids.KeepItRollingTalent) and not IsPlayerSpell(ids.SuperchargerTalent) and PlayerHasBuff(ids.LoadedDiceBuff) and RTBBuffCount <= 2 and not PlayerHasBuff(ids.BroadsideBuff) and not PlayerHasBuff(ids.RuthlessPrecisionBuff) and not PlayerHasBuff(ids.TrueBearingBuff) ) then
+            KTrig("Roll the Bones") return true end
+    end
+    
+    local Cds = function()
+        -- Maintain Blade Flurry at 2+ targets.
+        if OffCooldown(ids.BladeFlurry) and ( NearbyEnemies >= 2 and GetRemainingAuraDuration("player", ids.BladeFlurry) < BFHeadsup ) then
+            KTrig("Blade Flurry") return true end
+        
+        -- Call the various Roll the Bones rules.
+        if RollTheBones() then return true end
         
         -- If necessary, standard builds prioritize using Vanish at any CP to prevent Adrenaline Rush downtime.
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and not IsStealthed and GetRemainingAuraDuration("player", ids.AdrenalineRushBuff) < 2 and GetRemainingSpellCooldown(ids.AdrenalineRush) > 30 ) then
@@ -698,15 +691,23 @@ function()
         end
 
         -- If not at risk of losing Adrenaline Rush, run finishers to use Killing Spree or Coup de Grace as a higher priority than Vanish.
-        if not IsStealthed and ( OffCooldown(ids.KillingSpree) and IsPlayerSpell(ids.KillingSpreeTalent) or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 ) and Variables.FinishCondition then
+        if not IsStealthed and ( OffCooldown(ids.KillingSpree) and IsPlayerSpell(ids.KillingSpreeTalent) or GetPlayerStacks(ids.EscalatingBladeBuff) >= 4 or aura_env.HasTww34PcTricksterBuff ) and Variables.FinishCondition then
             Finish() return true end
         
         -- If not at risk of losing Adrenaline Rush, call flexible Vanish rules to be used at finisher CPs.
         if not IsStealthed and IsPlayerSpell(ids.CrackshotTalent) and IsPlayerSpell(ids.UnderhandedUpperHandTalent) and IsPlayerSpell(ids.SubterfugeTalent) and PlayerHasBuff(ids.AdrenalineRushBuff) and Variables.FinishCondition then
-            if VanishUsage() then return true end end
+            if Vanish() then return true end end
         
-        if not IsStealthed and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) or not IsPlayerSpell(ids.CrackshotTalent) or not IsPlayerSpell(ids.SubterfugeTalent) ) then
-            if VanishUsageOffMeta() then return true end end
+        -- Fallback Vanish for builds lacking one of the mandatory stealth talents. If possible, Vanish for AR, otherwise for Ambush when Audacity isn't active, or otherwise to proc Take 'em By Surprise or Fatebound coins.
+        if OffCooldown(ids.Vanish) and ( not IsStealthed and ( Variables.FinishCondition or not IsPlayerSpell(ids.CrackshotTalent) ) and ( not IsPlayerSpell(ids.UnderhandedUpperHandTalent) or not IsPlayerSpell(ids.SubterfugeTalent) or not IsPlayerSpell(ids.CrackshotTalent) ) and ( PlayerHasBuff(ids.AdrenalineRushBuff) and IsPlayerSpell(ids.SubterfugeTalent) and IsPlayerSpell(ids.UnderhandedUpperHandTalent) or ( ( not IsPlayerSpell(ids.SubterfugeTalent) or not IsPlayerSpell(ids.UnderhandedUpperHandTalent) ) and IsPlayerSpell(ids.HiddenOpportunityTalent) and not PlayerHasBuff(ids.AudacityBuff) and GetPlayerStacks(ids.OpportunityBuff) < (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) and Variables.AmbushCondition or ( not IsPlayerSpell(ids.HiddenOpportunityTalent) and ( IsPlayerSpell(ids.TakeEmBySurpriseTalent) or IsPlayerSpell(ids.DoubleJeopardyTalent) ) ) ) ) ) then
+            -- KTrig("Vanish") return true end
+            if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Vanish")
+            elseif aura_env.config[tostring(ids.Vanish)] ~= true then
+                KTrig("Vanish")
+                return true
+            end
+        end
         
         -- Use Blade Rush at minimal energy outside of stealth
         if OffCooldown(ids.BladeRush) and ( CurrentEnergy < BRKSEnergy and not IsStealthed ) then
@@ -721,7 +722,7 @@ function()
         if OffCooldown(ids.Dispatch) and ( Variables.FinishCondition ) then
             KTrig("Dispatch") return true end
         
-        -- 2 Fan the Hammer Crackshot builds can consume Opportunity in stealth with max stacks, Broadside, and 1 CP, or with Greenskins active
+        -- Inside stealth, 2FTH builds can consume Opportunity for Greenskins, or with max stacks + Broadside active + minimal CPs.
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.CrackshotTalent) and TalentRank(ids.FanTheHammerTalentNode) > 1 and GetPlayerStacks(ids.OpportunityBuff) >= 6 and ( PlayerHasBuff(ids.BroadsideBuff) and CurrentComboPoints <= 1 or PlayerHasBuff(ids.GreenskinsWickersBuff) ) ) then
             KTrig("Pistol Shot") return true end
         
@@ -769,9 +770,19 @@ function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
             aura_env.DisorientingStrikesCount = 2
         elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
             aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
+        elseif spellId == aura_env.ids.CoupDeGrace and GetTime() - aura_env.PrevCoupCast > 5 and WeakAuras.GetNumSetItemsEquipped(1928) and aura_env.IsPlayerSpell(ids.CoupDeGraceTalent) then
+            aura_env.HasTww34PcTricksterBuff = true
+        elseif spellId == aura_env.ids.CoupDeGrace then
+            aura_env.HasTww34PcTricksterBuff = false
+            aura_env.PrevCoupCast = GetTime()
+        end
+        
+        if spellId == aura_env.ids.KillingSpree then
+            aura_env.LastKillingSpree = GetTime()
         end
     end
 end
+
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
@@ -809,6 +820,7 @@ aura_env.ids = {
     Vanish = 1856,
     
     -- Talents
+    CoupDeGraceTalent = 441423,
     CrackshotTalent = 423703,
     DeftManeuversTalent = 381878,
     DisorientingStrikesTalent = 441274,
@@ -836,6 +848,7 @@ aura_env.ids = {
     SurprisingStrikesTalent = 441273,
     TakeEmBySurpriseTalent = 382742,
     UnderhandedUpperHandTalent = 424044,
+    UnseenBladeTalent = 441146,
     WithoutATraceTalent = 382513,
     
     -- Buffs
