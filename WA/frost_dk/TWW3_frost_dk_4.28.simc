@@ -1,19 +1,18 @@
-rogue="TWW2_Rogue_Outlaw_4.28"
+deathknight="TWW3_Death_Knight_Frost_Deathbringer"
 source=default
-spec=outlaw
+spec=frost
 level=80
-race=dwarf
+race=maghar_orc
 role=attack
 position=back
-talents=CQQAAAAAAAAAAAAAAAAAAAAAAAAM2mZgZmZYGDzwMmZMzMmZmWmxsMDAAAAAAz2yYGMzMWglZbAAAAYmZAwY2MMwAzCLMLsZG
+talents=CsPAAAAAAAAAAAAAAAAAAAAAAMDwMzYGjZGGmZmZmhxMyMmZmhZM8AMDmZmZmBAAAAAAAAAAAjltBGwCYZYCZsYMzMjZGYGD
 
 # Default consumables
 potion=tempered_potion_3
-flask=flask_of_tempered_versatility_3
+flask=flask_of_alchemical_chaos_3
 food=feast_of_the_divine_day
 augmentation=crystallized
-temporary_enchant=main_hand:ironclaw_whetstone_3/off_hand:ironclaw_whetstone_3
-
+temporary_enchant=main_hand:algari_mana_oil_3/off_hand:algari_mana_oil_3
 
 # This default action priority list is automatically created based on your character.
 # It is a attempt to provide you with a action list that is both simple and practicable,
@@ -22,172 +21,137 @@ temporary_enchant=main_hand:ironclaw_whetstone_3/off_hand:ironclaw_whetstone_3
 # SimulationCraft is always looking for updates and improvements to the default action lists.
 
 # Executed before combat begins. Accepts non-harmful actions only.
-actions.precombat=apply_poison,nonlethal=none,lethal=instant
 # Snapshot raid buffed stats before combat begins and pre-potting is done.
-actions.precombat+=/snapshot_stats
-actions.precombat+=/use_item,name=imperfect_ascendancy_serum
-actions.precombat+=/stealth,precombat_seconds=2
-# Builds with Keep it Rolling+Loaded Dice prepull Adrenaline Rush before Roll the Bones to consume Loaded Dice immediately instead of on the next pandemic roll.
-actions.precombat+=/adrenaline_rush,precombat_seconds=1,if=talent.improved_adrenaline_rush&talent.keep_it_rolling&talent.loaded_dice
-actions.precombat+=/roll_the_bones,precombat_seconds=1
-actions.precombat+=/adrenaline_rush,precombat_seconds=0,if=talent.improved_adrenaline_rush
+actions.precombat=snapshot_stats
+# Evaluates a trinkets cooldown, divided by pillar of frost, empower rune weapon, or breath of sindragosa's cooldown. If it's value has no remainder return 1, else return 0.5.
+actions.precombat+=/variable,name=trinket_1_sync,op=setif,value=1,value_else=0.5,condition=trinket.1.has_use_buff&(talent.pillar_of_frost&!talent.breath_of_sindragosa&(trinket.1.cooldown.duration%%cooldown.pillar_of_frost.duration=0)|talent.breath_of_sindragosa&(cooldown.breath_of_sindragosa.duration%%trinket.1.cooldown.duration=0))
+actions.precombat+=/variable,name=trinket_2_sync,op=setif,value=1,value_else=0.5,condition=trinket.2.has_use_buff&(talent.pillar_of_frost&!talent.breath_of_sindragosa&(trinket.2.cooldown.duration%%cooldown.pillar_of_frost.duration=0)|talent.breath_of_sindragosa&(cooldown.breath_of_sindragosa.duration%%trinket.2.cooldown.duration=0))
+actions.precombat+=/variable,name=trinket_1_buffs,value=trinket.1.has_cooldown&!trinket.1.is.improvised_seaforium_pacemaker&(trinket.1.has_use_buff|trinket.1.has_buff.strength|trinket.1.has_buff.mastery|trinket.1.has_buff.versatility|trinket.1.has_buff.haste|trinket.1.has_buff.crit)
+actions.precombat+=/variable,name=trinket_2_buffs,value=trinket.2.has_cooldown&!trinket.2.is.improvised_seaforium_pacemaker&(trinket.2.has_use_buff|trinket.2.has_buff.strength|trinket.2.has_buff.mastery|trinket.2.has_buff.versatility|trinket.2.has_buff.haste|trinket.2.has_buff.crit)
+actions.precombat+=/variable,name=trinket_1_duration,value=trinket.1.proc.any_dps.duration
+actions.precombat+=/variable,name=trinket_2_duration,value=trinket.2.proc.any_dps.duration,
+actions.precombat+=/variable,name=trinket_priority,op=setif,value=2,value_else=1,condition=!variable.trinket_1_buffs&variable.trinket_2_buffs&(trinket.2.has_cooldown|!trinket.1.has_cooldown)|variable.trinket_2_buffs&((trinket.2.cooldown.duration%variable.trinket_2_duration)*(1.5+trinket.2.has_buff.strength)*(variable.trinket_2_sync)*(1+((trinket.2.ilvl-trinket.1.ilvl)%100)))>((trinket.1.cooldown.duration%variable.trinket_1_duration)*(1.5+trinket.1.has_buff.strength)*(variable.trinket_1_sync)*(1+((trinket.1.ilvl-trinket.2.ilvl)%100)))
+actions.precombat+=/variable,name=damage_trinket_priority,op=setif,value=2,value_else=1,condition=!variable.trinket_1_buffs&!variable.trinket_2_buffs&trinket.2.ilvl>=trinket.1.ilvl
+actions.precombat+=/variable,name=trinket_1_manual,value=trinket.1.is.unyielding_netherprism
+actions.precombat+=/variable,name=trinket_2_manual,value=trinket.2.is.unyielding_netherprism
 
 # Executed every time the actor is available.
-# Restealth if possible (no vulnerable enemies in combat).
-actions=stealth
-# Interrupt on cooldown to allow simming interactions with that.
-actions+=/kick
-actions+=/variable,name=ambush_condition,value=(talent.hidden_opportunity|combo_points.deficit>=2+talent.improved_ambush+buff.broadside.up)&energy>=50
-# Use finishers if at -1 from max combo points, or -2 in Stealth with Crackshot. With the hero trees, Hidden Opportunity builds also finish at -2 if Audacity or Opportunity is active.
-actions+=/variable,name=finish_condition,value=combo_points>=cp_max_spend-1-(stealthed.all&talent.crackshot|(talent.hand_of_fate|talent.flawless_form)&talent.hidden_opportunity&(buff.audacity.up|buff.opportunity.up))
-actions+=/call_action_list,name=cds
-# High priority stealth list, will fall through if no conditions are met.
-actions+=/call_action_list,name=stealth,if=stealthed.all
-actions+=/run_action_list,name=finish,if=variable.finish_condition
-actions+=/call_action_list,name=build
-actions+=/arcane_torrent,if=energy.base_deficit>=15+energy.regen
-actions+=/arcane_pulse
-actions+=/lights_judgment
-actions+=/bag_of_tricks
+actions=auto_attack
+# Choose Action list to run
+actions+=/call_action_list,name=variables
+actions+=/call_action_list,name=trinkets
+actions+=/call_action_list,name=high_prio_actions
+actions+=/call_action_list,name=cooldowns
+actions+=/call_action_list,name=racials
+actions+=/run_action_list,name=aoe,if=active_enemies>=3
+actions+=/run_action_list,name=single_target
 
-# Builders  With Deft Maneuvers, build CPs with Blade Flurry at 5+ targets, only at 2 CPs or lower (1 CP with Broadside) unless AR isn't active.
-actions.build=variable,name=deft_condition,value=cooldown.blade_flurry.ready&talent.deft_maneuvers&spell_targets>=5&(combo_points<=2-buff.broadside.up|!buff.adrenaline_rush.up)
-# High priority Ambush for Hidden Opportunity builds.
-actions.build+=/ambush,if=talent.hidden_opportunity&buff.audacity.up
-# Trickster builds should prioritize Sinister Strike during Disorienting Strikes. HO builds prefer to do this only at 3 Escalating Blade stacks and not at max Opportunity stacks.
-actions.build+=/sinister_strike,if=buff.disorienting_strikes.up&!stealthed.all&(buff.escalating_blade.stack>2&buff.opportunity.stack<buff.opportunity.max_stack|!talent.hidden_opportunity)&buff.escalating_blade.stack<4
-# With Audacity + Hidden Opportunity + Fan the Hammer, consume Opportunity to proc Audacity any time Ambush is not available.
-actions.build+=/pistol_shot,if=talent.fan_the_hammer&talent.audacity&talent.hidden_opportunity&buff.opportunity.up&!buff.audacity.up
-# With Fatebound or 1 rank in Fan the Hammer, and without Hidden Opportunity, build CP with Blade Flurry as a higher priority than Opportunity procs.
-actions.build+=/blade_flurry,if=variable.deft_condition&(talent.fan_the_hammer.rank=1|!talent.nimble_flurry&!talent.surprising_strikes)
-# With 2 ranks in Fan the Hammer, consume Opportunity as if at max stacks or if it will expire.
-actions.build+=/pistol_shot,if=talent.fan_the_hammer.rank=2&buff.opportunity.up&(buff.opportunity.stack>=buff.opportunity.max_stack|buff.opportunity.remains<2)
-# With Fan the Hammer, consume Opportunity if it will not overcap CPs, or with 1 CP at minimum.
-actions.build+=/pistol_shot,if=talent.fan_the_hammer&buff.opportunity.up&(combo_points.deficit>=(1+(talent.quick_draw+buff.broadside.up)*(talent.fan_the_hammer.rank+1))|combo_points<=talent.ruthlessness)
-# If not using Fan the Hammer, then consume Opportunity based on energy, when it will exactly cap CPs, or when using Quick Draw.
-actions.build+=/pistol_shot,if=!talent.fan_the_hammer&buff.opportunity.up&(energy.base_deficit>energy.regen*1.5|combo_points.deficit<=1+buff.broadside.up|talent.quick_draw.enabled|talent.audacity.enabled&!buff.audacity.up)
-# With Hidden Opportunity or 2 ranks in Fan the Hammer, building CPs with Blade Flurry is lower priority than Opportunity procs and Ambush.
-actions.build+=/blade_flurry,if=variable.deft_condition
-# Use Coup de Grace at low CP if Sinister Strike would otherwise be used.
-actions.build+=/coup_de_grace,if=!stealthed.all
-# Fallback pooling just so Sinister Strike is never casted if Ambush is available for Hidden Opportunity builds.
-actions.build+=/pool_resource,for_next=1
-actions.build+=/ambush,if=talent.hidden_opportunity
-actions.build+=/sinister_strike
+# Aoe Rotation
+actions.aoe=frostscythe,if=(buff.killing_machine.react=2|(buff.killing_machine.react&rune>=3))&active_enemies>=variable.frostscythe_prio
+actions.aoe+=/obliterate,target_if=max:(hero_tree.rider_of_the_apocalypse&debuff.chains_of_ice_trollbane_slow.react),if=buff.killing_machine.react=2|(buff.killing_machine.react&rune>=3)
+actions.aoe+=/howling_blast,if=buff.rime.react&talent.frostbound_will|!dot.frost_fever.ticking
+actions.aoe+=/frost_strike,target_if=max:(talent.shattering_blade&debuff.razorice.react=5),if=debuff.razorice.react=5&buff.frostbane.react
+actions.aoe+=/frost_strike,target_if=max:(talent.shattering_blade&debuff.razorice.react=5),if=debuff.razorice.react=5&talent.shattering_blade&active_enemies<5&!variable.rp_pooling&!talent.frostbane
+actions.aoe+=/frostscythe,if=buff.killing_machine.react&!variable.rune_pooling&active_enemies>=variable.frostscythe_prio
+actions.aoe+=/obliterate,target_if=max:(hero_tree.rider_of_the_apocalypse&debuff.chains_of_ice_trollbane_slow.react),if=buff.killing_machine.react&!variable.rune_pooling
+actions.aoe+=/howling_blast,if=buff.rime.react
+actions.aoe+=/glacial_advance,if=!variable.rp_pooling
+actions.aoe+=/frostscythe,if=!variable.rune_pooling&!(talent.obliteration&buff.pillar_of_frost.up)&active_enemies>=variable.frostscythe_prio
+actions.aoe+=/obliterate,target_if=max:(hero_tree.rider_of_the_apocalypse&debuff.chains_of_ice_trollbane_slow.react),if=!variable.rune_pooling&!(talent.obliteration&buff.pillar_of_frost.up)
+actions.aoe+=/howling_blast,if=!buff.killing_machine.react&(talent.obliteration&buff.pillar_of_frost.up)
 
-# Cooldowns  Maintain Adrenaline Rush if it is not active. Use at low CPs with Improved AR.
-actions.cds=adrenaline_rush,if=!buff.adrenaline_rush.up&(!variable.finish_condition|!talent.improved_adrenaline_rush)
-# If using Improved AR, recast AR if it is already active at low CPs.
-actions.cds+=/adrenaline_rush,if=buff.adrenaline_rush.up&talent.improved_adrenaline_rush&combo_points<=2
-# High priority Ghostly Strike as it is off-gcd. 1 FTH builds prefer to not use it at max CPs.
-actions.cds+=/ghostly_strike,if=combo_points<cp_max_spend|talent.fan_the_hammer.rank>1
-# Sprint to further benefit from Scroll of Momentum trinket.
-actions.cds+=/sprint,if=(trinket.1.is.scroll_of_momentum|trinket.2.is.scroll_of_momentum)&buff.full_momentum.up
-# Maintain Blade Flurry on 2+ targets.
-actions.cds+=/blade_flurry,if=spell_targets>=2&buff.blade_flurry.remains<gcd
-# With a natural 5 buff roll, use Keep it Rolling when you obtain the remaining buff from Count the Odds.
-actions.cds+=/keep_it_rolling,if=rtb_buffs.normal>=5&rtb_buffs=6
-# Without a natural 5 buff roll, use Keep it Rolling at any 4+ buffs.
-actions.cds+=/keep_it_rolling,if=rtb_buffs>=4&rtb_buffs.normal<=2
-# Without a natural 5 buff roll, use Keep it Rolling at 3 buffs if you have the combination of Ruthless Precision + Broadside + True Bearing.
-actions.cds+=/keep_it_rolling,if=rtb_buffs>=3&rtb_buffs.normal<=2&buff.broadside.up&buff.ruthless_precision.up&buff.true_bearing.up
-# Variable that counts how many buffs are ahead of RtB's pandemic range, which is only possible by using KIR.
-actions.cds+=/variable,name=buffs_above_pandemic,value=(buff.broadside.remains>39)+(buff.ruthless_precision.remains>39)+(buff.true_bearing.remains>39)+(buff.grand_melee.remains>39)+(buff.buried_treasure.remains>39)+(buff.skull_and_crossbones.remains>39)
-# Maintain Roll the Bones: cast without any buffs.
-actions.cds+=/roll_the_bones,if=rtb_buffs=0
-# With TWW2 set, recast Roll the Bones if we will roll away between 0-1 buffs. If KIR was recently used on a natural 5 buff, then wait until all buffs are below around 41s remaining.
-actions.cds+=/roll_the_bones,if=set_bonus.tww2_4pc&rtb_buffs.will_lose<=1&(variable.buffs_above_pandemic<5|rtb_buffs.max_remains<42)
-# With TWW2 set, recast Roll the Bones with at most 2 buffs active regardless of duration. Supercharger builds will also roll if we will lose between 0-4 buffs, but KIR Supercharger builds wait until they are all below 11s remaining.
-actions.cds+=/roll_the_bones,if=set_bonus.tww2_4pc&(rtb_buffs<=2|(rtb_buffs.max_remains<11|!talent.keep_it_rolling)&rtb_buffs.will_lose<5&talent.supercharger)
-# Without TWW2 set or Sleight of Hand, recast Roll the Bones to override 1 buff into 2 buffs with Loaded Dice, or reroll any 2 buffs with Loaded Dice+Supercharger. Hidden Opportunity builds can also reroll 2 buffs with Loaded Dice to try for BS/RP/TB.
-actions.cds+=/roll_the_bones,if=!set_bonus.tww2_4pc&(rtb_buffs.will_lose<=buff.loaded_dice.up|talent.supercharger&buff.loaded_dice.up&rtb_buffs<=2|talent.hidden_opportunity&buff.loaded_dice.up&rtb_buffs<=2&!buff.broadside.up&!buff.ruthless_precision.up&!buff.true_bearing.up)
-# Trinkets that should not be used during stealth and have higher priority than entering stealth.
-actions.cds+=/use_item,name=imperfect_ascendancy_serum,if=!stealthed.all|fight_remains<=22
-actions.cds+=/use_item,name=mad_queens_mandate,if=!stealthed.all|fight_remains<=5
-# If necessary, standard builds prioritize using Vanish at any CP to prevent Adrenaline Rush downtime.
-actions.cds+=/vanish,if=talent.underhanded_upper_hand&talent.subterfuge&buff.adrenaline_rush.up&!stealthed.all&buff.adrenaline_rush.remains<2&cooldown.adrenaline_rush.remains>30
-# If not at risk of losing Adrenaline Rush, run finishers to use Killing Spree or Coup de Grace as a higher priority than Vanish.
-actions.cds+=/run_action_list,name=finish,if=!stealthed.all&(cooldown.killing_spree.ready&talent.killing_spree|buff.escalating_blade.stack>=4)&variable.finish_condition
-# If not at risk of losing Adrenaline Rush, call flexible Vanish rules to be used at finisher CPs.
-actions.cds+=/call_action_list,name=vanish_usage,if=!stealthed.all&talent.crackshot&talent.underhanded_upper_hand&talent.subterfuge&buff.adrenaline_rush.up&variable.finish_condition
-actions.cds+=/call_action_list,name=vanish_usage_off_meta,if=!stealthed.all&(!talent.underhanded_upper_hand|!talent.crackshot|!talent.subterfuge)
-# Generic catch-all for Shadowmeld. Technically, usage in DungeonSlice or DungeonRoute sims could mirror Vanish usage on packs.
-actions.cds+=/shadowmeld,if=variable.finish_condition&!cooldown.vanish.ready&!stealthed.all
-# Use Blade Rush at minimal energy outside of stealth.
-actions.cds+=/blade_rush,if=energy.base_time_to_max>4&!stealthed.all
-actions.cds+=/potion,if=buff.bloodlust.react|fight_remains<30|buff.adrenaline_rush.up
-actions.cds+=/blood_fury
-actions.cds+=/berserking
-actions.cds+=/fireblood
-actions.cds+=/ancestral_call
-# Let the magnet trinket stack up just so it does not disrupt a 2nd on-use trinket.
-actions.cds+=/use_item,name=junkmaestros_mega_magnet,if=buff.between_the_eyes.up&buff.junkmaestros_mega_magnet.stack>25|fight_remains<5
-# Default conditions for usable items.
-actions.cds+=/use_items,slots=trinket1,if=buff.between_the_eyes.up|trinket.1.has_stat.any_dps|fight_remains<=20
-actions.cds+=/use_items,slots=trinket2,if=buff.between_the_eyes.up|trinket.2.has_stat.any_dps|fight_remains<=20
+# target_if=max:(debuff.razorice.stack+1)%(debuff.razorice.remains+1)*death_knight.runeforge.razorice+((hero_tree.deathbringer&debuff.reapers_mark_debuff.up)*5)  Cooldowns
+actions.cooldowns=potion,use_off_gcd=1,if=variable.cooldown_check|fight_remains<25
+actions.cooldowns+=/remorseless_winter,if=variable.sending_cds&(active_enemies>1|talent.gathering_storm)|(buff.gathering_storm.stack=10&buff.remorseless_winter.remains<gcd.max)&fight_remains>10
+actions.cooldowns+=/frostwyrms_fury,if=hero_tree.rider_of_the_apocalypse&talent.apocalypse_now&variable.sending_cds&(cooldown.pillar_of_frost.remains<gcd.max|fight_remains<20)&!talent.breath_of_sindragosa
+actions.cooldowns+=/frostwyrms_fury,if=hero_tree.rider_of_the_apocalypse&talent.apocalypse_now&variable.sending_cds&(cooldown.pillar_of_frost.remains<gcd.max|fight_remains<20)&talent.breath_of_sindragosa&runic_power>=60
+actions.cooldowns+=/pillar_of_frost,if=!talent.breath_of_sindragosa&variable.sending_cds&(!hero_tree.deathbringer|rune>=2)|fight_remains<20
+actions.cooldowns+=/pillar_of_frost,if=talent.breath_of_sindragosa&variable.sending_cds&variable.breath_of_sindragosa_check&(!hero_tree.deathbringer|rune>=2)
+actions.cooldowns+=/breath_of_sindragosa,use_off_gcd=1,if=!buff.breath_of_sindragosa.up&(buff.pillar_of_frost.up|fight_remains<20)
+actions.cooldowns+=/reapers_mark,target_if=first:debuff.reapers_mark_debuff.down,if=buff.pillar_of_frost.up|cooldown.pillar_of_frost.remains>5|fight_remains<20
+actions.cooldowns+=/frostwyrms_fury,if=!talent.apocalypse_now&active_enemies=1&(talent.pillar_of_frost&buff.pillar_of_frost.up&!talent.obliteration|!talent.pillar_of_frost)&(!raid_event.adds.exists|raid_event.adds.in>cooldown.frostwyrms_fury.duration+raid_event.adds.duration)&variable.fwf_buffs|fight_remains<3
+actions.cooldowns+=/frostwyrms_fury,if=!talent.apocalypse_now&active_enemies>=2&(talent.pillar_of_frost&buff.pillar_of_frost.up|raid_event.adds.exists&raid_event.adds.up&raid_event.adds.in<cooldown.pillar_of_frost.remains-raid_event.adds.in-raid_event.adds.duration)&variable.fwf_buffs
+actions.cooldowns+=/frostwyrms_fury,if=!talent.apocalypse_now&talent.obliteration&(talent.pillar_of_frost&buff.pillar_of_frost.up&!main_hand.2h|!buff.pillar_of_frost.up&main_hand.2h&cooldown.pillar_of_frost.remains|!talent.pillar_of_frost)&variable.fwf_buffs&(!raid_event.adds.exists|raid_event.adds.in>cooldown.frostwyrms_fury.duration+raid_event.adds.duration)
+actions.cooldowns+=/raise_dead,use_off_gcd=1
+actions.cooldowns+=/soul_reaper,if=talent.reaper_of_souls&buff.reaper_of_souls.up&buff.killing_machine.react<2
+actions.cooldowns+=/empower_rune_weapon,use_off_gcd=1,if=(rune<2|!buff.killing_machine.react)&runic_power<35+(talent.icy_onslaught*buff.icy_onslaught.stack*5)&gcd.remains<0.5
+actions.cooldowns+=/empower_rune_weapon,use_off_gcd=1,if=cooldown.empower_rune_weapon.full_recharge_time<=6&buff.killing_machine.react<1+(1*talent.killing_streak)&gcd.remains<0.5
 
-# Finishers
-actions.finish=pool_resource,for_next=1
-actions.finish+=/killing_spree
-actions.finish+=/coup_de_grace
-# Use Between the Eyes outside of Stealth to maintain the buff, or with Ruthless Precision active, or to proc Greenskins Wickers if not active. Trickster builds can also send BtE on cooldown.
-actions.finish+=/between_the_eyes,if=(buff.ruthless_precision.up|buff.between_the_eyes.remains<4|!talent.mean_streak)&(!buff.greenskins_wickers.up|!talent.greenskins_wickers)
-actions.finish+=/cold_blood
-actions.finish+=/dispatch
+# High Priority Actions
+actions.high_prio_actions=mind_freeze,if=target.debuff.casting.react
+# Use <a href='https://www.wowhead.com/spell=10060/power-infusion'>Power Infusion</a> while <a href='https://www.wowhead.com/spell=51271/pillar-of-frost'>Pillar of Frost</a> is up
+actions.high_prio_actions+=/invoke_external_buff,name=power_infusion,if=variable.cooldown_check
+actions.high_prio_actions+=/antimagic_shell,if=runic_power.deficit>40&death_knight.first_ams_cast<time
 
-# Stealth
-actions.stealth=cold_blood,if=variable.finish_condition
-# Ensure Crackshot BtE is not skipped because of low energy.
-actions.stealth+=/pool_resource,for_next=1
-# High priority Between the Eyes for Crackshot, except not directly out of Shadowmeld.
-actions.stealth+=/between_the_eyes,if=variable.finish_condition&talent.crackshot&(!buff.shadowmeld.up|stealthed.rogue)
-actions.stealth+=/dispatch,if=variable.finish_condition
-# 2 Fan the Hammer Crackshot builds can consume Opportunity in stealth with max stacks, Broadside, and 1 CP, or with Greenskins active.
-actions.stealth+=/pistol_shot,if=talent.crackshot&talent.fan_the_hammer.rank>=2&buff.opportunity.stack>=6&(buff.broadside.up&combo_points<=1|buff.greenskins_wickers.up)
-actions.stealth+=/ambush,if=talent.hidden_opportunity
+# Obliteration Active Rotation  Racial Abilities
+actions.racials=blood_fury,use_off_gcd=1,if=variable.cooldown_check
+actions.racials+=/berserking,use_off_gcd=1,if=variable.cooldown_check
+actions.racials+=/arcane_pulse,if=variable.cooldown_check
+actions.racials+=/lights_judgment,if=variable.cooldown_check
+actions.racials+=/ancestral_call,use_off_gcd=1,if=variable.cooldown_check
+actions.racials+=/fireblood,use_off_gcd=1,if=variable.cooldown_check
+actions.racials+=/bag_of_tricks,if=talent.obliteration&!buff.pillar_of_frost.up&buff.unholy_strength.up
+actions.racials+=/bag_of_tricks,if=!talent.obliteration&buff.pillar_of_frost.up&(buff.unholy_strength.up&buff.unholy_strength.remains<gcd*3|buff.pillar_of_frost.remains<gcd*3)
 
-# Flex Vanish usage for standard builds.  Without Killing Spree, attempt to hold Vanish for when BtE is on cooldown and Ruthless Precision is active. Also with Keep it Rolling, hold Vanish if we haven't done the first roll after KIR yet.
-actions.vanish_usage=vanish,if=!talent.killing_spree&!cooldown.between_the_eyes.ready&buff.ruthless_precision.remains>4&(cooldown.keep_it_rolling.remains>150&rtb_buffs.normal>0|!talent.keep_it_rolling)
-# Supercharger builds that do not use Killing Spree should also Vanish if Supercharger becomes active.
-actions.vanish_usage+=/vanish,if=!talent.killing_spree&buff.supercharge_1.up
-# Builds with Killing Spree can freely Vanish if KS is not up soon.
-actions.vanish_usage+=/vanish,if=cooldown.killing_spree.remains>30
-# Vanish if about to cap on charges or sim duration is ending.
-actions.vanish_usage+=/vanish,if=cooldown.vanish.full_recharge_time<15|fight_remains<8
+# Single Target Rotation
+actions.single_target=obliterate,if=buff.killing_machine.react=2|(buff.killing_machine.react&rune>=3)
+actions.single_target+=/howling_blast,if=buff.rime.react&talent.frostbound_will
+actions.single_target+=/frost_strike,target_if=max:(talent.shattering_blade&debuff.razorice.react=5),if=debuff.razorice.react=5&talent.shattering_blade&!variable.rp_pooling
+actions.single_target+=/howling_blast,if=buff.rime.react
+actions.single_target+=/frost_strike,if=!talent.shattering_blade&!variable.rp_pooling&runic_power.deficit<30
+actions.single_target+=/obliterate,if=buff.killing_machine.react&!variable.rune_pooling
+actions.single_target+=/frost_strike,if=!variable.rp_pooling
+actions.single_target+=/obliterate,if=!variable.rune_pooling&!(talent.obliteration&buff.pillar_of_frost.up)
+actions.single_target+=/howling_blast,if=!buff.killing_machine.react&(talent.obliteration&buff.pillar_of_frost.up)
 
-# Flex Vanish usage for builds lacking one of the mandatory stealth talents. APL support for these builds is considered limited.
-actions.vanish_usage_off_meta=vanish,if=talent.underhanded_upper_hand&talent.subterfuge&!talent.crackshot&buff.adrenaline_rush.up&(variable.ambush_condition|!talent.hidden_opportunity)&(!cooldown.between_the_eyes.ready&buff.ruthless_precision.up|buff.ruthless_precision.down|buff.adrenaline_rush.remains<3)
-actions.vanish_usage_off_meta+=/vanish,if=!talent.underhanded_upper_hand&talent.crackshot&variable.finish_condition
-actions.vanish_usage_off_meta+=/vanish,if=!talent.underhanded_upper_hand&!talent.crackshot&talent.hidden_opportunity&!buff.audacity.up&buff.opportunity.stack<buff.opportunity.max_stack&variable.ambush_condition
-actions.vanish_usage_off_meta+=/vanish,if=!talent.underhanded_upper_hand&!talent.crackshot&!talent.hidden_opportunity&talent.fateful_ending&(!buff.fatebound_lucky_coin.up&(buff.fatebound_coin_tails.stack>=5|buff.fatebound_coin_heads.stack>=5)|buff.fatebound_lucky_coin.up&!cooldown.between_the_eyes.ready)
-actions.vanish_usage_off_meta+=/vanish,if=!talent.underhanded_upper_hand&!talent.crackshot&!talent.hidden_opportunity&!talent.fateful_ending&talent.take_em_by_surprise&!buff.take_em_by_surprise.up
+# Trinkets  Trinkets The trinket with the highest estimated value, will be used first and paired with Pillar of Frost.
+actions.trinkets=use_item,name=unyielding_netherprism,if=buff.latent_energy.stack>8&buff.pillar_of_frost.remains&(!talent.breath_of_sindragosa|buff.breath_of_sindragosa.remains)
+actions.trinkets+=/use_item,slot=trinket1,if=!trinket.1.cast_time>0&variable.trinket_1_buffs&!variable.trinket_1_manual&buff.pillar_of_frost.remains&(!trinket.2.has_cooldown|trinket.2.cooldown.remains|variable.trinket_priority=1)
+actions.trinkets+=/use_item,slot=trinket2,if=!trinket.2.cast_time>0&variable.trinket_2_buffs&!variable.trinket_2_manual&buff.pillar_of_frost.remains&(!trinket.1.has_cooldown|trinket.1.cooldown.remains|variable.trinket_priority=2)
+# Channeled buff trinkets will be used before cooldowns
+actions.trinkets+=/use_item,slot=trinket1,use_off_gcd=1,if=trinket.1.cast_time>0&(!hero_tree.rider_of_the_apocalypse|cooldown.frostwyrms_fury.remains)&variable.trinket_1_buffs&!variable.trinket_1_manual&cooldown.pillar_of_frost.remains<trinket.1.cast_time&(!talent.breath_of_sindragosa|variable.breath_of_sindragosa_check)&variable.sending_cds&(!trinket.2.has_cooldown|trinket.2.cooldown.remains|variable.trinket_priority=1)|variable.trinket_1_duration>=fight_remains
+actions.trinkets+=/use_item,slot=trinket2,use_off_gcd=1,if=trinket.2.cast_time>0&(!hero_tree.rider_of_the_apocalypse|cooldown.frostwyrms_fury.remains)&variable.trinket_2_buffs&!variable.trinket_2_manual&cooldown.pillar_of_frost.remains<trinket.2.cast_time&(!talent.breath_of_sindragosa|variable.breath_of_sindragosa_check)&variable.sending_cds&(!trinket.1.has_cooldown|trinket.1.cooldown.remains|variable.trinket_priority=2)|variable.trinket_2_duration>=fight_remains
+# If only one on use trinket provides a buff, use the other on cooldown. Or if neither trinket provides a buff, use both on cooldown.
+actions.trinkets+=/use_item,slot=trinket1,if=!variable.trinket_1_buffs&!variable.trinket_1_manual&(variable.damage_trinket_priority=1|(!trinket.2.has_cooldown|trinket.2.cooldown.remains))&((trinket.1.cast_time>0&(!talent.breath_of_sindragosa|!buff.breath_of_sindragosa.up)&!buff.pillar_of_frost.up|!trinket.1.cast_time>0)&(!variable.trinket_2_buffs|cooldown.pillar_of_frost.remains>20)|!talent.pillar_of_frost)|fight_remains<15
+actions.trinkets+=/use_item,slot=trinket2,if=!variable.trinket_2_buffs&!variable.trinket_2_manual&(variable.damage_trinket_priority=2|(!trinket.1.has_cooldown|trinket.1.cooldown.remains))&((trinket.2.cast_time>0&(!talent.breath_of_sindragosa|!buff.breath_of_sindragosa.up)&!buff.pillar_of_frost.up|!trinket.2.cast_time>0)&(!variable.trinket_1_buffs|cooldown.pillar_of_frost.remains>20)|!talent.pillar_of_frost)|fight_remains<15
+actions.trinkets+=/use_item,slot=main_hand,if=buff.pillar_of_frost.up|(buff.breath_of_sindragosa.up&cooldown.pillar_of_frost.remains)|(variable.trinket_1_buffs&variable.trinket_2_buffs&(trinket.1.cooldown.remains<cooldown.pillar_of_frost.remains|trinket.2.cooldown.remains<cooldown.pillar_of_frost.remains)&cooldown.pillar_of_frost.remains>20)|fight_remains<15
 
-head=spectral_gamblers_damned_visage,id=229289,bonus_id=1527/11996,gem_id=213743
-neck=amulet_of_earthen_craftsmanship,id=215136,bonus_id=10421/9633/8902/10878/12043/12040/1485/10520/8960,gem_id=213467/213497,crafted_stats=40/36
-shoulders=spectral_gamblers_bladed_mantle,id=229287,bonus_id=1527/11996
-back=trashmasters_mantle,id=199921,bonus_id=10067/11996/11964,ilevel=678
-chest=seraphic_wraps_of_the_ordained,id=221130,bonus_id=10067/11996/11964,ilevel=678,enchant=crystalline_radiance_3
-wrists=servoarm_bindings,id=158353,bonus_id=10067/11996/11964,ilevel=678,gem_id=213485
-hands=spectral_gamblers_gloves,id=229290,bonus_id=1527/11996
-waist=hitmans_holster,id=228880,bonus_id=1527/11996,gem_id=213485
-legs=spectral_gamblers_pantaloons,id=229288,bonus_id=1527/11996,enchant=stormbound_armor_kit_3
-feet=dragsters_last_stride,id=228876,bonus_id=10067/11996/11964,ilevel=678
-finger1=miniature_roulette_wheel,id=228843,bonus_id=1527/11996/11964/8781,gem_id=213485/213485,enchant=cursed_versatility_3,crafted_stats=40/36
-finger2=ring_of_earthen_craftsmanship,id=215135,bonus_id=10421/9633/8902/10878/12043/12040/1485/10520/8960,gem_id=213485/213461,enchant=cursed_versatility_3,crafted_stats=32/40
-trinket1=junkmaestros_mega_magnet,id=230189,bonus_id=1527/11996
-trinket2=zees_thug_hotline,id=230199,bonus_id=1527/11996
-main_hand=gallywixs_iron_thumb,id=228899,bonus_id=1527/11996,enchant=authority_of_the_depths_3
-off_hand=capos_molten_knuckles,id=232804,bonus_id=1527/11996,enchant=authority_of_the_depths_3
+# Variables
+actions.variables=variable,name=st_planning,op=setif,value=1,value_else=0,condition=active_enemies=1&(!raid_event.adds.exists|!raid_event.adds.in|raid_event.adds.in>15)
+actions.variables+=/variable,name=adds_remain,value=active_enemies>=2&(!raid_event.adds.exists|!raid_event.pull.exists&raid_event.adds.remains>5|raid_event.pull.exists&raid_event.adds.in>20)
+actions.variables+=/variable,name=sending_cds,value=(variable.st_planning|variable.adds_remain)
+actions.variables+=/variable,name=cooldown_check,value=(talent.pillar_of_frost&buff.pillar_of_frost.up)|!talent.pillar_of_frost|fight_remains<20
+actions.variables+=/variable,name=fwf_buffs,value=(buff.pillar_of_frost.remains<gcd.max|(buff.unholy_strength.up&buff.unholy_strength.remains<gcd.max)|(talent.bonegrinder.rank=2&buff.bonegrinder_frost.up&buff.bonegrinder_frost.remains<gcd.max))&(active_enemies>1|debuff.razorice.stack=5|talent.shattering_blade)
+actions.variables+=/variable,name=rune_pooling,value=hero_tree.deathbringer&cooldown.reapers_mark.remains<6&rune<3&variable.sending_cds
+actions.variables+=/variable,name=rp_pooling,value=talent.breath_of_sindragosa&cooldown.breath_of_sindragosa.remains<4*gcd.max&runic_power<60+(35+5*buff.icy_onslaught.up)-(10*rune)&variable.sending_cds
+# Frostscythe is equal at 3 targets, except with Rider 4pc which brings Obliterate higher at 3, unless cleaving strikes is up
+actions.variables+=/variable,name=frostscythe_prio,value=3+(1*(set_bonus.tww3_rider_of_the_apocalypse_4pc&!(talent.cleaving_strikes&buff.remorseless_winter.up)))
+actions.variables+=/variable,name=breath_of_sindragosa_check,value=talent.breath_of_sindragosa&(cooldown.breath_of_sindragosa.remains>20|(cooldown.breath_of_sindragosa.up&runic_power>=(60-20*hero_tree.deathbringer)))
+
+head=hollow_sentinels_stonemask,id=237628,bonus_id=12361/10356/12231/6652/12921/12676/1533/10255/1808,gem_id=213743
+neck=salhadaars_folly,id=242406,bonus_id=4800/4786/1533/12361/6935/1808,gem_id=213458/213458
+shoulders=hollow_sentinels_perches,id=237626,bonus_id=12361/10356/6652/1533/10255
+back=reshii_wraps,id=235499,bonus_id=12399/9893,gem_id=238046
+chest=hollow_sentinels_breastplate,id=237631,bonus_id=12361/10356/12229/6652/12676/1533/10255,enchant=crystalline_radiance_3
+wrists=everforged_vambraces,id=222435,bonus_id=12053/12050/11307/9627/11109/8960/10878,gem_id=213470,crafted_stats=49/32
+hands=breached_containment_guards,id=237526,bonus_id=4800/4786/1533/12361
+waist=girdle_of_absolute_faith,id=242479,bonus_id=4786/3215/12361/1808,gem_id=213458
+legs=hollow_sentinels_stonekilt,id=237627,bonus_id=12361/10356/12232/6652/12676/1533/10255,enchant=stormbound_armor_kit_3
+feet=interlopers_plated_sabatons,id=243307,bonus_id=4800/4786/1533/12361/13504
+finger1=logic_gate_alpha,id=237567,bonus_id=4800/4786/1533/12361/6935/1808,gem_id=213482/213482,enchant=radiant_mastery_3
+finger2=radiant_necromancers_band,id=221200,bonus_id=4786/3215/12361/1808,gem_id=213458,enchant=radiant_mastery_3
+trinket1=astral_antenna,id=242395,bonus_id=10356/12361/1533/10255
+trinket2=arazs_ritual_forge,id=242402,bonus_id=4800/4786/1533/12361
+main_hand=charged_claymore,id=222447,bonus_id=12053/12050/9627/11300/8960,enchant=rune_of_the_fallen_crusader,crafted_stats=49/32
 
 # Gear Summary
-# gear_ilvl=677.63
-# gear_agility=56573
-# gear_stamina=391524
-# gear_attack_power=938
-# gear_crit_rating=8326
-# gear_haste_rating=12647
-# gear_mastery_rating=1806
-# gear_versatility_rating=20591
-# gear_armor=34040
-# set_bonus=thewarwithin_season_2_2pc=1
-# set_bonus=thewarwithin_season_2_4pc=1
+# gear_ilvl=723.07
+# gear_strength=77140
+# gear_stamina=663108
+# gear_crit_rating=19810
+# gear_haste_rating=6037
+# gear_mastery_rating=25991
+# gear_versatility_rating=4619
+# gear_armor=97290
+# set_bonus=name=thewarwithin_season_3,pc=2,hero_tree=deathbringer,enable=1
+# set_bonus=name=thewarwithin_season_3,pc=4,hero_tree=deathbringer,enable=1

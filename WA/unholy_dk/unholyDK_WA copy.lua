@@ -521,7 +521,7 @@ function()
         end
 
         -- Kichi 8.9 add "GetTimeToFullCharges(ids.DeathAndDecay) < 3 and TargetHasDebuff(ids.VirulentPlagueDebuff)" to qickly move into burst phase
-        if OffCooldown(ids.DeathAndDecay) and FindSpellOverrideByID(ids.DeathAndDecay) ~= ids.Desecrate and ( GetTimeToFullCharges(ids.DeathAndDecay) < 3 and TargetHasDebuff(ids.VirulentPlagueDebuff) or TargetsWithFesteringWounds == NearbyEnemies and IsPlayerSpell(ids.DesecrateTalent) and ( IsPlayerSpell(ids.FesteringScytheTalent) and TargetsWithFesteringWounds == 0 and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 and not PlayerHasBuff(ids.FesteringScytheBuff) or not IsPlayerSpell(ids.FesteringScytheTalent))) then
+        if OffCooldown(ids.DeathAndDecay) and FindSpellOverrideByID(ids.DeathAndDecay) ~= ids.Desecrate and ( TargetsWithFesteringWounds >= NearbyEnemies and IsPlayerSpell(ids.DesecrateTalent) and ( IsPlayerSpell(ids.FesteringScytheTalent) and TargetsWithFesteringWounds == 0 and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 and not PlayerHasBuff(ids.FesteringScytheBuff) or not IsPlayerSpell(ids.FesteringScytheTalent))) then
             -- KTrig("Death And Decay") return true end
             if aura_env.config[tostring(ids.DeathAndDecay)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Death And Decay")
@@ -576,7 +576,7 @@ function()
             end
         end
 
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( TargetsWithFesteringWounds == NearbyEnemies and ( CurrentRunes > 3 or CurrentRunicPower < 30 ) or IsPlayerSpell(ids.DesecrateTalent) and ( IsPlayerSpell(ids.FesteringScytheTalent) and TargetsWithFesteringWounds == 0 and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 and not PlayerHasBuff(ids.FesteringScytheBuff) or not IsPlayerSpell(ids.FesteringScytheTalent) ) ) ) then
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( GetTimeToFullCharges(ids.DeathAndDecay) < 3 and TargetHasDebuff(ids.VirulentPlagueDebuff) or TargetsWithFesteringWounds >= NearbyEnemies and ( CurrentRunes > 3 or CurrentRunicPower < 30 ) or IsPlayerSpell(ids.DesecrateTalent) and ( IsPlayerSpell(ids.FesteringScytheTalent) and TargetsWithFesteringWounds == 0 and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 and not PlayerHasBuff(ids.FesteringScytheBuff) or not IsPlayerSpell(ids.FesteringScytheTalent) ) ) ) then
             -- KTrig("Death And Decay") return true end
             if aura_env.config[tostring(ids.DeathAndDecay)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Death And Decay")
@@ -601,7 +601,7 @@ function()
             KTrig("Epidemic") return true end
         
         -- Kichi fix for 4.12 NGA because his mistake --
-        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( not IsPlayerSpell(ids.BurstingSoresTalent) or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds >= 8 or not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.Defile) and CurrentRunes > 3 ) ) then
+        if OffCooldown(ids.DeathAndDecay) and ( not PlayerHasBuff(ids.DeathAndDecayBuff) and ( not IsPlayerSpell(ids.BurstingSoresTalent) or TargetsWithFesteringWounds >= NearbyEnemies or TargetsWithFesteringWounds >= 8 or not PlayerHasBuff(ids.DeathAndDecayBuff) and IsPlayerSpell(ids.Defile) and CurrentRunes > 3 ) ) then
             -- KTrig("Death And Decay") return true end
             if aura_env.config[tostring(ids.DeathAndDecay)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Death And Decay")
@@ -611,10 +611,10 @@ function()
             end
         end
         
-        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets and ( PlayerHasBuff(ids.SuddenDoomBuff) or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds >= 8 ) ) then
+        if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets and ( PlayerHasBuff(ids.SuddenDoomBuff) or TargetsWithFesteringWounds >= NearbyEnemies or TargetsWithFesteringWounds >= 8 ) ) then
             KTrig("Death Coil") return true end
         
-        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower and Variables.EpidemicTargets <= NearbyEnemies and ( PlayerHasBuff(ids.SuddenDoomBuff) or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds >= 8 ) ) then
+        if OffCooldown(ids.Epidemic) and ( not Variables.PoolingRunicPower and Variables.EpidemicTargets <= NearbyEnemies and ( PlayerHasBuff(ids.SuddenDoomBuff) or TargetsWithFesteringWounds >= NearbyEnemies or TargetsWithFesteringWounds >= 8 ) ) then
             KTrig("Epidemic") return true end
             
         if OffCooldown(ids.DeathCoil) and ( not Variables.PoolingRunicPower and NearbyEnemies < Variables.EpidemicTargets ) then
@@ -624,7 +624,7 @@ function()
             KTrig("Epidemic") return true end
         
         -- Kichi for Scourge Scy modify --
-        if not PlayerHasBuff(ids.FesteringScytheBuff) and OffCooldown(ids.FesteringStrike) and ( TargetsWithFesteringWounds < 8 and not TargetsWithFesteringWounds == NearbyEnemies ) then
+        if not PlayerHasBuff(ids.FesteringScytheBuff) and OffCooldown(ids.FesteringStrike) and ( TargetsWithFesteringWounds < 8 and not TargetsWithFesteringWounds >= NearbyEnemies ) then
             KTrig("Festering Strike") return true end
         
         -- Kichi for Scourge Scy modify --
@@ -854,7 +854,7 @@ or PlayerHasBuff(ids.VisceralStrengthUnholyBuff)  ) then
             end
         end
 
-        if FindSpellOverrideByID(ids.DeathAndDecay) == ids.Desecrate and ( NearbyEnemies >= 2 and ( not IsPlayerSpell(ids.FesteringScytheTalent) or GetPlayerStacks(ids.FesteringScytheStacksBuff) < NearbyEnemies and not PlayerHasBuff(ids.FesteringScytheBuff) ) and ( NearbyEnemies > 1 and TargetsWithFesteringWounds < NearbyEnemies or TargetsWithFesteringWounds == NearbyEnemies or TargetsWithFesteringWounds == 0 and IsPlayerSpell(ids.FesteringScytheTalent) and not PlayerHasBuff(ids.FesteringScytheBuff) and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 ) ) then
+        if FindSpellOverrideByID(ids.DeathAndDecay) == ids.Desecrate and ( NearbyEnemies >= 2 and ( not IsPlayerSpell(ids.FesteringScytheTalent) or GetPlayerStacks(ids.FesteringScytheStacksBuff) < NearbyEnemies and not PlayerHasBuff(ids.FesteringScytheBuff) ) and ( NearbyEnemies > 1 and TargetsWithFesteringWounds < NearbyEnemies or TargetsWithFesteringWounds >= NearbyEnemies or TargetsWithFesteringWounds == 0 and IsPlayerSpell(ids.FesteringScytheTalent) and not PlayerHasBuff(ids.FesteringScytheBuff) and GetPlayerStacks(ids.FesteringScytheStacksBuff) < 10 ) ) then
             -- KTrig("Desecrate") return true end
             if aura_env.config[tostring(ids.Desecrate)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Desecrate")
@@ -1041,7 +1041,7 @@ or PlayerHasBuff(ids.VisceralStrengthUnholyBuff)  ) then
         -- print("7")
         if AoeSetup() then return true end end
     
-    if NearbyEnemies >= 3 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecayBuff) and (TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) or IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies < 16 or IsPlayerSpell(ids.DesecrateTalent) and TargetsWithFesteringWounds == NearbyEnemies and IsPlayerSpell(ids.BurstingSoresTalent)) ) then
+    if NearbyEnemies >= 3 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecayBuff) and (TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) or IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies < 16 or IsPlayerSpell(ids.DesecrateTalent) and TargetsWithFesteringWounds >= NearbyEnemies and IsPlayerSpell(ids.BurstingSoresTalent)) ) then
         -- print("8")
         if AoeBurst() then return true end end
     

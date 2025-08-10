@@ -1,106 +1,111 @@
 WeakAuras.WatchGCD()
 
-aura_env.RTBContainerExpires = 0
-aura_env.DisorientingStrikesCount = 0
-aura_env.HasTww34PcTricksterBuff = false
-aura_env.LastKillingSpree = 0
-aura_env.PrevCoupCast = 99999999
+-- Death Strike Prediction
+aura_env.DamageTaken = {} -- Table to store damage taken
+aura_env.LastSec = 5 -- How long damage events are taken into account
+aura_env.BasePercentage = 0.25 -- Percentage of the damage that is being healed
+aura_env.MinHealPercentage = 0.07 -- Minimum percentage that Death Strike gives
+
+-- Table to exclude certain abilities that deal damage but do not increase the healing done by DS
+aura_env.exclude = {
+    [243237] = true, --Bursting
+}
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
-    
     -- Abilities
-    AdrenalineRush = 13750,
-    Ambush = 8676,
-    BetweenTheEyes = 315341,
-    BladeFlurry = 13877,
-    BladeRush = 271877,
-    ColdBlood = 382245,
-    CoupDeGrace = 441776,
-    Dispatch = 2098,
-    EchoingReprimand = 385616,
-    GhostlyStrike = 196937,
-    KeepItRolling = 381989,
-    KillingSpree = 51690,
-    MarkedForDeath = 137619,
-    PistolShot = 185763,
-    RollTheBones = 315508,
-    Shadowmeld = 135201,
-    SinisterStrike = 193315,
-    SliceAndDice = 315496,
-    ThistleTea = 381623,
-    Vanish = 1856,
+    AbominationLimb = 383269,
+    BreathOfSindragosa = 1249658,
+    ChainsOfIce = 45524,
+    ChillStreak = 305392,
+    DeathAndDecay = 43265,
+    EmpowerRuneWeapon = 47568,
+    FrostStrike = 49143,
+    Frostscythe = 207230,
+    FrostwyrmsFury = 279302,
+    GlacialAdvance = 194913,
+    HornOfWinter = 57330,
+    HowlingBlast = 49184,
+    Obliterate = 49020,
+    PillarOfFrost = 51271,
+    RaiseDead = 46585,
+    ReapersMark = 439843,
+    RemorselessWinter = 196770,
+    SoulReaper = 343294,
     
     -- Talents
-    CoupDeGraceTalent = 441423,
-    CrackshotTalent = 423703,
-    DeftManeuversTalent = 381878,
-    DisorientingStrikesTalent = 441274,
-    DoubleJeopardyTalent = 454430,
-    FanTheHammerTalent = 381846,
-    FanTheHammerTalentNode = 90666,
-    FatefulEndingTalent = 454428,
-    FlawlessFormTalent = 441321,
-    GreenskinsWickersTalent = 386823,
-    HandOfFateTalent = 452536,
-    HiddenOpportunityTalent = 383281,
-    ImprovedAdrenalineRushTalent = 395422,
-    ImprovedAmbushTalent = 381620,
-    ImprovedBetweenTheEyesTalent = 235484,
-    KeepItRollingTalent = 381989,
-    KillingSpreeTalent = 51690,
-    LoadedDiceTalent = 256170,
-    MeanStreakTalent = 453428,
-    NimbleFlurryTalent = 441367,
-    QuickDrawTalent = 196938,
-    RuthlessnessTalent = 14161,
-    SealFateTalent = 14190,
-    SubterfugeTalent = 108208,
-    SuperchargerTalent = 470347,
-    SurprisingStrikesTalent = 441273,
-    TakeEmBySurpriseTalent = 382742,
-    UnderhandedUpperHandTalent = 424044,
-    UnseenBladeTalent = 441146,
-    WithoutATraceTalent = 382513,
+    AFeastOfSoulsTalent = 444072,
+    ApocalypseNowTalent = 444040,
+    ArcticAssaultTalent = 456230,
+    AvalancheTalent = 207142,
+    BindInDarknessTalent = 440031,
+    BitingColdTalent = 377056,
+    BonegrinderTalent = 377098,
+    BreathOfSindragosaTalent = 1249658,
+    CleavingStrikesTalent = 316916,
+    ColdHeartTalent = 281208,
+    DarkTalonsTalent = 436687,
+    EmpowerRuneWeaponTalent = 47568,
+    EnduringStrengthTalent = 377190,
+    FrigidExecutionerTalent = 377073,
+    FrostbaneTalent = 455993,
+    FrostboundWillTalent = 1238680,
+    FrostwyrmsFuryTalent = 279302,
+    FrozenDominionTalent = 377226,
+    GatheringStormTalent = 194912,
+    GlacialAdvanceTalent = 194913,
+    IcebreakerTalent = 392950,
+    IcyOnslaughtTalent = 1230272,
+    IcyTalonsTalent = 194878,
+    ImprovedDeathStrikeTalent = 374277,
+    KillingStreakTalent = 1230153,
+    ObliterationTalent = 281238,
+    RageOfTheFrozenChampionTalent = 377076,
+    ReaperOfSoulsTalent = 440002,
+    ReapersMarkTalent = 439843,
+    RidersChampionTalent = 444005,
+    ShatteredFrostTalent = 455993,
+    ShatteringBladeTalent = 207057,
+    SmotheringOffenseTalent = 435005,
+    TheLongWinterTalent = 456240,
+    UnholyGroundTalent = 374265,
+    UnleashedFrenzyTalent = 376905,
+    WitherAwayTalent = 441894,
     
-    -- Buffs
-    AdrenalineRushBuff = 13750,
-    AudacityBuff = 386270,
-    BetweenTheEyesBuff = 315341,
-    BroadsideBuff = 193356,
-    BuriedTreasureBuff = 199600,
-    EscalatingBladeBuff = 441786,
-    FateboundCoinHeadsBuff = 452923,
-    FateboundCoinTailsBuff = 452917,
-    FateboundLuckyCoinBuff = 452562,
-    GrandMeleeBuff = 193358,
-    GreenskinsWickersBuff = 394131,
-    LoadedDiceBuff = 256171,
-    OpportunityBuff = 195627,
-    RuthlessPrecisionBuff = 193357,
-    SkullAndCrossbonesBuff = 199603,
-    Stealth = 115191,
-    SubterfugeBuff = 115192,
-    TakeEmBySurpriseBuff = 385907,
-    TrueBearingBuff = 193359,
-    VanishBuff = 11327,
-    -- Kichi -- 
-    KillingSpreeBuff = 51690,
+    -- Buffs/Debuffs
+    AFeastOfSoulsBuff = 440861,
+    BonegrinderFrostBuff = 377103,
+    BreathOfSindragosaBuff = 1249658,
+    ColdHeartBuff = 281209,
+    DeathAndDecayBuff = 188290,
+    ExterminateBuff = 441416,
+    ExterminatePainfulDeathBuff = 447954,
+    FrostbaneBuff = 1229310,
+    FrostFeverDebuff = 55095,
+    GatheringStormBuff = 211805,
+    IcyOnslaughtBuff = 1230273,
+    IcyTalonsBuff = 194879,
+    KillingMachineBuff = 51124,
+    MograinesMightBuff = 444505,
+    PillarOfFrostBuff = 51271,
+    RazoriceDebuff = 51714,
+    ReaperOfSoulsBuff = 469172,
+    ReapersMarkDebuff = 434765,
+    RemorselessWinterBuff = 196770,
+    RimeBuff = 59052,
+    UnholyStrengthBuff = 53365,
+    UnleashedFrenzyBuff = 376907,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
+
 -- Kichi --
 -- Kichi --
 aura_env.KTrig = function(Name, ...)
-
-    -- Update to check if the spell power is enough --
-    local spellID = aura_env.ids[Name:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")]
-    local _, insufficientPower = C_Spell.IsSpellUsable(spellID)
-
-    WeakAuras.ScanEvents("K_TRIGED", Name, insufficientPower, ...)
+    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     if aura_env.FlagKTrigCD then
         WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
@@ -109,48 +114,11 @@ aura_env.KTrig = function(Name, ...)
 end
 
 aura_env.KTrigCD = function(Name, ...)
-
     WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
     WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
     aura_env.FlagKTrigCD = false
 end
 
--- Try Killing Spree for Kichi --
--- -- Kichi --
--- aura_env.OffCooldown = function(spellID)
---     if spellID == nil then
---         local c = a < b -- Throw an error
---     end
-    
---     if not IsPlayerSpell(spellID) then return false end
---     -- Kichi --
---     -- if aura_env.config[tostring(spellID)] == false then return false end
-    
---     local usable, nomana = C_Spell.IsSpellUsable(spellID)
---     -- Kichi only for outlaw killing spree --
---     -- if (not usable) and (not nomana) then return false end
---     if (not usable) and not(WA_GetUnitBuff("player", 51690) ~= nil) and (not nomana) then return false end
-    
---     -- Kichi --
---     -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
---     -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
---     local Cooldown = C_Spell.GetSpellCooldown(spellID)
---     local Duration = Cooldown.duration
---     local Remaining = Cooldown.startTime + Duration - GetTime()
---     local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
-
---     if not OffCooldown then return false end
-    
---     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
---     local InRange = (SpellIdx and C_SpellBook.IsSpellBookItemInRange(SpellIdx, SpellBank, "target")) -- safety
-    
---     if InRange == false then
---         aura_env.OutOfRange = true
---         --return false
---     end
-    
---     return true
--- end
 
 aura_env.OffCooldown = function(spellID)
     if spellID == nil then
@@ -158,10 +126,13 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    if aura_env.config[tostring(spellID)] == false then return false end
+    -- Kichi --
+    -- Kichi --
+    -- if aura_env.config[tostring(spellID)] == false then return false end
+    
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    if (not usable) and (not nomana) then return false end
+    if (not usable) then return false end
     
     local Duration = C_Spell.GetSpellCooldown(spellID).duration
     local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
@@ -176,6 +147,46 @@ aura_env.OffCooldown = function(spellID)
     end
     
     return true
+end
+
+aura_env.IsCasting = function(spellID)
+    return select(9, UnitCastingInfo("player")) == spellID
+end
+
+aura_env.OffCooldownNotCasting = function(spellID)
+    return aura_env.OffCooldown(spellID) and not aura_env.IsCasting(spellID)
+end
+
+aura_env.GetStacks = function(unit, spellID, filter)
+    local _,_,Stacks = WA_GetUnitAura(unit, spellID, filter)
+    if Stacks == nil then Stacks = 0 end
+    return Stacks
+end
+
+aura_env.GetPlayerStacks = function(spellID)
+    return aura_env.GetStacks("player", spellID)
+end
+
+aura_env.GetTargetStacks = function(spellID)
+    return aura_env.GetStacks("target", spellID, "PLAYER|HARMFUL")
+end
+
+aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
+    if spellID == nil then
+        local c = a < b -- Throw an error
+    end
+    
+    if filter == nil then filter = "PLAYER" end
+    local AuraFound = WA_GetUnitAura(unit, spellID, filter)
+    
+    if AuraFound == nil then return 0 end
+    local Expiration = select(6, WA_GetUnitAura(unit, spellID, filter))
+    if Expiration == nil then return 0 end
+    return Expiration - GetTime()
+end
+
+aura_env.GetRemainingDebuffDuration = function(unit, spellID)
+    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -232,6 +243,21 @@ aura_env.FightRemains = function(Default, NearbyRange)
     return HeroLib.FightRemains(HeroLib.Unit.Player:GetEnemiesInRange(NearbyRange))
 end
 
+aura_env.IsAuraRefreshable = function(SpellID, Unit)
+    local Filter = ""
+    if Unit == nil then 
+        Unit = "target" 
+        Filter = "HARMFUL|PLAYER" 
+    end
+    
+    local _,_,_,_,Duration,ExpirationTime = WA_GetUnitAura(Unit, SpellID, Filter)
+    if Duration == nil then return true end
+    
+    local RemainingTime = ExpirationTime - GetTime()
+    
+    return (RemainingTime / Duration) < 0.3
+end
+
 aura_env.GetRemainingSpellCooldown = function(spellID)
     if spellID == nil then
         local c = a < b -- Throw an error
@@ -246,68 +272,47 @@ aura_env.GetRemainingSpellCooldown = function(spellID)
     return Remaining
 end
 
-aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
-    -- Kichi --
-    -- local Filter = ""
-    if Unit == nil then 
-        Unit = "target" 
-        Filter = "HARMFUL|PLAYER" 
+aura_env.CalcDeathStrikeHeal = function()
+    local i = 1
+    local CurrentTime = GetTime()
+    local TotalDamage = 0
+    while aura_env.DamageTaken[i] do
+        local EntryTime = aura_env.DamageTaken[i][1]
+        local EntryDamage = aura_env.DamageTaken[i][2]
+        
+        -- Remove outdated entry or add damage
+        if CurrentTime > EntryTime + aura_env.LastSec then
+            table.remove(aura_env.DamageTaken, i)
+        else
+            TotalDamage = TotalDamage + EntryDamage
+            i = i + 1
+        end
     end
     
-    local _,_,_,_,Duration,ExpirationTime = WA_GetUnitAura(Unit, SpellID, Filter)
-    if Duration == nil then return true end
+    local BasePercentage = aura_env.BasePercentage
+    local MinHealPercentage = aura_env.MinHealPercentage
     
-    local RemainingTime = ExpirationTime - GetTime()
-    
-    return (RemainingTime / Duration) < 0.3
-end
-
-aura_env.IsCasting = function(spellID)
-    return select(9, UnitCastingInfo("player")) == spellID
-end
-
-aura_env.GetStacks = function(unit, spellID, filter)
-    local _,_,Stacks = WA_GetUnitAura(unit, spellID, filter)
-    if Stacks == nil then Stacks = 0 end
-    return Stacks
-end
-
-aura_env.GetPlayerStacks = function(spellID)
-    return aura_env.GetStacks("player", spellID)
-end
-
-aura_env.GetTargetStacks = function(spellID)
-    return aura_env.GetStacks("target", spellID, "PLAYER|HARMFUL")
-end
-
-aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
-    if spellID == nil then
-        local c = a < b -- Throw an error
+    if IsPlayerSpell(aura_env.ids.ImprovedDeathStrikeTalent) then 
+        BasePercentage = BasePercentage * 1.05
+        MinHealPercentage = MinHealPercentage * 1.05
     end
     
-    if filter == nil then filter = "PLAYER" end
-    local AuraFound = WA_GetUnitAura(unit, spellID, filter)
+    --Versatility
+    local Vers = 1 + ((GetCombatRatingBonus(29) + GetVersatilityBonus(30)) / 100)
     
-    if AuraFound == nil then return 0 end
-    local Expiration = select(6, WA_GetUnitAura(unit, spellID, filter))
-    if Expiration == nil then return 0 end
-    return Expiration - GetTime()
-end
-
--- Kichi --
-aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
-    if duration == nil then duration = 0 end
-    return duration
-end
-
-aura_env.GetRemainingStealthDuration = function()
-    if WA_GetUnitAura("player", aura_env.ids.Stealth) or WA_GetUnitAura("player", aura_env.ids.VanishBuff) then return 999999999 end
+    --Guardian Spirit
+    local GS = 1 + (select(16, WA_GetUnitBuff("player", 47788)) or 0) / 100
     
-    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.SubterfugeBuff))
-    if SubterfugeExpiration ~= nil then return SubterfugeExpiration - GetTime() end
+    --Divine Hymn
+    local DH = 1 + 0.04 * (select(3, WA_GetUnitBuff("player", 64844)) or 0)
     
-    return 0
+    local TotalHeal = TotalDamage * BasePercentage
+    local HealPercentage = TotalHeal / UnitHealthMax("player")
+    HealPercentage = math.max(MinHealPercentage, HealPercentage)
+    HealPercentage = HealPercentage * Vers * GS * DH
+    
+    TotalHeal = HealPercentage * UnitHealthMax("player")
+    return TotalHeal
 end
 
 aura_env.HasBloodlust = function()
@@ -320,24 +325,4 @@ end
 
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
-end
-
--- Kichi --
-aura_env.FullGCD = function()
-    local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
-    return FullGCDnum
-end
-
-aura_env.TalentRank = function(nodeID)
-    -- Need Kichi‘s custom WA to get the nodeID, it's not the spellID.
-    local configID = C_ClassTalents.GetActiveConfigID()
-    if configID then
-        local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
-        if nodeInfo and nodeInfo.currentRank then
-            -- print("天赋层数:", nodeInfo.currentRank)
-            return nodeInfo.currentRank
-        end
-    end
-    if nodeInfo == nil then return 0 end
 end

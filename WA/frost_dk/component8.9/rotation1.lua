@@ -8,7 +8,6 @@ env.test = function(allstates, event, spellID, customData)
     local firstCharges, firstCD, firstMaxCharges = 0, 0, 0
 
     if spellID and spellID ~= "Clear" then
-        -- print(spellID)
         local key = spellID:gsub(" (%a)", function(c) return c:upper() end):gsub(" ", "")
         firstPriority = ids[key]
         firstIcon = GetSafeSpellIcon(firstPriority)
