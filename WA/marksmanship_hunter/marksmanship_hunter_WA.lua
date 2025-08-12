@@ -542,7 +542,7 @@ function()
             end
         end
         
-        if OffCooldown(ids.SteadyShot) and ( CurrentFocus + 40 < MaxFocus ) then
+        if OffCooldown(ids.SteadyShot) and ( CurrentFocus + 25 < MaxFocus ) then
             KTrig("Steady Shot") return true end
         
         if OffCooldown(ids.Multishot) then

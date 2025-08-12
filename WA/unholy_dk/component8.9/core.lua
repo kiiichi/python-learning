@@ -288,7 +288,7 @@ env.test = function()
             KTrig("Epidemic") return true end
         
         -- Kichi for Scourge Scy modify --
-        if not PlayerHasBuff(ids.FesteringScytheBuff) and OffCooldown(ids.FesteringStrike) and ( TargetsWithFesteringWounds < 8 and not TargetsWithFesteringWounds >= NearbyEnemies ) then
+        if not PlayerHasBuff(ids.FesteringScytheBuff) and OffCooldown(ids.FesteringStrike) and ( (TargetsWithFesteringWounds or 0) < 8 and (TargetsWithFesteringWounds or 0) < (NearbyEnemies or 0) ) then
             KTrig("Festering Strike") return true end
         
         -- Kichi for Scourge Scy modify --

@@ -1,0 +1,194 @@
+hunter="TWW3_Hunter_Marksmanship_fixed"
+source=default
+spec=marksmanship
+level=80
+race=dwarf
+role=attack
+position=ranged_back
+talents=C4PA11Mk8aZ38kAf+zso3nZ9IwADsNGNWGQmtYDAAAAAAAAAAAAAmxMmxMzMmRzMGDjhxwssMD2GDzMLbbbzMGYmZMzMzswYWGmZA
+
+# Default consumables
+potion=tempered_potion_3
+flask=flask_of_alchemical_chaos_3
+food=the_sushi_special
+augmentation=crystallized
+temporary_enchant=main_hand:algari_mana_oil_3
+
+# This default action priority list is automatically created based on your character.
+# It is a attempt to provide you with a action list that is both simple and practicable,
+# while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
+# Feel free to edit, adapt and improve it to your own needs.
+# SimulationCraft is always looking for updates and improvements to the default action lists.
+
+# Executed before combat begins. Accepts non-harmful actions only.
+actions.precombat=snapshot_stats
+# Determine which trinket would make for the strongest cooldown sync. In descending priority: buff effects > damage effects, longer > shorter cooldowns, longer > shorter cast times.
+actions.precombat+=/variable,name=stronger_trinket_slot,op=setif,value=1,value_else=2,condition=!trinket.2.is.house_of_cards&(trinket.1.is.house_of_cards|!trinket.2.has_cooldown|trinket.1.has_use_buff&(!trinket.2.has_use_buff|trinket.2.cooldown.duration<trinket.1.cooldown.duration|trinket.2.cast_time<trinket.1.cast_time|trinket.2.cast_time=trinket.1.cast_time&trinket.2.cooldown.duration=trinket.1.cooldown.duration)|!trinket.1.has_use_buff&(!trinket.2.has_use_buff&(trinket.2.cooldown.duration<trinket.1.cooldown.duration|trinket.2.cast_time<trinket.1.cast_time|trinket.2.cast_time=trinket.1.cast_time&trinket.2.cooldown.duration=trinket.1.cooldown.duration)))
+actions.precombat+=/summon_pet,if=talent.unbreakable_bond
+actions.precombat+=/aimed_shot,if=active_enemies<3|talent.black_arrow&talent.headshot
+actions.precombat+=/steady_shot
+
+# Executed every time the actor is available.
+# Determine if it is a good time to use Trueshot. Raid event optimization takes priority so usage is saved for multiple targets as long as it won't delay over half its duration. Otherwise allow for small delays to line up buff effect trinkets, and when using Bullseye, delay the last usage of the fight for max stacks.
+actions=variable,name=trueshot_ready,value=cooldown.trueshot.ready&((!raid_event.adds.exists|raid_event.adds.count=1)&(!talent.bullseye|fight_remains>cooldown.trueshot.duration_guess+buff.trueshot.duration%2|buff.bullseye.stack=buff.bullseye.max_stack)&(!trinket.1.has_use_buff|trinket.1.cooldown.remains>5|trinket.1.cooldown.ready|trinket.2.has_use_buff&trinket.2.cooldown.ready)&(!trinket.2.has_use_buff|trinket.2.cooldown.remains>5|trinket.2.cooldown.ready|trinket.1.has_use_buff&trinket.1.cooldown.ready)|raid_event.adds.exists&(!raid_event.adds.up&(raid_event.adds.duration+raid_event.adds.in<25|raid_event.adds.in>60)|raid_event.adds.up&raid_event.adds.remains>10)|fight_remains<25)
+actions+=/auto_shot
+actions+=/call_action_list,name=cds
+actions+=/call_action_list,name=trinkets
+actions+=/call_action_list,name=trickshots,if=active_enemies>2&talent.trick_shots
+actions+=/call_action_list,name=cleave,if=active_enemies>1
+actions+=/call_action_list,name=st,if=active_enemies=1
+
+actions.cds=invoke_external_buff,name=power_infusion,if=buff.trueshot.remains>12|fight_remains<13
+actions.cds+=/berserking,if=buff.trueshot.up|fight_remains<13
+actions.cds+=/blood_fury,if=buff.trueshot.up|cooldown.trueshot.remains>30|fight_remains<16
+actions.cds+=/ancestral_call,if=buff.trueshot.up|cooldown.trueshot.remains>30|fight_remains<16
+actions.cds+=/fireblood,if=buff.trueshot.up|cooldown.trueshot.remains>30|fight_remains<9
+actions.cds+=/lights_judgment,if=buff.trueshot.down
+actions.cds+=/potion,if=buff.trueshot.up&(buff.bloodlust.up|target.health.pct<20)|fight_remains<31
+
+
+
+# ################# 2 targets (2+ without Trick Shots)
+# actions.cleave=explosive_shot,if=talent.precision_detonation&action.aimed_shot.in_flight&(buff.trueshot.down|!talent.windrunner_quiver)
+actions.cleave=trueshot,if=(buff.double_tap.down|!talent.volley)&(buff.lunar_storm_ready.down|!talent.double_tap|!talent.volley)&(buff.precise_shots.down|buff.moving_target.up|!talent.volley)
+# actions.cleave+=/explosive_shot,if=talent.precision_detonation&action.aimed_shot.in_flight&(buff.trueshot.down|!talent.windrunner_quiver)
+actions.cleave+=/explosive_shot,if=talent.shrapnel_shot&buff.lock_and_load.down&cooldown.aimed_shot.charges_fractional<1
+
+
+actions.cleave+=/black_arrow,if=buff.precise_shots.up&buff.moving_target.down&variable.trueshot_ready
+actions.cleave+=/volley,if=(talent.double_tap&buff.double_tap.down|!talent.aspect_of_the_hydra)&(buff.precise_shots.down|buff.moving_target.up)
+actions.cleave+=/rapid_fire,if=talent.bulletstorm&buff.bulletstorm.down&(!talent.double_tap|buff.double_tap.up|!talent.aspect_of_the_hydra&buff.trick_shots.remains>execute_time)&(buff.precise_shots.down|buff.moving_target.up|!talent.volley)
+actions.cleave+=/volley,if=!talent.double_tap&(buff.precise_shots.down|buff.moving_target.up)
+
+# actions.cleave+=/trueshot,if=variable.trueshot_ready&(buff.double_tap.down|!talent.volley)&(buff.lunar_storm_ready.down|!talent.double_tap|!talent.volley)&(buff.precise_shots.down|buff.moving_target.up|!talent.volley)
+
+# Queue Steady Shot after Aimed Shot if a Deathblow hasn't already been up long enough to be reacted to. Sentinel only seems to like this due to the Precise Shots gcd bug.
+actions.cleave+=/steady_shot,if=(talent.black_arrow|bugs)&focus+cast_regen<focus.max&action.aimed_shot.in_flight&!buff.deathblow.react&buff.trueshot.down&cooldown.trueshot.remains
+actions.cleave+=/rapid_fire,if=talent.lunar_storm&buff.lunar_storm_cooldown.down&(buff.precise_shots.down|buff.moving_target.up|cooldown.volley.remains&cooldown.trueshot.remains|!talent.volley)
+actions.cleave+=/kill_shot,target_if=max:debuff.spotters_mark.down|action.aimed_shot.in_flight_to_target|max_prio_damage,if=talent.headshot&buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)|!talent.headshot&buff.razor_fragments.up
+actions.cleave+=/black_arrow,if=talent.headshot&buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)|!talent.headshot&buff.razor_fragments.up
+
+actions.cleave+=/aimed_shot,if=buff.trueshot.up&debuff.spotters_mark.up&hero_tree.sentinel
+
+actions.cleave+=/multishot,target_if=max:debuff.spotters_mark.down|action.aimed_shot.in_flight_to_target|max_prio_damage,if=buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)&!talent.aspect_of_the_hydra&(talent.symphonic_arsenal|talent.small_game_hunter)
+actions.cleave+=/arcane_shot,target_if=max:debuff.spotters_mark.down|action.aimed_shot.in_flight_to_target|max_prio_damage,if=buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)
+# Prioritize Aimed Shot a little higher when close to capping charges.
+actions.cleave+=/aimed_shot,target_if=max:debuff.spotters_mark.up,if=(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&full_recharge_time<action.rapid_fire.execute_time+cast_time&(!talent.bulletstorm|buff.bulletstorm.up)&talent.windrunner_quiver
+actions.cleave+=/rapid_fire,if=!talent.bulletstorm|buff.bulletstorm.stack<=10|talent.aspect_of_the_hydra
+actions.cleave+=/aimed_shot,target_if=max:debuff.spotters_mark.up|max_prio_damage,if=buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up
+actions.cleave+=/rapid_fire
+actions.cleave+=/explosive_shot,if=talent.precision_detonation|buff.trueshot.down
+actions.cleave+=/black_arrow,if=!talent.headshot
+actions.cleave+=/steady_shot
+
+
+
+# ########## 1 target
+
+# actions.st=explosive_shot,if=talent.precision_detonation&action.aimed_shot.in_flight&buff.trueshot.down
+actions.st=trueshot,if=buff.double_tap.down&(buff.lunar_storm_cooldown.remains>25|!hero_tree.sentinel)&(cooldown.rapid_fire.remains)
+actions.st+=/explosive_shot,if=talent.shrapnel_shot&buff.lock_and_load.down&cooldown.aimed_shot.charges_fractional<1
+
+actions.st+=/volley,if=buff.double_tap.down&(!raid_event.adds.exists|raid_event.adds.in>cooldown)
+
+# actions.st+=/trueshot,if=variable.trueshot_ready&buff.double_tap.down
+
+# Queue Steady Shot after Aimed Shot if a Deathblow hasn't already been up long enough to be reacted to. Sentinel only seems to like this due to the Precise Shots gcd bug.
+actions.st+=/steady_shot,if=(talent.black_arrow|bugs)&focus+cast_regen<focus.max&action.aimed_shot.in_flight&!buff.deathblow.react&buff.trueshot.down&cooldown.trueshot.remains
+actions.st+=/rapid_fire,if=talent.lunar_storm&buff.lunar_storm_cooldown.down
+actions.st+=/kill_shot,if=talent.headshot&buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)|!talent.headshot&buff.razor_fragments.up
+actions.st+=/black_arrow,if=!talent.headshot|talent.headshot&buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)
+actions.st+=/arcane_shot,if=buff.precise_shots.up&(debuff.spotters_mark.down|buff.moving_target.down)
+# Prioritize Aimed Shot a little higher when close to capping charges.
+actions.st+=/aimed_shot,if=(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&full_recharge_time<action.rapid_fire.execute_time+cast_time&(!talent.bulletstorm|buff.bulletstorm.up)&talent.windrunner_quiver
+actions.st+=/rapid_fire
+actions.st+=/aimed_shot,if=buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up
+actions.st+=/explosive_shot,if=talent.precision_detonation|buff.trueshot.down
+actions.st+=/steady_shot
+
+
+
+
+# ################ 3+ targets (with Trick Shots)
+
+# actions.trickshots=explosive_shot,if=talent.precision_detonation&action.aimed_shot.in_flight&buff.trueshot.down&(!talent.shrapnel_shot|buff.lock_and_load.down)
+actions.trickshots=trueshot,if=buff.double_tap.down&(buff.lunar_storm_cooldown.remains>25|!hero_tree.sentinel)&(cooldown.rapid_fire.remains)&(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&buff.trick_shots.up
+actions.trickshots+=/explosive_shot,if=talent.precision_detonation&action.aimed_shot.in_flight&buff.trueshot.down&(!talent.shrapnel_shot|buff.lock_and_load.down)
+actions.trickshots+=/explosive_shot,if=talent.shrapnel_shot&buff.lock_and_load.down&cooldown.aimed_shot.charges_fractional<1
+actions.trickshots+=/explosive_shot,if=talent.magnetic_gunpowder&buff.precise_shots.up&(buff.trueshot.down|buff.trueshot.up&cooldown.aimed_shot.charges_fractional<1)
+
+# actions.trickshots+=/volley,if=buff.double_tap.down&(!talent.shrapnel_shot|buff.lock_and_load.down)
+actions.trickshots+=/volley,if=buff.double_tap.down&(!talent.shrapnel_shot|buff.lock_and_load.down)&(cooldown.aimed_shot.charges_fractional<2&buff.trueshot.down|cooldown.aimed_shot.charges_fractional<1)
+
+actions.trickshots+=/rapid_fire,if=talent.bulletstorm&buff.bulletstorm.down&buff.trick_shots.remains>execute_time
+
+# actions.trickshots+=/rapid_fire,if=hero_tree.sentinel&buff.lunar_storm_cooldown.down&buff.trick_shots.remains>execute_time
+actions.trickshots+=/rapid_fire,if=hero_tree.sentinel&(buff.lunar_storm_cooldown.down|buff.lunar_storm_cooldown.remains>18)&buff.trick_shots.remains>execute_time
+
+actions.trickshots+=/steady_shot,if=talent.black_arrow&focus+cast_regen<focus.max&action.aimed_shot.in_flight&!buff.deathblow.react&buff.trueshot.down&cooldown.trueshot.remains
+actions.trickshots+=/black_arrow,if=!talent.headshot|buff.precise_shots.up|buff.trick_shots.down
+
+# actions.trickshots+=/multishot,target_if=max:debuff.spotters_mark.down|action.aimed_shot.in_flight_to_target,if=buff.precise_shots.up&buff.moving_target.down|buff.trick_shots.down
+actions.trickshots+=/multishot,target_if=max:debuff.spotters_mark.down|action.aimed_shot.in_flight_to_target,if=(buff.precise_shots.up&buff.moving_target.down|buff.trick_shots.down)&!(buff.volley.up&cooldown.aimed_shot.charges_fractional>=1&buff.volley.remains>action.aimed_shot.execute_time)
+
+# actions.trickshots+=/trueshot,if=variable.trueshot_ready&buff.double_tap.down
+# actions.trickshots+=/trueshot,if=buff.double_tap.down
+
+# actions.trickshots+=/volley,if=buff.double_tap.down&(!talent.salvo|!talent.precision_detonation|(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up))
+actions.trickshots+=/volley,if=buff.double_tap.down&(!talent.salvo|!talent.precision_detonation|(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up))&(cooldown.aimed_shot.charges_fractional<2&buff.trueshot.down|cooldown.aimed_shot.charges_fractional<1)
+
+# actions.trickshots+=/aimed_shot,if=(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&buff.trick_shots.up&buff.bulletstorm.up&full_recharge_time<gcd
+actions.trickshots+=/aimed_shot,if=(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&buff.trick_shots.up&buff.bulletstorm.up&full_recharge_time<gcd|buff.volley.up
+actions.trickshots+=/aimed_shot,if=dot.explosive_shot.remains&buff.trick_shots.up&talent.precision_detonation
+
+actions.trickshots+=/rapid_fire,if=buff.trick_shots.remains>execute_time&(!talent.black_arrow|buff.deathblow.down)&(!talent.no_scope|debuff.spotters_mark.down)&(talent.no_scope|buff.bulletstorm.down)
+actions.trickshots+=/explosive_shot,if=talent.precision_detonation&talent.shrapnel_shot&buff.lock_and_load.down&(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)
+actions.trickshots+=/aimed_shot,if=(buff.precise_shots.down|debuff.spotters_mark.up&buff.moving_target.up)&buff.trick_shots.up
+actions.trickshots+=/explosive_shot,if=!talent.shrapnel_shot
+actions.trickshots+=/steady_shot,if=focus+cast_regen<focus.max
+actions.trickshots+=/multishot
+
+# True if effects that are desirable to sync a trinket buff with are ready.
+actions.trinkets=variable,name=buff_sync_ready,value=variable.trueshot_ready
+# Time until the effects that are desirable to sync a trinket buff with will be ready.
+actions.trinkets+=/variable,name=buff_sync_remains,value=cooldown.trueshot.remains
+# True if effecs that are desirable to sync a trinket buff with are active.
+actions.trinkets+=/variable,name=buff_sync_active,value=buff.trueshot.up
+# True if effects that are desirable to sync trinket damage with are active.
+actions.trinkets+=/variable,name=damage_sync_active,value=buff.trueshot.up
+# Time until the effects that are desirable to sync trinket damage with will be ready.
+actions.trinkets+=/variable,name=damage_sync_remains,value=cooldown.trueshot.remains
+# Use a buff trinket.
+actions.trinkets+=/use_items,check_existing=0,slots=trinket1:trinket2,if=this_trinket.has_use_buff&(variable.buff_sync_ready&(variable.stronger_trinket_slot=this_trinket_slot|other_trinket.cooldown.remains)|!variable.buff_sync_ready&(!this_trinket.is.unyielding_netherprism|buff.unyielding_netherprism.stack>16)&(variable.stronger_trinket_slot=this_trinket_slot&(variable.buff_sync_remains>this_trinket.cooldown.duration%3&fight_remains>this_trinket.cooldown.duration+20|other_trinket.has_use_buff&other_trinket.cooldown.remains>variable.buff_sync_remains-15&other_trinket.cooldown.remains-5<variable.buff_sync_remains&variable.buff_sync_remains+45>fight_remains)|variable.stronger_trinket_slot!=this_trinket_slot&(other_trinket.cooldown.remains&(other_trinket.cooldown.remains-5<variable.buff_sync_remains&variable.buff_sync_remains>=20|other_trinket.cooldown.remains-5>=variable.buff_sync_remains&(variable.buff_sync_remains>this_trinket.cooldown.duration%3|this_trinket.cooldown.duration<fight_remains&(variable.buff_sync_remains+this_trinket.cooldown.duration>fight_remains)))|other_trinket.cooldown.ready&variable.buff_sync_remains>20&variable.buff_sync_remains<other_trinket.cooldown.duration%3)))
+# Use a damage trinket.
+actions.trinkets+=/use_items,check_existing=0,slots=trinket1:trinket2,if=!this_trinket.has_use_buff&(this_trinket.cast_time=0|!variable.buff_sync_active)&(!this_trinket.is.junkmaestros_mega_magnet|buff.junkmaestros_mega_magnet.stack>10)&(!other_trinket.has_cooldown&(variable.damage_sync_active|this_trinket.is.junkmaestros_mega_magnet&buff.junkmaestros_mega_magnet.stack>25|!this_trinket.is.junkmaestros_mega_magnet&variable.damage_sync_remains>this_trinket.cooldown.duration%3)|other_trinket.has_cooldown&(!other_trinket.has_use_buff&(variable.stronger_trinket_slot=this_trinket_slot|other_trinket.cooldown.remains)&(variable.damage_sync_active|this_trinket.is.junkmaestros_mega_magnet&buff.junkmaestros_mega_magnet.stack>25|variable.damage_sync_remains>this_trinket.cooldown.duration%3&!this_trinket.is.junkmaestros_mega_magnet|other_trinket.cooldown.remains-5<variable.damage_sync_remains&variable.damage_sync_remains>=20)|other_trinket.has_use_buff&(variable.damage_sync_active|this_trinket.is.junkmaestros_mega_magnet&buff.junkmaestros_mega_magnet.stack>25|!this_trinket.is.junkmaestros_mega_magnet&variable.damage_sync_remains>this_trinket.cooldown.duration%3)&(other_trinket.cooldown.remains>=20|other_trinket.cooldown.remains-5>variable.buff_sync_remains|other_trinket.is.unyielding_netherprism)))
+# Use trinkets before the fights ends.
+actions.trinkets+=/use_items,check_existing=0,slots=trinket1:trinket2,if=fight_remains<25&(variable.stronger_trinket_slot=this_trinket_slot|other_trinket.cooldown.remains)
+
+head=midnight_heralds_cowl,id=237646,bonus_id=1808,ilevel=723,gem_id=213743
+neck=ornately_engraved_amplifier,id=185842,bonus_id=8781,ilevel=723,gem_id=213458/213491
+shoulders=midnight_heralds_shadowguards,id=237644,ilevel=723
+back=reshii_wraps,id=235499,bonus_id=12401/9893,ilevel=730,gem_id=238044
+chest=midnight_heralds_hauberk,id=237649,ilevel=723,enchant_id=7364
+wrists=glyphetched_vambraces,id=219342,bonus_id=10421/9633/8902/12053/12050/1485/11303/8960/1808/8791,gem_id=213467,crafted_stats=32/36
+hands=glyphetched_gauntlets,id=219341,bonus_id=10421/9633/8902/12053/12050/1485/11303/8960/8791,crafted_stats=32/36
+waist=durable_information_securing_container,id=245965,bonus_id=1489/12352/12239,gem_id=213467,titan_disc_id=1236275
+legs=midnight_heralds_petticoat,id=237645,ilevel=723,enchant_id=7601
+feet=interlopers_chain_boots,id=243308,bonus_id=13504,ilevel=723
+finger1=logic_gate_alpha,id=237567,bonus_id=8781,ilevel=723,gem_id=213467/213467,enchant_id=7334
+finger2=radiant_necromancers_band,id=221200,bonus_id=8781,ilevel=723,gem_id=213467/213479,enchant_id=7334
+trinket1=astral_antenna,id=242395,ilevel=723
+trinket2=unyielding_netherprism,id=242396,ilevel=723
+main_hand=yasahm_the_riftbreaker,id=185783,ilevel=723,enchant_id=7439
+
+# Gear Summary
+# gear_ilvl=721.60
+# gear_agility=76043
+# gear_stamina=652742
+# gear_crit_rating=23762
+# gear_haste_rating=9485
+# gear_mastery_rating=13753
+# gear_versatility_rating=5571
+# gear_armor=63546
+# set_bonus=name=thewarwithin_season_3,pc=2,hero_tree=dark_ranger,enable=1
+# set_bonus=name=thewarwithin_season_3,pc=4,hero_tree=dark_ranger,enable=1
