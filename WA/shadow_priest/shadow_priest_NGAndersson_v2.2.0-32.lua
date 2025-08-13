@@ -9,7 +9,7 @@ aura_env.PrevCastTime = 0
 aura_env.ShadowfiendExpiration = 0
 aura_env.Archon4pcStacks = 0
 aura_env.LastShadowCrash = 0
-_G.KLIST = { 
+_G.NGWA = { 
     ShadowPriest = { 
         aura_env.config["ExcludeList1"],
         aura_env.config["ExcludeList2"],
@@ -28,13 +28,11 @@ aura_env.ids = {
     Halo = 120644,
     MindBlast = 8092,
     MindFlay = 15407,
-    MindSpike = 73510, -- Check if this is exist
-    MindSpikeInsanity = 407466, -- Check if this is exist
     Mindbender = 200174,
     ShadowCrash = 205385,
     ShadowWordDeath = 32379,
     ShadowWordPain = 589,
-    Shadowfiend = 34433, -- NG name incorrect
+    Shadowfiend = 34433,
     VampiricTouch = 34914,
     VoidBlast = 450983,
     VoidBolt = 205448,
@@ -80,21 +78,9 @@ aura_env.ids = {
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
--- Kichi --
--- Kichi --
-aura_env.KTrig = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    if aura_env.FlagKTrigCD then
-        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
-    end
-    aura_env.FlagKTrigCD = flase
-end
-
-aura_env.KTrigCD = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    aura_env.FlagKTrigCD = false
+aura_env.NGSend = function(Name)
+    WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", Name)
+    WeakAuras.ScanEvents("NG_OUT_OF_RANGE", aura_env.OutOfRange)
 end
 
 aura_env.OffCooldown = function(spellID)
@@ -103,8 +89,7 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    -- Kichi --
-    -- if aura_env.config[tostring(spellID)] == false then return false end
+    if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
     if (not usable) and nomana then return false end
@@ -259,6 +244,180 @@ aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
 
+---- Keybind Assistance ----------------------------------------------------------------------------------------
+-- Based on https://wago.io/7bcXDdPqi
+-- Initilize setup
+_G.kbTable_master = {}
+_G.UseKeybindAssistance = aura_env.config.UseKeybindAssistance
+local SpamAura = ""
+local SpamCount = 0
+local Updated = false
+
+-- Load custom options
+local custMod = aura_env.config.KeybindSettings.custMod
+local shiftMod = aura_env.config.KeybindSettings.shiftMod
+local ctrlMod = aura_env.config.KeybindSettings.ctrlMod
+local altMod = aura_env.config.KeybindSettings.altMod
+local custMouse = aura_env.config.KeybindSettings.custMouse
+local btnMouse = aura_env.config.KeybindSettings.btnMouse
+local shiftMouse = aura_env.config.KeybindSettings.shiftMouse
+local ctrlMouse = aura_env.config.KeybindSettings.ctrlMouse
+local altMouse = aura_env.config.KeybindSettings.altMouse
+local spamOpt = aura_env.config.KeybindSettings.spamOpt
+local crtog1 = aura_env.config.KeybindSettings.crtog1
+local creplace1 = aura_env.config.KeybindSettings.creplace1
+local crwith1 = aura_env.config.KeybindSettings.crwith1
+local crtog2 = aura_env.config.KeybindSettings.crtog2
+local creplace2 = aura_env.config.KeybindSettings.creplace2
+local crwith2 = aura_env.config.KeybindSettings.crwith2
+local crtog3 = aura_env.config.KeybindSettings.crtog3
+local creplace3 = aura_env.config.KeybindSettings.creplace3
+local crwith3 = aura_env.config.KeybindSettings.crwith3
+
+-- Function to check for WA causing spam
+local function spamCheck(checkAura)
+    local lastAura = SpamAura
+    local prompt = ""
+    if not checkAura then
+        prompt = "Global update initiated"
+        return false, prompt
+    elseif (lastAura and checkAura == lastAura) then
+        if SpamCount > 3 then
+            return true
+        elseif SpamCount == 3 then
+            prompt = checkAura.." is spamming and will be ignored"
+            SpamCount = SpamCount +1
+            return true, prompt
+        end
+    else 
+        prompt = checkAura.." triggered an update"
+        SpamAura = checkAura
+        SpamCount = SpamCount +1
+        return false , prompt
+    end
+end
+
+-- Main Function for populating keybind table
+function _G.kbTable_refresh(auraName)
+    -- If we haven't enabled Keybind Assistance, do nothing.
+    if _G.UseKeybindAssist == false then return end
+    
+    -- Checks if master table is created before running
+    if not _G.kbTable_master then return end
+    
+    
+    -- Checks if same WA has been spamming and stops it
+    local spamResult, spamPrompt = spamCheck(auraName)
+    -- Console printout of check results
+    if spamOpt and spamPrompt then print (spamPrompt) end
+    if spamResult then return; end
+    
+    for slotID=1,180 do
+        local actionType, actionID, _ = GetActionInfo(slotID)
+        local noMouse = true        
+        
+        -- NIL check actionID then populate keybind table
+        -- Keybinds beyond #156 haven't been test yet
+        if actionID then
+            local action = slotID
+            local modact = 1+(action-1)%12
+            local bindstring = ""
+            if (action < 25 or action > 72) and (action <145) then
+                bindstring = 'ACTIONBUTTON'..modact
+            elseif action < 73 and action > 60 then
+                bindstring = 'MULTIACTIONBAR1BUTTON'..modact
+            elseif action < 61 and action > 48 then
+                bindstring = 'MULTIACTIONBAR2BUTTON'..modact
+            elseif action < 37 and action > 24 then
+                bindstring = 'MULTIACTIONBAR3BUTTON'..modact
+            elseif action < 49 and action > 36 then
+                bindstring = 'MULTIACTIONBAR4BUTTON'..modact
+            elseif action >= 145 and action <= 156 then
+                bindstring = 'MULTIACTIONBAR5BUTTON'..modact
+            elseif action >= 157 and action <= 168 then
+                bindstring = 'MULTIACTIONBAR6BUTTON'..modact
+            elseif action >= 169 and action <= 180 then
+                bindstring = 'MULTIACTIONBAR7BUTTON'..modact
+            end
+            local keyBind = GetBindingKey(bindstring)
+            
+            
+            -- Skip forms you're not currently in
+            local FormSkip = false
+            if WA_GetUnitBuff("player", 768) and action >= 97 and action <= 120 then FormSkip = true -- Cat, includes Prowlbar
+            elseif WA_GetUnitBuff("player", 5487) and ((action >= 73 and action <= 96) or (action >= 109 and action <= 120)) then FormSkip = true -- Bear
+            elseif WA_GetUnitBuff("player", 24858) and action >= 73 and action <= 108 then FormSkip = true -- Moonkin
+            elseif not (WA_GetUnitBuff("player", 768) or WA_GetUnitBuff("player", 5487) or WA_GetUnitBuff("player", 24858)) and action > 73 and action <= 120 then FormSkip = true end -- No form?
+            
+            if keyBind and not FormSkip then
+                
+                -- Truncates mouse button keybinds
+                local mouseMod, mouseBtn, btnNum = keyBind:match("(.*)(BUTTON)(.*)")
+                if mouseBtn then
+                    noMouse = false
+                    if custMouse then
+                        if mouseMod == 'SHIFT-' then
+                            mouseMod = shiftMouse
+                        elseif mouseMod == 'CTRL-' then
+                            mouseMod = ctrlMouse
+                        elseif mouseMod == 'ALT-'then
+                            mouseMod = altMouse
+                        end
+                        keyBind = mouseMod..btnMouse..btnNum
+                    end
+                end
+                
+                
+                -- Truncates other modifier keys
+                if custMod and noMouse then
+                    local keyMod,_,keyNum = keyBind:match("(.*)(-)(.*)")
+                    if keyMod then
+                        if keyMod == 'SHIFT' then
+                            keyMod = shiftMod
+                        elseif keyMod == 'CTRL' then
+                            keyMod = ctrlMod
+                        elseif keyMod == 'ALT'then
+                            keyMod = altMod
+                        end 
+                        keyBind = keyMod..keyNum
+                    end
+                end
+                
+                -- Custom string replace for uncommon keybinds
+                if crtog1 then
+                    local creplace = keyBind:gsub(creplace1, crwith1)
+                    keyBind = creplace
+                end
+                if crtog2 then
+                    local creplace = keyBind:gsub(creplace2, crwith2)
+                    keyBind = creplace
+                end
+                if crtog3 then
+                    local creplace = keyBind:gsub(creplace3, crwith3)
+                    keyBind = creplace
+                end
+                
+                -- Items are stored with item name as key to bypass inventory requirement
+                if actionType == 'item' then
+                    actionID = GetItemInfo(actionID)
+                end
+                
+                -- Check for nil, changed or empty keybinds before populating
+                if keyBind and actionID and kbTable_master[actionID] ~= keyBind then
+                    kbTable_master[actionID] = keyBind
+                    Updated = true                  
+                end
+            end
+        end
+    end
+    -- Clear spamcheck to allow WAs to check for updates
+    if Updated then 
+        SpamAura = ""
+        SpamCount = 0
+    end
+end
+
+
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ----------Core1--------------------------------------------------------------------------------------------------------
@@ -292,10 +451,7 @@ function()
     local TargetTimeToXPct = aura_env.TargetTimeToXPct
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
-    -- Kichi --
-    local KTrig = aura_env.KTrig
-    local KTrigCD = aura_env.KTrigCD
-    aura_env.FlagKTrigCD = true
+    local NGSend = aura_env.NGSend
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -309,7 +465,7 @@ function()
     local MaxInsanity = UnitPowerMax("player", Enum.PowerType.Insanity)
     
     local NearbyEnemies = 0
-    local NearbyRange = 46
+    local NearbyRange = 40
     local UndottedEnemies = 0
     local DottedEnemies = 0
     local DevouredEnemies = 0
@@ -319,7 +475,7 @@ function()
             NearbyEnemies = NearbyEnemies + 1
             
             local FoundExcludedNPC = false
-            for _, ID in ipairs(_G.KLIST.ShadowPriest) do                
+            for _, ID in ipairs(_G.NGWA.ShadowPriest) do                
                 if UnitName(unit) == ID or select(6, strsplit("-", UnitGUID(unit))) == ID then
                     FoundExcludedNPC = true
                     break
@@ -338,24 +494,20 @@ function()
             end
         end
     end
-
-    -- Kichi --
-    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     
     local ShadowfiendDuration = max(0, aura_env.ShadowfiendExpiration - GetTime())
     
-    -- WeakAuras.ScanEvents("NG_VAMPIRIC_TOUCH_SPREAD", DottedEnemies, UndottedEnemies)
+    WeakAuras.ScanEvents("NG_VAMPIRIC_TOUCH_SPREAD", DottedEnemies, UndottedEnemies)
     
     -- Only recommend things when something's targeted
     if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
-        WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
-        KTrig("Clear", nil) return end
+        WeakAuras.ScanEvents("NG_GLOW_EXTRAS", {})
+        NGSend("Clear", nil) return end
     
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
     local ExtraGlows = {}
     
-    -- Kichi --
-    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+    WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows, nil)
     
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     local Variables = {}
@@ -364,7 +516,7 @@ function()
     Variables.MaxVts = 12
     Variables.IsVtPossible = false
     Variables.HoldingCrash = false
-    
+
     local AoeVariables = function()
         Variables.MaxVts = min(NearbyEnemies, 12)
         
@@ -387,53 +539,25 @@ function()
         
         -- High Priority action to put out Vampiric Touch on enemies that will live at least 18 seconds, up to 12 targets manually while prepping AoE
         if OffCooldownNotCasting(ids.VampiricTouch) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and TargetTimeToXPct(0, 60) >= 18 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 and not Variables.ManualVtsApplied and not (GetTime() - aura_env.LastShadowCrash < 2) ) and not PlayerHasBuff(ids.EntropicRiftBuff) ) then
-            KTrig("Vampiric Touch") return true end
+            NGSend("Vampiric Touch") return true end
         
         -- Use Shadow Crash to apply Vampiric Touch to as many adds as possible while being efficient with Vampiric Touch refresh windows
         if OffCooldown(ids.ShadowCrash) and ( not Variables.HoldingCrash and IsAuraRefreshable(ids.VampiricTouchDebuff) or GetRemainingDebuffDuration("target", ids.VampiricTouchDebuff) <= TargetTimeToXPct(0, 60) and not PlayerHasBuff(ids.VoidformBuff) ) then
-            -- KTrig("Shadow Crash") return true end
-            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadow Crash")
-            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
-                KTrig("Shadow Crash")
-                return true
-            end
-        end
+            NGSend("Shadow Crash") return true end
     end
     
     local Cds = function()
         -- Make sure Mindbender is active before popping Dark Ascension unless you have insignificant talent points or too many targets
         if OffCooldownNotCasting(ids.Halo) and ( IsPlayerSpell(ids.PowerSurgeTalent) and ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 and IsPlayerSpell(ids.Mindbender) or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) or not IsPlayerSpell(ids.DarkAscension) ) and ( C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or not OffCooldown(ids.VoidTorrent) or not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 4  or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent)) ) then
-            -- KTrig("Halo") return true end
-            if aura_env.config[tostring(ids.Halo)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Halo")
-            elseif aura_env.config[tostring(ids.Halo)] ~= true then
-                KTrig("Halo")
-                return true
-            end
-        end
+            NGSend("Halo") return true end
         
         -- Make sure Mindbender is active before popping Void Eruption and dump charges of Mind Blast before casting
         if OffCooldownNotCasting(ids.VoidEruption) and ( ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) ) and C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent) or PlayerHasBuff(ids.PowerSurgeBuff) ) then
-            -- KTrig("Void Eruption") return true end
-            if aura_env.config[tostring(ids.VoidEruption)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Eruption")
-            elseif aura_env.config[tostring(ids.VoidEruption)] ~= true then
-                KTrig("Void Eruption")
-                return true
-            end
-        end
-            
+            NGSend("Void Eruption") return true end
+        
         -- Use Dark Ascension when you have enough Insanity to cast Devouring Plague.
         if OffCooldownNotCasting(ids.DarkAscension) and ( (ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent)) and (DevouredEnemies >= 1 or CurrentInsanity >= (20 - (5 * (not IsPlayerSpell(ids.MindsEyeTalent) and 1 or 0)) + (5 * (IsPlayerSpell(ids.DistortedRealityTalent) and 1 or 0 )) - (((ShadowfiendDuration > 0) and 1 or 0) * 2)) ) ) then
-            -- KTrig("Dark Ascension") return true end
-            if aura_env.config[tostring(ids.DarkAscension)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Dark Ascension")
-            elseif aura_env.config[tostring(ids.DarkAscension)] ~= true then
-                KTrig("Dark Ascension")
-                return true
-            end
-        end
+            NGSend("Dark Ascension") return true end
     end
     
     local Main = function()
@@ -445,132 +569,75 @@ function()
         
         -- Use Shadowfiend and Mindbender on cooldown as long as Vampiric Touch and Shadow Word: Pain are active and sync with Dark Ascension
         if OffCooldown(ids.Shadowfiend) and GetRemainingSpellCooldown(ids.Mindbender) == 0 and GetRemainingSpellCooldown(ids.Voidwraith) == 0 and ( ( TargetHasDebuff(ids.ShadowWordPain) and Variables.DotsUp or (GetTime() - aura_env.LastShadowCrash < 2) ) and ( not OffCooldown(ids.Halo) or not IsPlayerSpell(ids.PowerSurgeTalent) ) and ( FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 ) and ( not IsPlayerSpell(ids.DarkAscension) or GetRemainingSpellCooldown(ids.DarkAscension) < 1.5 or FightRemains(60, NearbyRange) < 15 ) ) then
-            -- KTrig("Shadowfiend") return true end
-            if aura_env.config[tostring(ids.Shadowfiend)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadowfiend")
-            elseif aura_env.config[tostring(ids.Shadowfiend)] ~= true then
-                KTrig("Shadowfiend")
-                return true
-            end
-        end
+            NGSend("Shadowfiend") return true end
         
         -- High Priority Shadow Word: Death when you are forcing the bonus from Devour Matter
         if OffCooldown(ids.ShadowWordDeath) and ( (UnitGetTotalAbsorbs("target") > 0) and IsPlayerSpell(ids.DevourMatterTalent) ) then
-            KTrig("Shadow Word Death") return true end
+            NGSend("Shadow Word Death") return true end
         
         -- Blast more burst :wicked:
         if OffCooldownNotCasting(ids.VoidBlast) and ( ( GetRemainingDebuffDuration("target", ids.DevouringPlague) >= max(C_Spell.GetSpellInfo(ids.VoidBlast).castTime/1000, WeakAuras.gcdDuration()) or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5 or (select(8, UnitChannelInfo("player")) == ids.VoidTorrent) and IsPlayerSpell(ids.VoidEmpowermentTalent) ) and ( MaxInsanity - CurrentInsanity >= 16 or GetTimeToFullCharges(ids.MindBlast) <= 1.5 or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5) ) then
-            KTrig("Void Blast") return true end
+            NGSend("Void Blast") return true end
         
         -- Do not let Voidform Expire if you can avoid it.
         if OffCooldown(ids.DevouringPlague) and ( PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.PerfectedFormTalent) and GetRemainingAuraDuration("player", ids.VoidformBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and IsPlayerSpell(ids.VoidEruption) ) then
-            KTrig("Devouring Plague") return true end
+            NGSend("Devouring Plague") return true end
         
         -- Use Voidbolt on the enemy with the largest time to die. We do no care about dots because Voidbolt is only accessible inside voidform which guarantees maximum effect
         if GetRemainingSpellCooldown(ids.VoidBolt) == 0 and not IsCasting(ids.VoidBolt) and (PlayerHasBuff(ids.VoidformBuff) or IsCasting(ids.VoidEruption)) and ( MaxInsanity - CurrentInsanity > 16 and GetRemainingSpellCooldown(ids.VoidBolt) <= 0.1 ) then
-            -- KTrig("Void Bolt") return true end
-            if aura_env.config[tostring(ids.VoidEruption)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Bolt")
-            elseif aura_env.config[tostring(ids.VoidEruption)] ~= true then
-                KTrig("Void Bolt")
-                return true
-            end
-        end
-
+            NGSend("Void Bolt") return true end
         
         -- Do not overcap on insanity
         if OffCooldown(ids.DevouringPlague) and ( DevouredEnemies <= 1 and GetRemainingDebuffDuration("target", ids.DevouringPlague) <= 1.5 and ( not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 3 ) or MaxInsanity - CurrentInsanity <= 35 or PlayerHasBuff(ids.MindDevourerBuff) or PlayerHasBuff(ids.EntropicRiftBuff) or PlayerHasBuff(ids.PowerSurgeBuff) and ( SetPieces >= 4 and IsPlayerSpell(ids.PowerSurgeTalent) and aura_env.Archon4pcStacks < 4 ) and PlayerHasBuff(ids.AscensionBuff) ) then      
-            KTrig("Devouring Plague") return true end
+            NGSend("Devouring Plague") return true end
         
         -- Use Void Torrent if it will get near full Mastery Value
         if OffCooldownNotCasting(ids.VoidTorrent) and ( not Variables.HoldingCrash and (GetRemainingDebuffDuration("target", ids.DevouringPlagueDebuff) >= 2.5 and ( GetRemainingSpellCooldown(ids.DarkAscension) >= 12 or not IsPlayerSpell(ids.DarkAscension) or not IsPlayerSpell(ids.VoidBlastTalent) ) or GetRemainingSpellCooldown(ids.VoidEruption) <= 3 and IsPlayerSpell(ids.VoidEruption) ) ) then
-            --KTrig("Void Torrent") return true end
-            if aura_env.config[tostring(ids.VoidTorrent)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Torrent")
-            elseif aura_env.config[tostring(ids.VoidTorrent)] ~= true then
-                KTrig("Void Torrent")
-                return true
-            end
-        end
-        
+            NGSend("Void Torrent") return true end
+
         -- Use Void Volley if it would expire soon
         if PlayerHasBuff(ids.VoidVolleyBuff) and ( GetRemainingAuraDuration("player", ids.VoidVolleyBuff) <= 5 or PlayerHasBuff(ids.EntropicRiftBuff) and GetRemainingSpellCooldown(ids.VoidBlast) > GetRemainingAuraDuration("player", ids.EntropicRiftBuff) or TargetTimeToXPct(0, 60) <= 5 ) then
-            -- NGSend("Void Volley") return true end
-            if aura_env.config[tostring(ids.VoidTorrent)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Volley")
-            elseif aura_env.config[tostring(ids.VoidTorrent)] ~= true then
-                KTrig("Void Volley")
-                return true
-            end
-        end
-
+            NGSend("Void Volley") return true end
+        
         -- MFI is a good button
         if OffCooldown(ids.MindFlay) and ( PlayerHasBuff(ids.MindFlayInsanityBuff) ) then
-            KTrig("Mind Flay") return true end
-        
+            NGSend("Mind Flay Insanity") return true end
+
         -- Use Shadow Crash as long as you are not holding for adds and Vampiric Touch is within pandemic range
         if OffCooldown(ids.ShadowCrash) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and not Variables.HoldingCrash and not (GetTime() - aura_env.LastShadowCrash < 2) ) then
-            -- KTrig("Shadow Crash") return true end
-            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadow Crash")
-            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
-                KTrig("Shadow Crash")
-                return true
-            end
-        end
-        
+            NGSend("Shadow Crash") return true end
+
         -- Put out Vampiric Touch on enemies that will live at least 12s and Shadow Crash is not available soon
         if OffCooldownNotCasting(ids.VampiricTouch) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and TargetTimeToXPct(0, 60) > 12 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 or NearbyEnemies <= 1 ) and ( GetRemainingSpellCooldown(ids.ShadowCrash) >= GetRemainingDebuffDuration("target", ids.VampiricTouchDebuff) or Variables.HoldingCrash or not IsPlayerSpell(ids.ShadowCrash) ) and ( not (GetTime() - aura_env.LastShadowCrash < 2) or not IsPlayerSpell(ids.ShadowCrash) ) ) then
-            KTrig("Vampiric Touch") return true end
-        
+            NGSend("Vampiric Touch") return true end
+
         -- Use all charges of Mind Blast if Vampiric Touch and Shadow Word: Pain are active and Mind Devourer is not active or you are prepping Void Eruption
         if OffCooldown(ids.MindBlast) and (C_Spell.GetSpellCharges(ids.MindBlast).currentCharges > 1 or not IsCasting(ids.MindBlast)) and ( not PlayerHasBuff(ids.MindDevourerBuff) or not IsPlayerSpell(ids.MindDevourerTalent) or OffCooldown(ids.VoidEruption) and IsPlayerSpell(ids.VoidEruption) ) then
-            KTrig("Mind Blast") return true end
+            NGSend("Mind Blast") return true end
 
         if PlayerHasBuff(ids.VoidVolleyBuff) then
-            KTrig("Void Volley") return true end
-        
+            NGSend("Void Volley") return true end
+
         if OffCooldown(ids.DevouringPlague) and ( PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.VoidEruption) or PlayerHasBuff(ids.PowerSurgeBuff) or IsPlayerSpell(ids.DistortedRealityTalent) ) then      
-            KTrig("Devouring Plague") return true end
-        
+            NGSend("Devouring Plague") return true end
+
         if OffCooldownNotCasting(ids.Halo) and ( NearbyEnemies > 1 ) then
-            -- KTrig("Halo") return true end
-            if aura_env.config[tostring(ids.Halo)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Halo")
-            elseif aura_env.config[tostring(ids.Halo)] ~= true then
-                KTrig("Halo")
-                return true
-            end
-        end
+            NGSend("Halo") return true end
 
         if OffCooldown(ids.ShadowCrash) and ( not Variables.HoldingCrash and IsPlayerSpell(ids.DescendingDarknessTalent) ) then
-            -- KTrig("Shadow Crash") return true end
-            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadow Crash")
-            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
-                KTrig("Shadow Crash")
-                return true
-            end
-        end
+            NGSend("Shadow Crash") return true end
 
         if OffCooldown(ids.ShadowWordDeath) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < ( 20 + 15 * (IsPlayerSpell(ids.DeathspeakerTalent) and 1 or 0) ) ) then
-            KTrig("Shadow Word Death") return true end
+            NGSend("Shadow Word Death") return true end
 
         if OffCooldown(ids.ShadowWordDeath) and ( IsPlayerSpell(ids.InescapableTormentTalent) and ShadowfiendDuration > 0 ) then
-            KTrig("Shadow Word Death") return true end
+            NGSend("Shadow Word Death") return true end
+
         if OffCooldown(ids.MindFlay) then
-            KTrig("Mind Flay") return true end
+            NGSend("Mind Flay") return true end
 
         if OffCooldown(ids.DivineStar) then
-            -- KTrig("Divine Star") return true end
-            if aura_env.config[tostring(ids.DivineStar)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Divine Star")
-            elseif aura_env.config[tostring(ids.DivineStar)] ~= true then
-                KTrig("Divine Star")
-                return true
-            end
-        end
-
+            NGSend("Divine Star") return true end
     end
     
     if NearbyEnemies > 2 then
@@ -578,9 +645,7 @@ function()
     
     if Main() then return true end
     
-    -- Kichi --
-    KTrig("Clear")
-    --KTrigCD("Clear")
+    NGSend("Clear")
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -613,7 +678,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 
--- K_UPDATE_SHADOWFIEND_EXPIRATION
+-- NG_UPDATE_SHADOWFIEND_EXPIRATION
 
 function(Event, Expiration)
     if Expiration ~= nil then
@@ -623,106 +688,14 @@ end
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
-----------Rotation Load--------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
-aura_env.NearbyEnemies = 0
-
----@class idsTable
-aura_env.ids = {
-    -- Abilities
-    DarkAscension = 391109,
-    DevouringPlague = 335467,
-    DivineStar = 122121,
-    Halo = 120644,
-    MindBlast = 8092,
-    MindFlay = 15407,
-    MindSpike = 73510, -- Check if this is exist
-    MindSpikeInsanity = 407466, -- Check if this is exist
-    Mindbender = 200174,
-    ShadowCrash = 205385,
-    ShadowWordDeath = 32379,
-    ShadowWordPain = 589,
-    Shadowfiend = 34433, -- NG name incorrect
-    VampiricTouch = 34914,
-    VoidBlast = 450983,
-    VoidBolt = 205448,
-    VoidEruption = 228260,
-    VoidTorrent = 263165,
-    VoidVolley = 1242173,
-    Voidwraith = 451235,
-    
-    -- Talents
-    DepthOfShadowsTalent = 451308,
-    DeathspeakerTalent = 392507,
-    DescendingDarknessTalent = 1242666,
-    DevourMatterTalent = 451840,
-    DistortedRealityTalent = 409044,
-    EmpoweredSurgesTalent = 453799,
-    EntropicRiftTalent = 447444,
-    InescapableTormentTalent = 373427,
-    InnerQuietusTalent = 448278,
-    InsidiousIreTalent = 373212,
-    MindDevourerTalent = 373202,
-    MindMeltTalent = 391090,
-    MindsEyeTalent = 407470,
-    PerfectedFormTalent = 453917,
-    PowerSurgeTalent = 453109,
-    PsychicLinkTalent = 199484,
-    VoidBlastTalent = 450405,
-    VoidEmpowermentTalent = 450138,
-    
-    -- Buffs/Debuffs
-    AscensionBuff = 391109,
-    DevouringPlagueDebuff = 335467,
-    EntropicRiftBuff = 449887, -- Actually the Void Heart buff since Entropic Rift doesn't have a buff.
-    MindDevourerBuff = 373204,
-    MindFlayInsanityBuff = 391401,
-    PowerSurgeBuff = 453113,
-    UnfurlingDarknessBuff = 341282,
-    UnfurlingDarknessCdBuff = 341291,
-    VampiricTouchDebuff = 34914,
-    VoidformBuff = 194249,
-    VoidVolleyBuff = 1242171,
-}
-
-
-
-aura_env.GetSpellCooldown = function(spellId)
-    local spellCD = C_Spell.GetSpellCooldown(spellId)
-    local spellCharges = C_Spell.GetSpellCharges(spellId)
-    if spellCharges then
-        local rechargeTime = (spellCharges.currentCharges < spellCharges.maxCharges) and (spellCharges.cooldownStartTime + spellCharges.cooldownDuration - GetTime()) or 0
-        return spellCharges.currentCharges, rechargeTime, spellCharges.maxCharges
-    elseif spellCD then
-        local remainingCD = (spellCD.startTime and spellCD.duration) and math.max(spellCD.startTime + spellCD.duration - GetTime(), 0) or 0
-        return 0, remainingCD, 0
-    else
-        return 0, 0, 0
-    end
-end
-
-aura_env.GetSafeSpellIcon = function(spellId)
-    if not spellId or spellId == 0 then
-        return 0  
-    end
-    local spellInfo = C_Spell.GetSpellInfo(spellId)
-    return spellInfo and spellInfo.iconID or 0
-end
-
-
-
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
 ----------Name plate load--------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 
 aura_env.ShouldShowDebuff = function(unit)
-    if (UnitAffectingCombat(unit) or aura_env.config["BypassCombatRequirement"]) and not UnitIsFriend("player", unit) and UnitClassification(unit) ~= "minus" and not WA_GetUnitDebuff(unit, aura_env.config["DebuffID"]) then
-        if _G.KLIST then
-            for _, ID in ipairs(_G.KLIST.ShadowPriest) do                
+    if UnitAffectingCombat(unit) and not UnitIsFriend("player", unit) and UnitClassification(unit) ~= "minus" and not WA_GetUnitDebuff(unit, aura_env.config["DebuffID"]) then
+        if _G.NGWA then
+            for _, ID in ipairs(_G.NGWA.ShadowPriest) do                
                 if UnitName(unit) == ID or select(6, strsplit("-", UnitGUID(unit))) == ID then
                     return false
                 end
@@ -732,7 +705,6 @@ aura_env.ShouldShowDebuff = function(unit)
         return true
     end
 end
-
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
@@ -832,7 +804,7 @@ function(allStates, event, timestamp, subEvent, _, sourceGUID, _, _, _, destGUID
             name = SpellInfo.name,
             icon = SpellInfo.iconID,
         }
-        WeakAuras.ScanEvents("K_UPDATE_SHADOWFIEND_EXPIRATION", EndTime)
+        WeakAuras.ScanEvents("NG_UPDATE_SHADOWFIEND_EXPIRATION", EndTime)
         return true
     end
     
@@ -843,7 +815,7 @@ function(allStates, event, timestamp, subEvent, _, sourceGUID, _, _, _, destGUID
             allStates["bender"].expirationTime = allStates["bender"].expirationTime + 0.7
             allStates["bender"].changed = true
             
-            WeakAuras.ScanEvents("K_UPDATE_SHADOWFIEND_EXPIRATION", allStates["bender"].expirationTime)
+            WeakAuras.ScanEvents("NG_UPDATE_SHADOWFIEND_EXPIRATION", allStates["bender"].expirationTime)
             return true
         end
     end

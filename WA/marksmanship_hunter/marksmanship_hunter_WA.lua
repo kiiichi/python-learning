@@ -6,6 +6,9 @@
 
 WeakAuras.WatchGCD()
 
+aura_env.PrevCastTime = 0
+aura_env.PrevCast = 0
+
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
@@ -31,15 +34,21 @@ aura_env.ids = {
     NoScopeTalent = 473385,
     PrecisionDetonationTalent = 471369,
     RazorFragmentsTalent = 384790,
+    SalvoTalent = 400456,
     SentinelTalent = 450369,
+    ShrapnelShotTalent = 473520,
     SmallGameHunterTalent = 459802,
     SymphonicArsenalTalent = 450383,
     TrickShotsTalent = 257621,
     VolleyTalent = 260243,
     WindrunnerQuiverTalent = 473523,
-    
+    -- Kichi add for simc 18bda32_8.9 fix
+    MagneticGunpowderTalent = 473522,
+    IncendiaryAmmunitionTalent = 471428,
+
     -- Buffs/Debuffs
     BulletstormBuff = 389020,
+    DeathblowBuff = 378770,
     DoubleTapBuff = 260402,
     LockAndLoadBuff = 194594,
     LunarStormCooldownBuff = 451803,
@@ -51,6 +60,10 @@ aura_env.ids = {
     TrickShotsBuff = 257622,
     TrueshotBuff = 288613,
     WitheringFireBuff = 466991,
+    -- Kichi add for simc 18bda32_8.9 fix
+    LunarStormTargetDebuff = 450884,
+    VolleyBuff = 260243,
+    ExplosiveShotDebuff = 212431,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -288,7 +301,7 @@ function()
     local CurrentFocus = UnitPower("player", Enum.PowerType.Focus)
     local MaxFocus = UnitPowerMax("player", Enum.PowerType.Focus)
     
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1871)
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1923)
     
     local CurrentCast = select(9, UnitCastingInfo("player"))
     if CurrentCast ~= nil then
@@ -332,46 +345,40 @@ function()
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
     local ExtraGlows = {}
     
-    -- Trueshot
-    -- Kichi --
-    if OffCooldown(ids.Trueshot) and NearbyEnemies > 0 and NearbyEnemies < 3 and HasMovingTarget and (not IsPlayerSpell(ids.BulletstormTalent) or GetPlayerStacks(ids.BulletstormBuff) > 7 ) then
+    -- Trueshot in Trickshots group
+    if OffCooldown(ids.Trueshot) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.TrickShotsTalent) ) and ( PlayerHasBuff(ids.DoubleTapBuff) == false and ( (GetRemainingAuraDuration("player", ids.LunarStormCooldownBuff, "HARMFUL") > 23) or not IsPlayerSpell(ids.SentinelTalent) ) and GetRemainingSpellCooldown(ids.RapidFire) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and PlayerHasBuff(ids.TrickShotsBuff) ) then
         ExtraGlows.Trueshot = true
     end
 
-    if OffCooldown(ids.Trueshot) and NearbyEnemies > 2 and HasMovingTarget and (not IsPlayerSpell(ids.BulletstormTalent) or GetPlayerStacks(ids.BulletstormBuff) > 7 ) and not OffCooldown(ids.Volley) then
+    -- Trueshot in St group
+    if OffCooldown(ids.Trueshot) and NearbyEnemies <= 1  and ( PlayerHasBuff(ids.DoubleTapBuff) == false and ( (GetRemainingAuraDuration("player", ids.LunarStormCooldownBuff, "HARMFUL") > 23) or not IsPlayerSpell(ids.SentinelTalent) ) and GetRemainingSpellCooldown(ids.RapidFire) ) then
         ExtraGlows.Trueshot = true
     end
-    
+
+    -- Trueshot in Cleave group
+    if OffCooldown(ids.Trueshot) and ( NearbyEnemies > 1 and not IsPlayerSpell(ids.TrickShotsTalent) or NearbyEnemies == 2 )and ( ( PlayerHasBuff(ids.DoubleTapBuff) == false or not IsPlayerSpell(ids.VolleyTalent) ) and ( not LunarStormReady or not IsPlayerSpell(ids.DoubleTapTalent) or not IsPlayerSpell(ids.VolleyTalent) ) and ( not HasPreciseShots or HasMovingTarget or not IsPlayerSpell(ids.VolleyTalent) ) ) then
+        ExtraGlows.Trueshot = true
+    end
+
+
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows)
     
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
-    local St = function()
-        -- Hold Volley for up to its whole cooldown for multiple target situations, also make sure Rapid Fire will be available to stack extra Bullestorm stacks during it without Aspect of the Hydra.
-        if OffCooldown(ids.Volley) and ( not IsPlayerSpell(ids.DoubleTapTalent) and ( IsPlayerSpell(ids.AspectOfTheHydraTalent) or NearbyEnemies == 1 or not HasPreciseShots and ( GetRemainingSpellCooldown(ids.RapidFire) + max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) < 6 or not IsPlayerSpell(ids.BulletstormTalent) ) ) ) then
-            -- KTrig("Volley") return true end
-            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Volley")
-            elseif aura_env.config[tostring(ids.Volley)] ~= true then
-                KTrig("Volley")
-                return true
-            end
-        end
-        
-        -- Kichi --
-        -- Prioritize Rapid Fire to trigger Lunar Storm or to stack extra Bulletstorm when Volley Trick Shots is up without Aspect of the Hydra.
-        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.SentinelTalent) and LunarStormReady or not IsPlayerSpell(ids.AspectOfTheHydraTalent) and IsPlayerSpell(ids.BulletstormTalent) and NearbyEnemies > 1 and HasTrickShots and ( not HasPreciseShots or not IsPlayerSpell(ids.NoScopeTalent) ) ) then
-            -- KTrig("Rapid Fire") return true end
-            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Rapid Fire")
-            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
-                KTrig("Rapid Fire")
-                return true
-            end
-        end
+    local Cleave = function()
+        -- Kichi remove for simc 18bda32_8.9 fix
+        -- if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and ( PlayerHasBuff(ids.TrueshotBuff) == false or not IsPlayerSpell(ids.WindrunnerQuiverTalent) ) ) then
+        --     -- KTrig("Explosive Shot") return true end
+        --     if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Explosive Shot")
+        --     elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+        --         KTrig("Explosive Shot")
+        --         return true
+        --     end
+        -- end
 
-        -- Prioritize 4pc double bonus by casting Explosive Shot and following up with Aimed Shot when Lock and Load is up, as long as Precise Shots would not be wasted.
-        if OffCooldown(ids.ExplosiveShot) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (SetPieces >= 4) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and PlayerHasBuff(ids.LockAndLoadBuff) ) then
+        -- Kichi modify for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.ShrapnelShotTalent) and PlayerHasBuff(ids.LockAndLoadBuff) == false and GetSpellChargesFractional(ids.AimedShot) < 1 ) then
             -- KTrig("Explosive Shot") return true end
             if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Explosive Shot")
@@ -381,11 +388,10 @@ function()
             end
         end
         
-        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (SetPieces >= 4) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and PlayerHasBuff(ids.LockAndLoadBuff) ) then
-            KTrig("Aimed Shot") return true end
+        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( HasPreciseShots and not HasMovingTarget and OffCooldown(ids.Trueshot) ) then
+            KTrig("Black Arrow") return true end
         
-        -- For Double Tap, lower Volley in priority until Trueshot has already triggered Double Tap.
-        if OffCooldown(ids.Volley) and ( IsPlayerSpell(ids.DoubleTapTalent) and PlayerHasBuff(ids.DoubleTapBuff) == false ) then
+        if OffCooldown(ids.Volley) and ( ( IsPlayerSpell(ids.DoubleTapTalent) and PlayerHasBuff(ids.DoubleTapBuff) == false or not IsPlayerSpell(ids.AspectOfTheHydraTalent) ) and ( not HasPreciseShots or HasMovingTarget ) ) then
             -- KTrig("Volley") return true end
             if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Volley")
@@ -395,26 +401,7 @@ function()
             end
         end
         
-        -- Kill Shot/Black Arrow become the primary Precise Shot spenders for Headshot builds. For all Precise Shot spenders, skip to Aimed Shot if both Spotter's Mark and Moving Target are already up.
-        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
-            KTrig("Black Arrow") return true end
-        
-        if OffCooldown(ids.KillShot) and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
-            KTrig("Kill Shot") return true end
-        
-        -- With either Symphonic Arsenal or Small Game Hunter, Multi-Shot can be used as the Precise Shots spender on 2 targets without Aspect of the Hydra.
-        if OffCooldown(ids.Multishot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) and NearbyEnemies > 1 and not IsPlayerSpell(ids.AspectOfTheHydraTalent) and ( IsPlayerSpell(ids.SymphonicArsenalTalent) or IsPlayerSpell(ids.SmallGameHunterTalent) ) ) then
-            KTrig("Multishot") return true end
-        
-        if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
-            KTrig("Arcane Shot") return true end
-        
-        -- Prioritize Aimed Shot a bit higher than Rapid Fire if it's close to charge capping and Bulletstorm is up.
-        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and GetTimeToFullCharges(ids.AimedShot) < max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) + (C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000) and ( not IsPlayerSpell(ids.BulletstormTalent) or PlayerHasBuff(ids.BulletstormBuff) ) and IsPlayerSpell(ids.WindrunnerQuiverTalent) ) then
-            KTrig("Aimed Shot") return true end
-        
-        -- With Sentinel, hold Rapid Fire for up to 1/3 of its cooldown to trigger Lunar Storm as soon as possible. Don't reset Bulletstorm if it's been stacked over 10 unless it can be re-stacked over 10.
-        if OffCooldown(ids.RapidFire) and ( ( not IsPlayerSpell(ids.SentinelTalent) or GetRemainingAuraDuration("player", ids.LunarStormCooldownBuff, "HARMFUL") > GetSpellBaseCooldown(ids.RapidFire)/1000 / 3 ) and ( not IsPlayerSpell(ids.BulletstormTalent) or GetPlayerStacks(ids.BulletstormBuff) <= 10 or IsPlayerSpell(ids.AspectOfTheHydraTalent) and NearbyEnemies > 1 ) ) then
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.BulletstormTalent) and PlayerHasBuff(ids.BulletstormBuff) == false and ( not IsPlayerSpell(ids.DoubleTapTalent) or PlayerHasBuff(ids.DoubleTapBuff) or not IsPlayerSpell(ids.AspectOfTheHydraTalent) and GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) ) and ( not HasPreciseShots or HasMovingTarget or not IsPlayerSpell(ids.VolleyTalent) ) ) then
             -- KTrig("Rapid Fire") return true end
             if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Rapid Fire")
@@ -424,11 +411,85 @@ function()
             end
         end
         
-        -- Aimed Shot if we've spent Precise Shots to trigger Spotter's Mark and Moving Target. With No Scope this means Precise Shots could be up when Aimed Shot is cast.
+        if OffCooldown(ids.Volley) and ( not IsPlayerSpell(ids.DoubleTapTalent) and ( not HasPreciseShots or HasMovingTarget ) ) then
+            -- KTrig("Volley") return true end
+            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Volley")
+            elseif aura_env.config[tostring(ids.Volley)] ~= true then
+                KTrig("Volley")
+                return true
+            end
+        end
+        
+        -- Kichi move to NoneGCD for simc 18bda32_8.9 fix
+        -- if OffCooldown(ids.Trueshot) and ( ( PlayerHasBuff(ids.DoubleTapBuff) == false or not IsPlayerSpell(ids.VolleyTalent) ) and ( PlayerHasBuff(ids.LunarStormReadyBuff) == false or not IsPlayerSpell(ids.DoubleTapTalent) or not IsPlayerSpell(ids.VolleyTalent) ) and ( not HasPreciseShots or HasMovingTarget or not IsPlayerSpell(ids.VolleyTalent) ) ) then
+        --     -- KTrig("Trueshot") return true end
+        --     if aura_env.config[tostring(ids.Trueshot)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Trueshot")
+        --     elseif aura_env.config[tostring(ids.Trueshot)] ~= true then
+        --         KTrig("Trueshot")
+        --         return true
+        --     end
+        -- end
+        
+        -- Queue Steady Shot after Aimed Shot if a Deathblow hasn't already been up long enough to be reacted to. Sentinel only seems to like this due to the Precise Shots gcd bug.
+        if OffCooldown(ids.SteadyShot) and ( IsPlayerSpell(ids.BlackArrowTalent) and CurrentFocus + 20 < MaxFocus and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and not PlayerHasBuff(ids.DeathblowBuff) and PlayerHasBuff(ids.TrueshotBuff) == false and GetRemainingSpellCooldown(ids.Trueshot) ) then
+            KTrig("Steady Shot") return true end
+        
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.LunarStormTalent) and PlayerHasBuff(ids.LunarStormCooldownBuff) == false and ( not HasPreciseShots or HasMovingTarget or GetRemainingSpellCooldown(ids.Volley) and GetRemainingSpellCooldown(ids.Trueshot) or not IsPlayerSpell(ids.VolleyTalent) ) ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.KillShot) and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
+            KTrig("Kill Shot") return true end
+        
+        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
+            KTrig("Black Arrow") return true end
+        
+        -- Kichi add for simc 18bda32_8.9 fix to let cast aimed shot right after trueshot
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( PlayerHasBuff(ids.TrueshotBuff) == true and TargetHasSpottersMark and IsPlayerSpell(ids.SentinelTalent) ) then
+            KTrig("Aimed Shot") return true end
+
+        if OffCooldown(ids.Multishot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) and not IsPlayerSpell(ids.AspectOfTheHydraTalent) and ( IsPlayerSpell(ids.SymphonicArsenalTalent) or IsPlayerSpell(ids.SmallGameHunterTalent) ) ) then
+            KTrig("Multishot") return true end
+        
+        if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
+            KTrig("Arcane Shot") return true end
+        
+        -- Prioritize Aimed Shot a little higher when close to capping charges.
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and GetTimeToFullCharges(ids.AimedShot) < max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) + (C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000) and ( not IsPlayerSpell(ids.BulletstormTalent) or PlayerHasBuff(ids.BulletstormBuff) ) and IsPlayerSpell(ids.WindrunnerQuiverTalent) ) then
+            KTrig("Aimed Shot") return true end
+        
+        if OffCooldown(ids.RapidFire) and ( not IsPlayerSpell(ids.BulletstormTalent) or GetPlayerStacks(ids.BulletstormBuff) <= 10 or IsPlayerSpell(ids.AspectOfTheHydraTalent) ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end
+        
         if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) then
             KTrig("Aimed Shot") return true end
         
-        if OffCooldown(ids.ExplosiveShot) and ( not (SetPieces >= 4) or not IsPlayerSpell(ids.PrecisionDetonationTalent) ) then
+        if OffCooldown(ids.RapidFire) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) or PlayerHasBuff(ids.TrueshotBuff) == false ) then
             -- KTrig("Explosive Shot") return true end
             if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Explosive Shot")
@@ -441,14 +502,34 @@ function()
         if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( not IsPlayerSpell(ids.HeadshotTalent) ) then
             KTrig("Black Arrow") return true end
         
-        -- Steady Shot is our only true filler due to the Aimed Shot cdr.
         if OffCooldown(ids.SteadyShot) then
             KTrig("Steady Shot") return true end
     end
+
+    local St = function()
+        -- Kichi remove for simc 18bda32_8.9 fix
+        -- if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and PlayerHasBuff(ids.TrueshotBuff) == false ) then
+        --     -- KTrig("Explosive Shot") return true end
+        --     if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Explosive Shot")
+        --     elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+        --         KTrig("Explosive Shot")
+        --         return true
+        --     end
+        -- end
+
+        -- Kichi add for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.ShrapnelShotTalent) and PlayerHasBuff(ids.LockAndLoadBuff) == false and GetSpellChargesFractional(ids.AimedShot) < 1 ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
         
-    local Trickshots = function()
-        -- Kichi --
-        if OffCooldown(ids.Volley) and ( not IsPlayerSpell(ids.DoubleTapTalent) and HasTrickShots and not OffCooldown(ids.RapidFire) and OffCooldown(ids.Trueshot) ) then
+        if OffCooldown(ids.Volley) and ( PlayerHasBuff(ids.DoubleTapBuff) == false ) then
             -- KTrig("Volley") return true end
             if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Volley")
@@ -457,36 +538,74 @@ function()
                 return true
             end
         end
+        
+        -- Kichi move to NoneGCD for simc 18bda32_8.9 fix
+        -- if OffCooldown(ids.Trueshot) and ( PlayerHasBuff(ids.DoubleTapBuff) == false ) then
+        --     -- KTrig("Trueshot") return true end
+        --     if aura_env.config[tostring(ids.Trueshot)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Trueshot")
+        --     elseif aura_env.config[tostring(ids.Trueshot)] ~= true then
+        --         KTrig("Trueshot")
+        --         return true
+        --     end
+        -- end
+        
+        -- Queue Steady Shot after Aimed Shot if a Deathblow hasn't already been up long enough to be reacted to. Sentinel only seems to like this due to the Precise Shots gcd bug.
+        if OffCooldown(ids.SteadyShot) and ( IsPlayerSpell(ids.BlackArrowTalent) and CurrentFocus + 20 < MaxFocus and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and not PlayerHasBuff(ids.DeathblowBuff) and PlayerHasBuff(ids.TrueshotBuff) == false and GetRemainingSpellCooldown(ids.Trueshot) ) then
+            KTrig("Steady Shot") return true end
+        
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.LunarStormTalent) and PlayerHasBuff(ids.LunarStormCooldownBuff) == false ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end        
 
-        -- Kichi --
-        if OffCooldown(ids.Volley) and ( not IsPlayerSpell(ids.DoubleTapTalent) and GetRemainingSpellCooldown(ids.Trueshot) > 10 ) then
-            -- KTrig("Volley") return true end
-            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Volley")
-            elseif aura_env.config[tostring(ids.Volley)] ~= true then
-                KTrig("Volley")
+        if OffCooldown(ids.KillShot) and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
+            KTrig("Kill Shot") return true end
+        
+        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( not IsPlayerSpell(ids.HeadshotTalent) or IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then 
+            KTrig("Black Arrow") return true end
+        
+        if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
+            KTrig("Arcane Shot") return true end
+        
+        -- Prioritize Aimed Shot a little higher when close to capping charges.
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and GetTimeToFullCharges(ids.AimedShot) < max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) + (C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000) and ( not IsPlayerSpell(ids.BulletstormTalent) or PlayerHasBuff(ids.BulletstormBuff) ) and IsPlayerSpell(ids.WindrunnerQuiverTalent) ) then
+            KTrig("Aimed Shot") return true end
+        
+        if OffCooldown(ids.RapidFire) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
                 return true
             end
         end
 
-        -- Kichi --
-        -- Swap targets to spend Precise Shots from No Scope after applying Spotter's Mark already to the primary target.
-        if OffCooldown(ids.Multishot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not HasTrickShots or GetRemainingAuraDuration("player", ids.TrickShotsBuff) <= WeakAuras.gcdDuration() ) then
-            KTrig("Multishot") return true end
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) then
+            KTrig("Aimed Shot") return true end
+        
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) or PlayerHasBuff(ids.TrueshotBuff) == false ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.SteadyShot) then
+            KTrig("Steady Shot") return true end
+    end
     
-        -- For Double Tap, lower Volley in priority until Trueshot has already triggered Double Tap.
-        if OffCooldown(ids.Volley) and ( IsPlayerSpell(ids.DoubleTapTalent) and PlayerHasBuff(ids.DoubleTapBuff) == false ) then
-            -- KTrig("Volley") return true end
-            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Volley")
-            elseif aura_env.config[tostring(ids.Volley)] ~= true then
-                KTrig("Volley")
-                return true
-            end
-        end
-        
-        -- Kichi --
-        if OffCooldown(ids.ExplosiveShot) and OffCooldown(ids.Trueshot) and HasTrickShots and not OffCooldown(ids.Volley) then
+    local Trickshots = function()
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and PlayerHasBuff(ids.TrueshotBuff) == false and ( not IsPlayerSpell(ids.ShrapnelShotTalent) or PlayerHasBuff(ids.LockAndLoadBuff) == false ) ) then
             -- KTrig("Explosive Shot") return true end
             if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Explosive Shot")
@@ -496,17 +615,40 @@ function()
             end
         end
 
-        -- Always cast Black Arror with Trick Shots up for Bleak Powder.
-        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( HasTrickShots ) then
-            KTrig("Black Arrow") return true end
+        -- Kichi modify for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.ShrapnelShotTalent) and PlayerHasBuff(ids.LockAndLoadBuff) == false and GetSpellChargesFractional(ids.AimedShot) < 1 ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
 
-        -- Prioritize Aimed Shot a bit higher than Rapid Fire if it's close to charge capping and Bulletstorm is up.
-        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and HasTrickShots and PlayerHasBuff(ids.BulletstormBuff) and GetTimeToFullCharges(ids.AimedShot) <= max(C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000, WeakAuras.gcdDuration()) ) then
-            KTrig("Aimed Shot") return true end
+        -- Kichi modify for simc 18bda32_8.9 for more explosive shot
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.MagneticGunpowderTalent) and HasPreciseShots and ( PlayerHasBuff(ids.TrueshotBuff) == false or (GetSpellChargesFractional(ids.AimedShot) < 1) ) ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
         
-        -- Kichi fix LunarStormCooldownBuff and LunarStormReady bug --
-        -- With Sentinel, hold Rapid Fire for up to 1/3 of its cooldown to trigger Lunar Storm as soon as possible.
-        if OffCooldown(ids.RapidFire) and ( GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) and ( not IsPlayerSpell(ids.SentinelTalent) or GetRemainingAuraDuration("player", ids.LunarStormCooldownBuff, "HARMFUL") > GetSpellBaseCooldown(ids.RapidFire)/1000 / 3 or LunarStormReady ) ) then
+        -- Kichi modify for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.Volley) and ( PlayerHasBuff(ids.DoubleTapBuff) == false and ( not IsPlayerSpell(ids.ShrapnelShotTalent) or PlayerHasBuff(ids.LockAndLoadBuff) == false ) ) and ( (GetSpellChargesFractional(ids.AimedShot) < 2) and PlayerHasBuff(ids.TrueshotBuff) == true or (GetSpellChargesFractional(ids.AimedShot) < 1) ) then
+            -- KTrig("Volley") return true end
+            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Volley")
+            elseif aura_env.config[tostring(ids.Volley)] ~= true then
+                KTrig("Volley")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.BulletstormTalent) and PlayerHasBuff(ids.BulletstormBuff) == false and GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) ) then
             -- KTrig("Rapid Fire") return true end
             if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Rapid Fire")
@@ -516,23 +658,69 @@ function()
             end
         end
         
-        -- With Precision Detonation, wait until a follow up Aimed Shot would not waste Precise Shots to cast. Require Lock and Load active if using the 4pc.
-        if OffCooldown(ids.ExplosiveShot) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and ( PlayerHasBuff(ids.LockAndLoadBuff) or not (SetPieces >= 4) ) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) ) then
-            -- KTrig("Explosive Shot") return true end
-            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Explosive Shot")
-            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
-                KTrig("Explosive Shot")
+        -- Kichi modify for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.SentinelTalent) and ( LunarStormReady or (GetRemainingAuraDuration("player", ids.LunarStormCooldownBuff, "HARMFUL") > 18) ) and GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
                 return true
             end
         end
         
-        -- Aimed Shot if we've spent Precise Shots to trigger Spotter's Mark and Moving Target. With No Scope this means Precise Shots could be up when Aimed Shot is cast.
-        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and HasTrickShots ) then
+        -- Queue Steady Shot after Aimed Shot if a Deathblow hasn't already been up long enough to be reacted to.
+        if OffCooldown(ids.SteadyShot) and ( IsPlayerSpell(ids.BlackArrowTalent) and CurrentFocus + 20 < MaxFocus and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and not PlayerHasBuff(ids.DeathblowBuff) and PlayerHasBuff(ids.TrueshotBuff) == false and GetRemainingSpellCooldown(ids.Trueshot) ) then
+            KTrig("Steady Shot") return true end
+        
+        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( not IsPlayerSpell(ids.HeadshotTalent) or HasPreciseShots or PlayerHasBuff(ids.TrickShotsBuff) == false ) then
+            KTrig("Black Arrow") return true end
+        
+        -- Kichi modify for simc 18bda32_8.9 for no multishot in volley
+        if OffCooldown(ids.Multishot) and ( HasPreciseShots and not HasMovingTarget or PlayerHasBuff(ids.TrickShotsBuff) == false ) and not ( PlayerHasBuff(ids.VolleyBuff) and (GetSpellChargesFractional(ids.AimedShot) >= 1) and GetRemainingAuraDuration("player", ids.VolleyBuff) > max(C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000, WeakAuras.gcdDuration()) ) then
+            KTrig("Multishot") return true end
+        
+        -- Kichi move to None GCDs
+        -- if OffCooldown(ids.Trueshot) and ( PlayerHasBuff(ids.DoubleTapBuff) == false ) then
+        --     -- KTrig("Trueshot") return true end
+        --     if aura_env.config[tostring(ids.Trueshot)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Trueshot")
+        --     elseif aura_env.config[tostring(ids.Trueshot)] ~= true then
+        --         KTrig("Trueshot")
+        --         return true
+        --     end
+        -- end
+
+        -- Kichi modify for simc 18bda32_8.9 for more stacks of aimed shot
+        if OffCooldown(ids.Volley) and ( PlayerHasBuff(ids.DoubleTapBuff) == false and ( not IsPlayerSpell(ids.SalvoTalent) or not IsPlayerSpell(ids.PrecisionDetonationTalent) or ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) ) ) and ( (GetSpellChargesFractional(ids.AimedShot) < 2) and PlayerHasBuff(ids.TrueshotBuff) == true or (GetSpellChargesFractional(ids.AimedShot) < 1) ) then
+            -- KTrig("Volley") return true end
+            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Volley")
+            elseif aura_env.config[tostring(ids.Volley)] ~= true then
+                KTrig("Volley")
+                return true
+            end
+        end
+        
+        -- Kichi modify for simc 18bda32_8.9 for more aimed shot in volley
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and PlayerHasBuff(ids.TrickShotsBuff) and PlayerHasBuff(ids.BulletstormBuff) and GetTimeToFullCharges(ids.AimedShot) < WeakAuras.gcdDuration() or PlayerHasBuff(ids.VolleyBuff) ) then
             KTrig("Aimed Shot") return true end
         
-        -- Kichi --
-        if OffCooldown(ids.ExplosiveShot) and HasTrickShots then
+        -- Kichi add for PrecisionDetonationTalent
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( TargetHasDebuff(ids.ExplosiveShotDebuff) and IsPlayerSpell(ids.PrecisionDetonationTalent) and PlayerHasBuff(ids.TrickShotsBuff) ) then
+            KTrig("Aimed Shot") return true end
+
+        if OffCooldown(ids.RapidFire) and ( GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) and ( not IsPlayerSpell(ids.BlackArrowTalent) or PlayerHasBuff(ids.DeathblowBuff) == false ) and ( not IsPlayerSpell(ids.NoScopeTalent) or TargetHasSpottersMark ) and ( IsPlayerSpell(ids.NoScopeTalent) or PlayerHasBuff(ids.BulletstormBuff) == false ) ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and IsPlayerSpell(ids.ShrapnelShotTalent) and PlayerHasBuff(ids.LockAndLoadBuff) == false and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) ) then
             -- KTrig("Explosive Shot") return true end
             if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Explosive Shot")
@@ -542,19 +730,37 @@ function()
             end
         end
         
-        if OffCooldown(ids.SteadyShot) and ( CurrentFocus + 25 < MaxFocus ) then
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) and PlayerHasBuff(ids.TrickShotsBuff) ) then 
+            KTrig("Aimed Shot") return true end
+        
+        if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( not IsPlayerSpell(ids.ShrapnelShotTalent) ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.SteadyShot) and ( CurrentFocus + 20 < MaxFocus ) then
             KTrig("Steady Shot") return true end
         
         if OffCooldown(ids.Multishot) then
             KTrig("Multishot") return true end
     end
-
-    if NearbyEnemies < 3 or not IsPlayerSpell(ids.TrickShotsTalent) then
-        if St() then return true end end
     
-    if NearbyEnemies > 2 then
+    
+    
+    if NearbyEnemies > 2 and IsPlayerSpell(ids.TrickShotsTalent) then
         if Trickshots() then return true end end
     
+    if NearbyEnemies > 1 then
+        if Cleave() then return true end end
+    
+    if NearbyEnemies <= 1 then
+        if St() then return true end end    
+
     -- Kichi --
     KTrig("Clear")
     --KTrigCD("Clear")
@@ -607,15 +813,21 @@ aura_env.ids = {
     NoScopeTalent = 473385,
     PrecisionDetonationTalent = 471369,
     RazorFragmentsTalent = 384790,
+    SalvoTalent = 400456,
     SentinelTalent = 450369,
+    ShrapnelShotTalent = 473520,
     SmallGameHunterTalent = 459802,
     SymphonicArsenalTalent = 450383,
     TrickShotsTalent = 257621,
     VolleyTalent = 260243,
     WindrunnerQuiverTalent = 473523,
-    
+    -- Kichi add for simc 18bda32_8.9 fix
+    MagneticGunpowderTalent = 473522,
+    IncendiaryAmmunitionTalent = 471428,
+
     -- Buffs/Debuffs
     BulletstormBuff = 389020,
+    DeathblowBuff = 378770,
     DoubleTapBuff = 260402,
     LockAndLoadBuff = 194594,
     LunarStormCooldownBuff = 451803,
@@ -627,7 +839,12 @@ aura_env.ids = {
     TrickShotsBuff = 257622,
     TrueshotBuff = 288613,
     WitheringFireBuff = 466991,
+    -- Kichi add for simc 18bda32_8.9 fix
+    LunarStormTargetDebuff = 450884,
+    VolleyBuff = 260243,
+    ExplosiveShotDebuff = 212431,
 }
+
 
 aura_env.GetSpellCooldown = function(spellId)
     local spellCD = C_Spell.GetSpellCooldown(spellId)
@@ -650,6 +867,7 @@ aura_env.GetSafeSpellIcon = function(spellId)
     local spellInfo = C_Spell.GetSpellInfo(spellId)
     return spellInfo and spellInfo.iconID or 0
 end
+
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------

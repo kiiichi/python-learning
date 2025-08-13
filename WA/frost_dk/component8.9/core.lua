@@ -256,7 +256,7 @@ env.test = function()
     
     -- Single Target Rotation
     local SingleTarget = function()
-        if OffCooldown(ids.Obliterate) and ( PlayerHasBuff(ids.KillingMachineBuff) == 2 or (PlayerHasBuff(ids.KillingMachineBuff) and CurrentRunes <= 3 ) ) then
+        if OffCooldown(ids.Obliterate) and ( GetPlayerStacks(ids.KillingMachineBuff) == 2 or (PlayerHasBuff(ids.KillingMachineBuff) and CurrentRunes >= 3 ) ) then
             KTrig("Obliterate") return true end
 
         if OffCooldown(ids.HowlingBlast) and ( PlayerHasBuff(ids.RimeBuff) and IsPlayerSpell(ids.FrostboundWillTalent) ) then

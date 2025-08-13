@@ -38,6 +38,7 @@ aura_env.ids = {
     VoidBolt = 205448,
     VoidEruption = 228260,
     VoidTorrent = 263165,
+    Voidwraith = 451235,
     
     -- Talents
     DevourMatterTalent = 451840,
@@ -532,7 +533,7 @@ function()
             if Cds() then return true end end
         
         -- Use Shadowfiend and Mindbender on cooldown as long as Vampiric Touch and Shadow Word: Pain are active and sync with Dark Ascension
-        if OffCooldown(ids.Shadowfiend) and ( ( TargetHasDebuff(ids.ShadowWordPain) and Variables.DotsUp or (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 1) and IsPlayerSpell(ids.WhisperingShadowsTalent) ) and ( FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 ) and ( not IsPlayerSpell(ids.DarkAscension) or GetRemainingSpellCooldown(ids.DarkAscension) < 1.5 or FightRemains(60, NearbyRange) < 15 ) ) then
+        if OffCooldown(ids.Shadowfiend) and GetRemainingSpellCooldown(ids.Mindbender) == 0 and GetRemainingSpellCooldown(ids.Voidwraith) == 0 and ( ( TargetHasDebuff(ids.ShadowWordPain) and Variables.DotsUp or (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 1) and IsPlayerSpell(ids.WhisperingShadowsTalent) ) and ( FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 ) and ( not IsPlayerSpell(ids.DarkAscension) or GetRemainingSpellCooldown(ids.DarkAscension) < 1.5 or FightRemains(60, NearbyRange) < 15 ) ) then
             -- KTrig("Shadowfiend") return true end
             if aura_env.config[tostring(ids.Shadowfiend)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shadowfiend")
