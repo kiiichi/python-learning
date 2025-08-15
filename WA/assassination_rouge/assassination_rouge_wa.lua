@@ -739,6 +739,7 @@ function()
     
     -- Stealthed Actions
     local Stealthed = function()
+        -- Kichi add PlayerHasBuff(ids.DarkestNightBuff) for parctical use
         -- Apply Deathstalkers Mark if it has fallen off or waiting for Rupture in AoE
         if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and EffectiveComboPoints < Variables.EffectiveSpendCp and ( TargetHasDebuff(ids.Rupture) or NearbyEnemies <= 1 or not IsPlayerSpell(ids.SubterfugeTalent)) ) and not PlayerHasBuff(ids.DarkestNightBuff) then
             KTrig("Ambush") return true end
@@ -812,8 +813,7 @@ function()
         end
 
         -- Rupture during Indiscriminate Carnage
-        -- if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and (IsAuraRefreshable(ids.Rupture) or NearbyRuptured < NearbyEnemies) and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) ) and TargetTimeToXPct(0, 60) > 15 ) then
-        -- Kichi --
+        -- Kichi -- for SuddenDemiseTalent
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyRefreshableRuptured > 0 and ( not Variables.RegenSaturated or not Variables.ScentSaturation or not TargetHasDebuff(ids.Rupture) or NearbyRuptured < NearbyEnemies ) and (TargetTimeToXPct(0, 60) > 15 or IsPlayerSpell(ids.SuddenDemiseTalent)) ) then
             KTrig("Rupture") return true end
         

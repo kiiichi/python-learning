@@ -436,7 +436,7 @@ function()
         if OffCooldown(ids.SteadyShot) and ( IsPlayerSpell(ids.BlackArrowTalent) and CurrentFocus + 20 < MaxFocus and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and not PlayerHasBuff(ids.DeathblowBuff) and PlayerHasBuff(ids.TrueshotBuff) == false and GetRemainingSpellCooldown(ids.Trueshot) ) then
             KTrig("Steady Shot") return true end
         
-        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.LunarStormTalent) and PlayerHasBuff(ids.LunarStormCooldownBuff) == false and ( not HasPreciseShots or HasMovingTarget or GetRemainingSpellCooldown(ids.Volley) and GetRemainingSpellCooldown(ids.Trueshot) or not IsPlayerSpell(ids.VolleyTalent) ) ) then
+        if OffCooldown(ids.RapidFire) and ( IsPlayerSpell(ids.LunarStormTalent) and PlayerHasBuff(ids.LunarStormCooldownBuff) == false and ( not HasPreciseShots or HasMovingTarget or GetRemainingSpellCooldown(ids.Volley) > 0 and GetRemainingSpellCooldown(ids.Trueshot) > 0 or not IsPlayerSpell(ids.VolleyTalent) ) ) then
             -- KTrig("Rapid Fire") return true end
             if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Rapid Fire")
@@ -506,7 +506,60 @@ function()
             KTrig("Steady Shot") return true end
     end
 
-    local St = function()
+    local Drst = function()
+        if OffCooldown(ids.ExplosiveShot) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and PlayerHasBuff(ids.TrueshotBuff) == false and not PlayerHasBuff(ids.LockAndLoadBuff) ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.Volley) and ( PlayerHasBuff(ids.DoubleTapBuff) == false ) then
+            -- KTrig("Volley") return true end
+            if aura_env.config[tostring(ids.Volley)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Volley")
+            elseif aura_env.config[tostring(ids.Volley)] ~= true then
+                KTrig("Volley")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.SteadyShot) and ( IsPlayerSpell(ids.BlackArrowTalent) and CurrentFocus + 20 < MaxFocus and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and not PlayerHasBuff(ids.DeathblowBuff) and PlayerHasBuff(ids.TrueshotBuff) == false and GetRemainingSpellCooldown(ids.Trueshot) ) then
+            KTrig("Steady Shot") return true end
+        
+        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( not IsPlayerSpell(ids.HeadshotTalent) or IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
+            KTrig("Black Arrow") return true end
+        
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( PlayerHasBuff(ids.TrueshotBuff) and not HasPreciseShots or PlayerHasBuff(ids.LockAndLoadBuff) and HasMovingTarget ) then
+            KTrig("Aimed Shot") return true end
+        
+        -- if OffCooldown(ids.Trueshot) and ( not PlayerHasBuff(ids.DoubleTapBuff) and not PlayerHasBuff(ids.DeathblowBuff) ) then
+        --     NGSend("Trueshot") return true end
+        
+        if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) and not PlayerHasBuff(ids.DeathblowBuff) ) then
+            KTrig("Arcane Shot") return true end
+        
+        if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( not HasPreciseShots or TargetHasSpottersMark and HasMovingTarget ) then
+            KTrig("Aimed Shot") return true end
+        
+        if OffCooldown(ids.ExplosiveShot) and ( IsPlayerSpell(ids.ShrapnelShotTalent) and PlayerHasBuff(ids.LockAndLoadBuff) ) then
+            -- KTrig("Explosive Shot") return true end
+            if aura_env.config[tostring(ids.ExplosiveShot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Explosive Shot")
+            elseif aura_env.config[tostring(ids.ExplosiveShot)] ~= true then
+                KTrig("Explosive Shot")
+                return true
+            end
+        end
+        
+        if OffCooldown(ids.SteadyShot) then
+            KTrig("Steady Shot") return true end
+    end
+
+    local Sentst = function()
         -- Kichi remove for simc 18bda32_8.9 fix
         -- if OffCooldown(ids.ExplosiveShot) and not TargetHasDebuff(ids.SpottersMarkDebuff) and ( IsPlayerSpell(ids.PrecisionDetonationTalent) and (IsCasting(ids.AimedShot) or aura_env.PrevCast == ids.AimedShot and GetTime() - aura_env.PrevCastTime < 0.15) and PlayerHasBuff(ids.TrueshotBuff) == false ) then
         --     -- KTrig("Explosive Shot") return true end
@@ -566,10 +619,7 @@ function()
 
         if OffCooldown(ids.KillShot) and ( IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) or not IsPlayerSpell(ids.HeadshotTalent) and PlayerHasBuff(ids.RazorFragmentsBuff) ) then
             KTrig("Kill Shot") return true end
-        
-        if OffCooldown(ids.KillShot) and FindSpellOverrideByID(ids.KillShot) == ids.BlackArrow and ( not IsPlayerSpell(ids.HeadshotTalent) or IsPlayerSpell(ids.HeadshotTalent) and HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then 
-            KTrig("Black Arrow") return true end
-        
+                
         if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
             KTrig("Arcane Shot") return true end
         
@@ -710,7 +760,7 @@ function()
         if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( TargetHasDebuff(ids.ExplosiveShotDebuff) and IsPlayerSpell(ids.PrecisionDetonationTalent) and PlayerHasBuff(ids.TrickShotsBuff) ) then
             KTrig("Aimed Shot") return true end
 
-        if OffCooldown(ids.RapidFire) and ( GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) and ( not IsPlayerSpell(ids.BlackArrowTalent) or PlayerHasBuff(ids.DeathblowBuff) == false ) and ( not IsPlayerSpell(ids.NoScopeTalent) or TargetHasSpottersMark ) and ( IsPlayerSpell(ids.NoScopeTalent) or PlayerHasBuff(ids.BulletstormBuff) == false ) ) then
+        if OffCooldown(ids.RapidFire) and ( GetRemainingAuraDuration("player", ids.TrickShotsBuff) > max(C_Spell.GetSpellInfo(ids.RapidFire).castTime/1000, WeakAuras.gcdDuration()) and ( not IsPlayerSpell(ids.BlackArrowTalent) or PlayerHasBuff(ids.DeathblowBuff) == false ) and ( not IsPlayerSpell(ids.NoScopeTalent) or not TargetHasSpottersMark ) and ( IsPlayerSpell(ids.NoScopeTalent) or PlayerHasBuff(ids.BulletstormBuff) == false ) ) then
             -- KTrig("Rapid Fire") return true end
             if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Rapid Fire")
@@ -758,8 +808,11 @@ function()
     if NearbyEnemies > 1 then
         if Cleave() then return true end end
     
-    if NearbyEnemies <= 1 then
-        if St() then return true end end    
+    if NearbyEnemies <= 1 and ( IsPlayerSpell(ids.BlackArrowTalent) ) then
+        if Drst() then return true end end
+        
+    if NearbyEnemies <= 1 and ( not IsPlayerSpell(ids.BlackArrowTalent) ) then
+        if Sentst() then return true end end
 
     -- Kichi --
     KTrig("Clear")
@@ -779,6 +832,7 @@ end
 function(event, timestamp, subEvent, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID)
     if sourceGUID ~= UnitGUID("player") then return false end
     aura_env.PrevCast = spellID
+    aura_env.PrevCastTime = GetTime()
     return
 end
 

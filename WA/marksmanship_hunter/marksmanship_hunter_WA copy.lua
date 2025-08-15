@@ -28,6 +28,7 @@ aura_env.ids = {
     AspectOfTheHydraTalent = 470945,
     BlackArrowTalent = 466932,
     BulletstormTalent = 389019,
+    BullseyeTalent = 204089,
     DoubleTapTalent = 473370,
     HeadshotTalent = 471363,
     LunarStormTalent = 450385,
@@ -48,6 +49,7 @@ aura_env.ids = {
 
     -- Buffs/Debuffs
     BulletstormBuff = 389020,
+    BullseyeBuff = 204090,
     DeathblowBuff = 378770,
     DoubleTapBuff = 260402,
     LockAndLoadBuff = 194594,
@@ -536,6 +538,16 @@ function()
         if OffCooldown(ids.AimedShot) and not (IsCasting(ids.AimedShot) and C_Spell.GetSpellCharges(ids.AimedShot).currentCharges == 1) and ( PlayerHasBuff(ids.TrueshotBuff) and not HasPreciseShots or PlayerHasBuff(ids.LockAndLoadBuff) and HasMovingTarget ) then
             KTrig("Aimed Shot") return true end
         
+        if OffCooldown(ids.RapidFire) and ( not PlayerHasBuff(ids.DeathblowBuff) ) then
+            -- KTrig("Rapid Fire") return true end
+            if aura_env.config[tostring(ids.RapidFire)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Rapid Fire")
+            elseif aura_env.config[tostring(ids.RapidFire)] ~= true then
+                KTrig("Rapid Fire")
+                return true
+            end
+        end
+
         -- if OffCooldown(ids.Trueshot) and ( not PlayerHasBuff(ids.DoubleTapBuff) and not PlayerHasBuff(ids.DeathblowBuff) ) then
         --     NGSend("Trueshot") return true end
         
