@@ -1,7 +1,3 @@
-------------------------------
--- Rotation 图标提示载入配置 --
-------------------------------
-
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
@@ -34,16 +30,21 @@ aura_env.ids = {
     FreezingWindsTalent = 382103,
     FrostfireBoltTalent = 431044,
     FrozenTouchTalent = 205030,
+    GlacialAssaultTalent = 378947,
+    GlacialSpikeTalent = 199786,
     IceCallerTalent = 236662,
     IsothermicCoreTalent = 431095,
     RayOfFrostTalent = 205021,
+    ShiftingShardsTalent = 444675,
     SlickIceTalent = 382144,
     SplinteringColdTalent = 379049,
     SplinteringRayTalent = 418733,
     SplinterstormTalent = 443742,
-    
+    UnerringProficiencyTalent = 444974,
+
     -- Buffs
     BrainFreezeBuff = 190446,
+    ColdFrontReadyBuff = 382114,
     DeathsChillBuff = 454371,
     ExcessFireBuff = 438624,
     ExcessFrostBuff = 438611,

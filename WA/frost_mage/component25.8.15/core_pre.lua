@@ -36,17 +36,21 @@ aura_env.ids = {
     FreezingWindsTalent = 382103,
     FrostfireBoltTalent = 431044,
     FrozenTouchTalent = 205030,
+    GlacialAssaultTalent = 378947,
+    GlacialSpikeTalent = 199786,
     IceCallerTalent = 236662,
     IsothermicCoreTalent = 431095,
     RayOfFrostTalent = 205021,
+    ShiftingShardsTalent = 444675,
     SlickIceTalent = 382144,
     SplinteringColdTalent = 379049,
     SplinteringRayTalent = 418733,
     SplinterstormTalent = 443742,
-    GlacialSpikeTalent = 199786,
-    
+    UnerringProficiencyTalent = 444974,
+
     -- Buffs
     BrainFreezeBuff = 190446,
+    ColdFrontReadyBuff = 382114,
     DeathsChillBuff = 454371,
     ExcessFireBuff = 438624,
     ExcessFrostBuff = 438611,
@@ -95,9 +99,9 @@ aura_env.OffCooldown = function(spellID)
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
     local InRange = (SpellIdx and C_SpellBook.IsSpellBookItemInRange(SpellIdx, SpellBank, "target")) -- safety
     
-    if InRange == 0 then
+    if InRange == false then
         aura_env.OutOfRange = true
-        return false
+        --return false
     end
     
     return true
@@ -237,4 +241,3 @@ end
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
-

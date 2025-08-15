@@ -366,7 +366,6 @@ function()
     end
     
     local AoeFf = function()
-       
         if OffCooldown(ids.FrostfireBolt) and ( IsPlayerSpell(ids.DeathsChillTalent) and GetRemainingAuraDuration("player", ids.IcyVeinsBuff) > 9 and ( GetPlayerStacks(ids.DeathsChillBuff) < 9 or GetPlayerStacks(ids.DeathsChillBuff) == 9 and not ((aura_env.PrevCast == ids.FrostfireBolt or aura_env.PrevCast2 == ids.FrostfireBolt) and GetTime() - aura_env.PrevCastTime < 0.25 or IsCasting(ids.FrostfireBolt)) ) )  then
             KTrig("Frostfire Bolt") 
             return true end
