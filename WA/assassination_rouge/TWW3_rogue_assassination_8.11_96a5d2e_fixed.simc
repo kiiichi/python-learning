@@ -5,7 +5,7 @@ level=80
 race=maghar_orc
 role=attack
 position=back
-talents=CMQAA0tw2gAD7pPTLoW5IGZDeMjZmZmxM2mBAAAAAgZZw2MAAAAAA02yMzgZGMzMLz2MzMYGzYwMzsZZMDw2MLjNGzYWaMLbDTWGGWA
+talents=CMQAA0tw2gAD7pPTLoW5IGZDeYmZMzMmBAAAAAAYWmxsMDAAAAAAttMzMYmBzMzysNYMmZmZmZmZYzyYGgtZWGbMmxs0YW2GmsMMsMA
 
 # Default consumables
 potion=tempered_potion_3
@@ -183,6 +183,9 @@ actions.stealthed=pool_resource,for_next=1
 actions.stealthed+=/ambush,if=!debuff.deathstalkers_mark.up&talent.deathstalkers_mark&combo_points<variable.effective_spend_cp&(dot.rupture.ticking|variable.single_target|!talent.subterfuge)
 # Make sure to have Shiv up during Kingsbane as a final check
 actions.stealthed+=/shiv,if=talent.kingsbane&dot.kingsbane.ticking&dot.kingsbane.remains<8&(!debuff.shiv.up&debuff.shiv.remains<1)&buff.envenom.up
+
+actions.stealthed+=/crimson_tempest,target_if=min:remains,if=spell_targets>=7&combo_points>=variable.effective_spend_cp&refreshable&!buff.darkest_night.up&buff.scent_of_blood.stack>=12
+
 # Envenom to maintain the buff during Subterfuge
 actions.stealthed+=/envenom,if=effective_combo_points>=variable.effective_spend_cp&dot.kingsbane.ticking&buff.envenom.remains<=3&(debuff.deathstalkers_mark.up|buff.cold_blood.up|buff.darkest_night.up&combo_points=7)
 # Envenom during Master Assassin in single target

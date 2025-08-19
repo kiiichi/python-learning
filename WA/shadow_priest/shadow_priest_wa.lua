@@ -7,6 +7,8 @@ WeakAuras.WatchGCD()
 
 aura_env.PrevCastTime = 0
 aura_env.ShadowfiendExpiration = 0
+aura_env.Archon4pcStacks = 0
+aura_env.LastShadowCrash = 0
 _G.KLIST = { 
     ShadowPriest = { 
         aura_env.config["ExcludeList1"],
@@ -26,50 +28,53 @@ aura_env.ids = {
     Halo = 120644,
     MindBlast = 8092,
     MindFlay = 15407,
-    MindSpike = 73510,
-    MindSpikeInsanity = 407466,
+    MindSpike = 73510, -- Check if this is exist
+    MindSpikeInsanity = 407466, -- Check if this is exist
     Mindbender = 200174,
     ShadowCrash = 205385,
     ShadowWordDeath = 32379,
     ShadowWordPain = 589,
-    Shadowfiend = 34433,
+    Shadowfiend = 34433, -- NG name incorrect
     VampiricTouch = 34914,
     VoidBlast = 450983,
     VoidBolt = 205448,
     VoidEruption = 228260,
     VoidTorrent = 263165,
+    VoidVolley = 1242173,
     Voidwraith = 451235,
     
     -- Talents
+    DepthOfShadowsTalent = 451308,
+    DeathspeakerTalent = 392507,
+    DescendingDarknessTalent = 1242666,
     DevourMatterTalent = 451840,
+    DistortedRealityTalent = 409044,
+    EmpoweredSurgesTalent = 453799,
+    EntropicRiftTalent = 447444,
+    InescapableTormentTalent = 373427,
+    InnerQuietusTalent = 448278,
+    InsidiousIreTalent = 373212,
     MindDevourerTalent = 373202,
     MindMeltTalent = 391090,
-    DistortedRealityTalent = 409044,
-    InescapableTormentTalent = 373427,
-    WhisperingShadowsTalent = 406777,
-    VoidBlastTalent = 450405,
-    PerfectedFormTalent = 453917,
-    PsychicLinkTalent = 199484,
-    PowerSurgeTalent = 453109,
-    EmpoweredSurgesTalent = 453799,
-    VoidEmpowermentTalent = 450138,
-    DepthOfShadowsTalent = 451308,
-    EntropicRiftTalent = 447444,
-    InsidiousIreTalent = 373212,
     MindsEyeTalent = 407470,
-    UnfurlingDarknessTalent = 341273,
-    InnerQuietusTalent = 448278,
+    PerfectedFormTalent = 453917,
+    PowerSurgeTalent = 453109,
+    PsychicLinkTalent = 199484,
+    VoidBlastTalent = 450405,
+    VoidEmpowermentTalent = 450138,
     
     -- Buffs/Debuffs
-    MindSpikeInsanityBuff = 407468,
-    MindFlayInsanityBuff = 391401,
+    AscensionBuff = 391109,
+    DevouringPlagueDebuff = 335467,
+    EntropicRiftBuff = 449887, -- Actually the Void Heart buff since Entropic Rift doesn't have a buff.
     MindDevourerBuff = 373204,
+    MindFlayInsanityBuff = 391401,
+    PowerSurgeBuff = 453113,
     UnfurlingDarknessBuff = 341282,
     UnfurlingDarknessCdBuff = 341291,
-    DeathspeakerBuff = 392511,
-    VoidformBuff = 194249,
     VampiricTouchDebuff = 34914,
-    EntropicRiftBuff = 449887, -- Actually the Void Heart buff since Entropic Rift doesn't have a buff.
+    VoidformBuff = 194249,
+    VoidVolleyBuff = 1242171,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -298,7 +303,7 @@ function()
     aura_env.OutOfRange = false
     
     ---- Setup Data -----------------------------------------------------------------------------------------------
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1875)
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1927)
     
     local CurrentInsanity = UnitPower("player", Enum.PowerType.Insanity)
     local MaxInsanity = UnitPowerMax("player", Enum.PowerType.Insanity)
@@ -339,7 +344,7 @@ function()
     
     local ShadowfiendDuration = max(0, aura_env.ShadowfiendExpiration - GetTime())
     
-    WeakAuras.ScanEvents("NG_VAMPIRIC_TOUCH_SPREAD", DottedEnemies, UndottedEnemies)
+    -- WeakAuras.ScanEvents("NG_VAMPIRIC_TOUCH_SPREAD", DottedEnemies, UndottedEnemies)
     
     -- Only recommend things when something's targeted
     if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
@@ -354,13 +359,11 @@ function()
     
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     local Variables = {}
-    Variables.DrForcePrio = false
+    Variables.DrForcePrio = true
     Variables.MeForcePrio = true
     Variables.MaxVts = 12
     Variables.IsVtPossible = false
-    Variables.PoolingMindblasts = false
     Variables.HoldingCrash = false
-    Variables.PoolForCds = ( GetRemainingSpellCooldown(ids.VoidEruption) <= 1.5 * 3 and IsPlayerSpell(ids.VoidEruption) or OffCooldown(ids.DarkAscension) and IsPlayerSpell(ids.DarkAscension) ) or IsPlayerSpell(ids.VoidTorrent) and IsPlayerSpell(ids.PsychicLinkTalent) and GetRemainingSpellCooldown(ids.VoidTorrent) <= 4 and ( NearbyEnemies > 1 ) and not PlayerHasBuff(ids.VoidformBuff)
     
     local AoeVariables = function()
         Variables.MaxVts = min(NearbyEnemies, 12)
@@ -371,9 +374,9 @@ function()
         Variables.IsVtPossible = true end
         
         -- TODO: Revamp to fix undesired behaviour with unstacked fights
-        Variables.DotsUp = ( DottedEnemies + 8 * ( ((aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 0.15) and IsPlayerSpell(ids.WhisperingShadowsTalent) ) and 1 or 0)) >= Variables.MaxVts or not Variables.IsVtPossible
+        Variables.DotsUp = ( DottedEnemies + 8 * ( ((GetTime() - aura_env.LastShadowCrash < 2) ) and 1 or 0)) >= Variables.MaxVts or not Variables.IsVtPossible
         
-        if Variables.HoldingCrash and IsPlayerSpell(ids.WhisperingShadowsTalent) then
+        if Variables.HoldingCrash and IsPlayerSpell(ids.ShadowCrash) then
             Variables.HoldingCrash = ( Variables.MaxVts - DottedEnemies ) < 4 end
         
         Variables.ManualVtsApplied = ( DottedEnemies + 8 * (not Variables.HoldingCrash and 1 or 0) ) >= Variables.MaxVts or not Variables.IsVtPossible
@@ -383,7 +386,7 @@ function()
         if AoeVariables() then return true end
         
         -- High Priority action to put out Vampiric Touch on enemies that will live at least 18 seconds, up to 12 targets manually while prepping AoE
-        if OffCooldownNotCasting(ids.VampiricTouch) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and TargetTimeToXPct(0, 60) >= 18 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 and not Variables.ManualVtsApplied and not (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 0.15) or not IsPlayerSpell(ids.WhisperingShadowsTalent) ) and not PlayerHasBuff(ids.EntropicRiftBuff) ) then
+        if OffCooldownNotCasting(ids.VampiricTouch) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and TargetTimeToXPct(0, 60) >= 18 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 and not Variables.ManualVtsApplied and not (GetTime() - aura_env.LastShadowCrash < 2) ) and not PlayerHasBuff(ids.EntropicRiftBuff) ) then
             KTrig("Vampiric Touch") return true end
         
         -- Use Shadow Crash to apply Vampiric Touch to as many adds as possible while being efficient with Vampiric Touch refresh windows
@@ -400,7 +403,7 @@ function()
     
     local Cds = function()
         -- Make sure Mindbender is active before popping Dark Ascension unless you have insignificant talent points or too many targets
-        if OffCooldownNotCasting(ids.Halo) and ( IsPlayerSpell(ids.PowerSurgeTalent) and ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 and IsPlayerSpell(ids.Mindbender) or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) or not IsPlayerSpell(ids.DarkAscension) ) and ( C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 4  or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent)) ) then
+        if OffCooldownNotCasting(ids.Halo) and ( IsPlayerSpell(ids.PowerSurgeTalent) and ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 and IsPlayerSpell(ids.Mindbender) or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) or not IsPlayerSpell(ids.DarkAscension) ) and ( C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or not OffCooldown(ids.VoidTorrent) or not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 4  or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent)) ) then
             -- KTrig("Halo") return true end
             if aura_env.config[tostring(ids.Halo)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Halo")
@@ -411,7 +414,7 @@ function()
         end
         
         -- Make sure Mindbender is active before popping Void Eruption and dump charges of Mind Blast before casting
-        if OffCooldownNotCasting(ids.VoidEruption) and ( ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) ) and C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent) ) then
+        if OffCooldownNotCasting(ids.VoidEruption) and ( ( ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent) ) and C_Spell.GetSpellCharges(ids.MindBlast).currentCharges == 0 or PlayerHasBuff(ids.MindDevourerBuff) and IsPlayerSpell(ids.MindDevourerTalent) or PlayerHasBuff(ids.PowerSurgeBuff) ) then
             -- KTrig("Void Eruption") return true end
             if aura_env.config[tostring(ids.VoidEruption)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Void Eruption")
@@ -421,8 +424,8 @@ function()
             end
         end
             
-        
-        if OffCooldownNotCasting(ids.DarkAscension) and ( (ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent)) and (DevouredEnemies >= 1 or CurrentInsanity >= (15 + 5 * (not IsPlayerSpell(ids.MindsEyeTalent) and 1 or 0) + 5 * (IsPlayerSpell(ids.DistortedRealityTalent) and 1 or 0 ) - ((ShadowfiendDuration > 0) and 1 or 0) * 6) ) ) then
+        -- Use Dark Ascension when you have enough Insanity to cast Devouring Plague.
+        if OffCooldownNotCasting(ids.DarkAscension) and ( (ShadowfiendDuration > 0 and ShadowfiendDuration >= 4 or not IsPlayerSpell(ids.Mindbender) and not OffCooldown(ids.Shadowfiend) or NearbyEnemies > 2 and not IsPlayerSpell(ids.InescapableTormentTalent)) and (DevouredEnemies >= 1 or CurrentInsanity >= (20 - (5 * (not IsPlayerSpell(ids.MindsEyeTalent) and 1 or 0)) + (5 * (IsPlayerSpell(ids.DistortedRealityTalent) and 1 or 0 )) - (((ShadowfiendDuration > 0) and 1 or 0) * 2)) ) ) then
             -- KTrig("Dark Ascension") return true end
             if aura_env.config[tostring(ids.DarkAscension)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Dark Ascension")
@@ -433,107 +436,15 @@ function()
         end
     end
     
-    local EmpoweredFiller = function()
-        if OffCooldown(ids.MindSpike) and PlayerHasBuff(ids.MindSpikeInsanityBuff) then
-            KTrig("Mind Spike Insanity") return true end
-            -- KTrig("Mind Spike") return true end
-        
-        if OffCooldown(ids.MindFlay) and ( PlayerHasBuff(ids.MindFlayInsanityBuff) ) then
-            --KTrig("Mind Flay Insanity") return true end
-            KTrig("Mind Flay") return true end
-    end
-    
-    local Filler = function()
-        if EmpoweredFiller() then return true end
-        
-        -- Cast Vampiric Touch to proc Unfurling Darkness
-        if OffCooldownNotCasting(ids.VampiricTouch) and ( IsPlayerSpell(ids.UnfurlingDarknessTalent) and GetRemainingAuraDuration("player", ids.UnfurlingDarknessCdBuff, "PLAYER|HARMFUL") < max(C_Spell.GetSpellInfo(ids.VampiricTouch).castTime/1000, WeakAuras.gcdDuration()) and IsPlayerSpell(ids.InnerQuietusTalent) ) then
-            KTrig("Vampiric Touch") return true end
-        
-        if OffCooldown(ids.ShadowWordDeath) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < 20 or PlayerHasBuff(ids.DeathspeakerBuff) and TargetHasDebuff(ids.DevouringPlague) ) then
-            KTrig("Shadow Word Death") return true end
-        
-        if OffCooldown(ids.ShadowWordDeath) and ( IsPlayerSpell(ids.InescapableTormentTalent) and ShadowfiendDuration > 0 ) then
-            KTrig("Shadow Word Death") return true end
-        
-        --if OffCooldown(ids.MindFlay) and ( bugs and PlayerHasBuff(ids.VoidformBuff) and GetRemainingSpellCooldown(ids.VoidBolt) <= WeakAuras.gcdDuration() * 1.65738) then
-        --    KTrig("Mind Flay")
-        --end
-        
-        if OffCooldown(ids.DevouringPlague) and ( IsPlayerSpell(ids.EmpoweredSurgesTalent) and (PlayerHasBuff(ids.MindSpikeInsanityBuff) or PlayerHasBuff(ids.MindFlayInsanityBuff)) or PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.VoidEruption) ) then
-            KTrig("Devouring Plague") return true end
-        
-        if OffCooldownNotCasting(ids.VampiricTouch) and ( IsPlayerSpell(ids.UnfurlingDarknessTalent) and GetRemainingAuraDuration("player", ids.UnfurlingDarknessCdBuff, "PLAYER|HARMFUL") < max(C_Spell.GetSpellInfo(ids.VampiricTouch).castTime/1000, WeakAuras.gcdDuration()) ) then
-            KTrig("Vampiric Touch") return true end
-        
-        -- Save up to 20s if adds are coming soon.
-        if OffCooldownNotCasting(ids.Halo) and ( NearbyEnemies > 1 ) then
-            -- KTrig("Halo") return true end
-            if aura_env.config[tostring(ids.Halo)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Halo")
-            elseif aura_env.config[tostring(ids.Halo)] ~= true then
-                KTrig("Halo")
-                return true
-            end
-        end
-        
-        if EmpoweredFiller() then return true end
-        
-        if OffCooldown(ids.ShadowCrash) and (not Variables.HoldingCrash and IsPlayerSpell(ids.VoidEruption) and IsPlayerSpell(ids.PerfectedFormTalent)) then
-            -- KTrig("Shadow Crash") return true end
-            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadow Crash")
-            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
-                KTrig("Shadow Crash")
-                return true
-            end
-        end
-        
-        if OffCooldown(ids.MindSpike) then
-            KTrig("Mind Spike") return true end
-        
-        if OffCooldown(ids.MindFlay) then
-            KTrig("Mind Flay") return true end
-        
-        if OffCooldown(ids.DivineStar) then
-            -- KTrig("Divine Star") return true end
-            if aura_env.config[tostring(ids.DivineStar)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Divine Star")
-            elseif aura_env.config[tostring(ids.DivineStar)] ~= true then
-                KTrig("Divine Star")
-                return true
-            end
-        end
-        
-        -- Use Shadow Crash while moving as a low-priority action when adds will not spawn in 20 seconds.
-        if OffCooldown(ids.ShadowCrash) then
-            -- KTrig("Shadow Crash") return true end
-            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Shadow Crash")
-            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
-                KTrig("Shadow Crash")
-                return true
-            end
-        end
-        
-        -- Use Shadow Word: Death while moving as a low-priority action
-        if OffCooldown(ids.ShadowWordDeath) then
-            KTrig("Shadow Word Death") return true end
-    end
-    
     local Main = function()
         if NearbyEnemies < 3 then
-            Variables.DotsUp = TargetHasDebuff(ids.VampiricTouchDebuff) or IsCasting(ids.VampiricTouch) or (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 1) and IsPlayerSpell(ids.WhisperingShadowsTalent) end
-        
-        -- Are we pooling mindblasts? Currently only used for Voidweaver.
-        if IsPlayerSpell(ids.VoidBlastTalent) and GetRemainingSpellCooldown(ids.VoidTorrent) <= (max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75)) * (2 + (IsPlayerSpell(ids.MindMeltTalent) and 1 or 0) * 2) then
-        Variables.PoolingMindblasts = true else Variables.PoolingMindblasts = false end
+            Variables.DotsUp = TargetHasDebuff(ids.VampiricTouchDebuff) or IsCasting(ids.VampiricTouch) or (GetTime() - aura_env.LastShadowCrash < 2) end
         
         if FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 and ( not Variables.HoldingCrash or NearbyEnemies > 2 ) then
             if Cds() then return true end end
         
         -- Use Shadowfiend and Mindbender on cooldown as long as Vampiric Touch and Shadow Word: Pain are active and sync with Dark Ascension
-        if OffCooldown(ids.Shadowfiend) and GetRemainingSpellCooldown(ids.Mindbender) == 0 and GetRemainingSpellCooldown(ids.Voidwraith) == 0 and ( ( TargetHasDebuff(ids.ShadowWordPain) and Variables.DotsUp or (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 1) and IsPlayerSpell(ids.WhisperingShadowsTalent) ) and ( FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 ) and ( not IsPlayerSpell(ids.DarkAscension) or GetRemainingSpellCooldown(ids.DarkAscension) < 1.5 or FightRemains(60, NearbyRange) < 15 ) ) then
+        if OffCooldown(ids.Shadowfiend) and GetRemainingSpellCooldown(ids.Mindbender) == 0 and GetRemainingSpellCooldown(ids.Voidwraith) == 0 and ( ( TargetHasDebuff(ids.ShadowWordPain) and Variables.DotsUp or (GetTime() - aura_env.LastShadowCrash < 2) ) and ( not OffCooldown(ids.Halo) or not IsPlayerSpell(ids.PowerSurgeTalent) ) and ( FightRemains(60, NearbyRange) < 30 or TargetTimeToXPct(0, 60) > 15 ) and ( not IsPlayerSpell(ids.DarkAscension) or GetRemainingSpellCooldown(ids.DarkAscension) < 1.5 or FightRemains(60, NearbyRange) < 15 ) ) then
             -- KTrig("Shadowfiend") return true end
             if aura_env.config[tostring(ids.Shadowfiend)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shadowfiend")
@@ -548,23 +459,19 @@ function()
             KTrig("Shadow Word Death") return true end
         
         -- Blast more burst :wicked:
-        if OffCooldownNotCasting(ids.VoidBlast) and ( ( GetRemainingDebuffDuration("target", ids.DevouringPlague) >= max(C_Spell.GetSpellInfo(ids.VoidBlast).castTime/1000, WeakAuras.gcdDuration()) or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5 or (select(8, UnitChannelInfo("player")) == ids.VoidTorrent) and IsPlayerSpell(ids.VoidEmpowermentTalent) ) and ( MaxInsanity - CurrentInsanity >= 16 or GetTimeToFullCharges(ids.MindBlast) <= 1.5 or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5) and ( not IsPlayerSpell(ids.MindDevourerTalent) or not PlayerHasBuff(ids.MindDevourerBuff) or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5 ) ) then
+        if OffCooldownNotCasting(ids.VoidBlast) and ( ( GetRemainingDebuffDuration("target", ids.DevouringPlague) >= max(C_Spell.GetSpellInfo(ids.VoidBlast).castTime/1000, WeakAuras.gcdDuration()) or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5 or (select(8, UnitChannelInfo("player")) == ids.VoidTorrent) and IsPlayerSpell(ids.VoidEmpowermentTalent) ) and ( MaxInsanity - CurrentInsanity >= 16 or GetTimeToFullCharges(ids.MindBlast) <= 1.5 or GetRemainingAuraDuration("player", ids.EntropicRiftBuff) <= 1.5) ) then
             KTrig("Void Blast") return true end
         
         -- Do not let Voidform Expire if you can avoid it.
         if OffCooldown(ids.DevouringPlague) and ( PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.PerfectedFormTalent) and GetRemainingAuraDuration("player", ids.VoidformBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and IsPlayerSpell(ids.VoidEruption) ) then
             KTrig("Devouring Plague") return true end
         
-        -- Complicated do not overcap mindblast and use it to protect against void bolt cd desync
-        if OffCooldownNotCasting(ids.MindBlast) and ( IsPlayerSpell(ids.VoidEruption) and PlayerHasBuff(ids.VoidformBuff) and GetTimeToFullCharges(ids.MindBlast) <= 1.5 and ( not IsPlayerSpell(ids.InsidiousIreTalent) or GetRemainingDebuffDuration("target", ids.DevouringPlague) >= max(C_Spell.GetSpellInfo(ids.MindBlast).castTime/1000, WeakAuras.gcdDuration()) ) and ( GetRemainingSpellCooldown(ids.VoidBolt) / 1.5 - GetRemainingSpellCooldown(ids.VoidBolt) % 1.5 ) * 1.5 <= 0.25 and ( GetRemainingSpellCooldown(ids.VoidBolt) / 1.5 - GetRemainingSpellCooldown(ids.VoidBolt) % 1.5 ) >= 0.01 ) then
-            KTrig("Mind Blast") return true end
-        
         -- Use Voidbolt on the enemy with the largest time to die. We do no care about dots because Voidbolt is only accessible inside voidform which guarantees maximum effect
         if GetRemainingSpellCooldown(ids.VoidBolt) == 0 and not IsCasting(ids.VoidBolt) and (PlayerHasBuff(ids.VoidformBuff) or IsCasting(ids.VoidEruption)) and ( MaxInsanity - CurrentInsanity > 16 and GetRemainingSpellCooldown(ids.VoidBolt) <= 0.1 ) then
             -- KTrig("Void Bolt") return true end
-            if aura_env.config[tostring(ids.VoidBolt)] == true and aura_env.FlagKTrigCD then
+            if aura_env.config[tostring(ids.VoidEruption)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Void Bolt")
-            elseif aura_env.config[tostring(ids.VoidBolt)] ~= true then
+            elseif aura_env.config[tostring(ids.VoidEruption)] ~= true then
                 KTrig("Void Bolt")
                 return true
             end
@@ -572,11 +479,11 @@ function()
 
         
         -- Do not overcap on insanity
-        if OffCooldown(ids.DevouringPlague) and ( DevouredEnemies <= 1 and GetRemainingDebuffDuration("target", ids.DevouringPlague) <= 1.5 and ( not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 3 ) or MaxInsanity - CurrentInsanity <= 16 ) then      
+        if OffCooldown(ids.DevouringPlague) and ( DevouredEnemies <= 1 and GetRemainingDebuffDuration("target", ids.DevouringPlague) <= 1.5 and ( not IsPlayerSpell(ids.VoidEruption) or GetRemainingSpellCooldown(ids.VoidEruption) >= 1.5 * 3 ) or MaxInsanity - CurrentInsanity <= 35 or PlayerHasBuff(ids.MindDevourerBuff) or PlayerHasBuff(ids.EntropicRiftBuff) or PlayerHasBuff(ids.PowerSurgeBuff) and ( SetPieces >= 4 and IsPlayerSpell(ids.PowerSurgeTalent) and aura_env.Archon4pcStacks < 4 ) and PlayerHasBuff(ids.AscensionBuff) ) then      
             KTrig("Devouring Plague") return true end
         
-        -- Cast Void Torrent at very high priority if Voidweaver
-        if OffCooldownNotCasting(ids.VoidTorrent) and ( ( TargetHasDebuff(ids.DevouringPlague) or IsPlayerSpell(ids.VoidEruption) and OffCooldown(ids.VoidEruption) ) and IsPlayerSpell(ids.EntropicRiftTalent) and not Variables.HoldingCrash and (GetRemainingSpellCooldown(ids.DarkAscension) >= 12 or not IsPlayerSpell(ids.DarkAscension) or not IsPlayerSpell(ids.VoidBlastTalent))) then
+        -- Use Void Torrent if it will get near full Mastery Value
+        if OffCooldownNotCasting(ids.VoidTorrent) and ( not Variables.HoldingCrash and (GetRemainingDebuffDuration("target", ids.DevouringPlagueDebuff) >= 2.5 and ( GetRemainingSpellCooldown(ids.DarkAscension) >= 12 or not IsPlayerSpell(ids.DarkAscension) or not IsPlayerSpell(ids.VoidBlastTalent) ) or GetRemainingSpellCooldown(ids.VoidEruption) <= 3 and IsPlayerSpell(ids.VoidEruption) ) ) then
             --KTrig("Void Torrent") return true end
             if aura_env.config[tostring(ids.VoidTorrent)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Void Torrent")
@@ -586,46 +493,23 @@ function()
             end
         end
         
-        -- Use Voidbolt on the enemy with the largest time to die. Force a cooldown check here to make sure SimC doesn't wait too long (i.e. weird MF:I desync with GCD)
-        if GetRemainingSpellCooldown(ids.VoidBolt) == 0 and not IsCasting(ids.VoidBolt) and (PlayerHasBuff(ids.VoidformBuff) or IsCasting(ids.VoidEruption)) and ( GetRemainingSpellCooldown(ids.VoidBolt) / WeakAuras.gcdDuration() <= 0.1 ) then
-            -- KTrig("Void Bolt") return true end
-            if aura_env.config[tostring(ids.VoidBolt)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Bolt")
-            elseif aura_env.config[tostring(ids.VoidBolt)] ~= true then
-                KTrig("Void Bolt")
-                return true
-            end
-        end
-        
-        -- Spend UFD as a high priority action
-        if OffCooldownNotCasting(ids.VampiricTouch) and ( PlayerHasBuff(ids.UnfurlingDarknessBuff) and DottedEnemies <= 5) then
-            KTrig("Vampiric Touch") return true end
-        
-        -- Do not overcap MSI or MFI during Empowered Surges (Archon).
-        if ( GetPlayerStacks(ids.MindSpikeInsanityBuff) > 2 and IsPlayerSpell(ids.MindSpike) or GetPlayerStacks(ids.MindFlayInsanityBuff) > 2 and not IsPlayerSpell(ids.MindSpike) ) and IsPlayerSpell(ids.EmpoweredSurgesTalent) and not OffCooldown(ids.VoidEruption) then
-            if EmpoweredFiller() then return true end end
-        
-        -- Spend your Insanity on Devouring Plague at will if the fight will end in less than 10s
-        if OffCooldown(ids.DevouringPlague) and ( FightRemains(60, NearbyRange) <= 6 + 4 ) then
-            KTrig("Devouring Plague") return true end
-        
-        -- Use Devouring Plague to maximize uptime. Short circuit if you are capping on Insanity within 35 With Distorted Reality can maintain more than one at a time in multi-target.
-        if OffCooldown(ids.DevouringPlague) and ( MaxInsanity - CurrentInsanity <= 35 and IsPlayerSpell(ids.DistortedRealityTalent) or PlayerHasBuff(ids.MindDevourerBuff) and OffCooldown(ids.MindBlast) and ( GetRemainingSpellCooldown(ids.VoidEruption) >= 3 * 1.5 or not IsPlayerSpell(ids.VoidEruption) ) and IsPlayerSpell(ids.MindDevourerTalent) or PlayerHasBuff(ids.EntropicRiftBuff) ) then
-            KTrig("Devouring Plague") return true end
-        
-        -- Use Void Torrent if it will get near full Mastery Value and you have Cthun and Void Eruption. Prune this action for Entropic Rift Builds.
-        if OffCooldownNotCasting(ids.VoidTorrent) and ( not Variables.HoldingCrash and not IsPlayerSpell(ids.EntropicRiftTalent) and GetTimeToFullCharges(ids.MindBlast) >= 2 and GetRemainingDebuffDuration("target", ids.DevouringPlague) >= 2.5 ) then
-            --KTrig("Void Torrent") return true end
+        -- Use Void Volley if it would expire soon
+        if PlayerHasBuff(ids.VoidVolleyBuff) and ( GetRemainingAuraDuration("player", ids.VoidVolleyBuff) <= 5 or PlayerHasBuff(ids.EntropicRiftBuff) and GetRemainingSpellCooldown(ids.VoidBlast) > GetRemainingAuraDuration("player", ids.EntropicRiftBuff) or TargetTimeToXPct(0, 60) <= 5 ) then
+            -- NGSend("Void Volley") return true end
             if aura_env.config[tostring(ids.VoidTorrent)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Void Torrent")
+                KTrigCD("Void Volley")
             elseif aura_env.config[tostring(ids.VoidTorrent)] ~= true then
-                KTrig("Void Torrent")
+                KTrig("Void Volley")
                 return true
             end
         end
+
+        -- MFI is a good button
+        if OffCooldown(ids.MindFlay) and ( PlayerHasBuff(ids.MindFlayInsanityBuff) ) then
+            KTrig("Mind Flay") return true end
         
         -- Use Shadow Crash as long as you are not holding for adds and Vampiric Touch is within pandemic range
-        if OffCooldown(ids.ShadowCrash) and ( not Variables.HoldingCrash and IsAuraRefreshable(ids.VampiricTouchDebuff) and ( not IsPlayerSpell(ids.UnfurlingDarknessTalent) or NearbyEnemies > 1 ) ) then
+        if OffCooldown(ids.ShadowCrash) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and not Variables.HoldingCrash and not (GetTime() - aura_env.LastShadowCrash < 2) ) then
             -- KTrig("Shadow Crash") return true end
             if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shadow Crash")
@@ -635,22 +519,58 @@ function()
             end
         end
         
-        -- Acquire UFD
-        if OffCooldownNotCasting(ids.VampiricTouch) and (GetRemainingAuraDuration("player", ids.UnfurlingDarknessCdBuff, "PLAYER|HARMFUL") < max(C_Spell.GetSpellInfo(ids.VampiricTouch).castTime/1000, WeakAuras.gcdDuration()) and IsPlayerSpell(ids.UnfurlingDarknessTalent) and not PlayerHasBuff(ids.DarkAscension) and IsPlayerSpell(ids.InnerQuietusTalent) and DottedEnemies <= 5) then
-            KTrig("Vampiric Touch") return true end
-        
         -- Put out Vampiric Touch on enemies that will live at least 12s and Shadow Crash is not available soon
-        if OffCooldownNotCasting(ids.VampiricTouch) and ( (not (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 1) and IsAuraRefreshable(ids.VampiricTouchDebuff)) and TargetTimeToXPct(0, 60) > 12 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 or NearbyEnemies <= 1 ) and ( GetRemainingSpellCooldown(ids.ShadowCrash) >= GetRemainingDebuffDuration("target", ids.VampiricTouchDebuff) or Variables.HoldingCrash or not IsPlayerSpell(ids.WhisperingShadowsTalent) ) and ( not (aura_env.PrevCast == ids.ShadowCrash and GetTime() - aura_env.PrevCastTime < 0.15) or not IsPlayerSpell(ids.WhisperingShadowsTalent) ) ) then
+        if OffCooldownNotCasting(ids.VampiricTouch) and ( IsAuraRefreshable(ids.VampiricTouchDebuff) and TargetTimeToXPct(0, 60) > 12 and ( TargetHasDebuff(ids.VampiricTouchDebuff) or not Variables.DotsUp ) and ( Variables.MaxVts > 0 or NearbyEnemies <= 1 ) and ( GetRemainingSpellCooldown(ids.ShadowCrash) >= GetRemainingDebuffDuration("target", ids.VampiricTouchDebuff) or Variables.HoldingCrash or not IsPlayerSpell(ids.ShadowCrash) ) and ( not (GetTime() - aura_env.LastShadowCrash < 2) or not IsPlayerSpell(ids.ShadowCrash) ) ) then
             KTrig("Vampiric Touch") return true end
         
         -- Use all charges of Mind Blast if Vampiric Touch and Shadow Word: Pain are active and Mind Devourer is not active or you are prepping Void Eruption
-        if OffCooldown(ids.MindBlast) and (C_Spell.GetSpellCharges(ids.MindBlast).currentCharges > 1 or not IsCasting(ids.MindBlast)) and ( ( not PlayerHasBuff(ids.MindDevourerBuff) or not IsPlayerSpell(ids.MindDevourerTalent) or OffCooldown(ids.VoidEruption) and IsPlayerSpell(ids.VoidEruption) ) and not Variables.PoolingMindblasts ) then
+        if OffCooldown(ids.MindBlast) and (C_Spell.GetSpellCharges(ids.MindBlast).currentCharges > 1 or not IsCasting(ids.MindBlast)) and ( not PlayerHasBuff(ids.MindDevourerBuff) or not IsPlayerSpell(ids.MindDevourerTalent) or OffCooldown(ids.VoidEruption) and IsPlayerSpell(ids.VoidEruption) ) then
             KTrig("Mind Blast") return true end
+
+        if PlayerHasBuff(ids.VoidVolleyBuff) then
+            KTrig("Void Volley") return true end
         
-        if OffCooldown(ids.DevouringPlague) and ( PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.PerfectedFormTalent) and IsPlayerSpell(ids.VoidEruption) ) then
+        if OffCooldown(ids.DevouringPlague) and ( PlayerHasBuff(ids.VoidformBuff) and IsPlayerSpell(ids.VoidEruption) or PlayerHasBuff(ids.PowerSurgeBuff) or IsPlayerSpell(ids.DistortedRealityTalent) ) then      
             KTrig("Devouring Plague") return true end
         
-        if Filler() then return true end
+        if OffCooldownNotCasting(ids.Halo) and ( NearbyEnemies > 1 ) then
+            -- KTrig("Halo") return true end
+            if aura_env.config[tostring(ids.Halo)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Halo")
+            elseif aura_env.config[tostring(ids.Halo)] ~= true then
+                KTrig("Halo")
+                return true
+            end
+        end
+
+        if OffCooldown(ids.ShadowCrash) and ( not Variables.HoldingCrash and IsPlayerSpell(ids.DescendingDarknessTalent) ) then
+            -- KTrig("Shadow Crash") return true end
+            if aura_env.config[tostring(ids.ShadowCrash)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Shadow Crash")
+            elseif aura_env.config[tostring(ids.ShadowCrash)] ~= true then
+                KTrig("Shadow Crash")
+                return true
+            end
+        end
+
+        if OffCooldown(ids.ShadowWordDeath) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < ( 20 + 15 * (IsPlayerSpell(ids.DeathspeakerTalent) and 1 or 0) ) ) then
+            KTrig("Shadow Word Death") return true end
+
+        if OffCooldown(ids.ShadowWordDeath) and ( IsPlayerSpell(ids.InescapableTormentTalent) and ShadowfiendDuration > 0 ) then
+            KTrig("Shadow Word Death") return true end
+        if OffCooldown(ids.MindFlay) then
+            KTrig("Mind Flay") return true end
+
+        if OffCooldown(ids.DivineStar) then
+            -- KTrig("Divine Star") return true end
+            if aura_env.config[tostring(ids.DivineStar)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Divine Star")
+            elseif aura_env.config[tostring(ids.DivineStar)] ~= true then
+                KTrig("Divine Star")
+                return true
+            end
+        end
+
     end
     
     if NearbyEnemies > 2 then
@@ -676,6 +596,15 @@ function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
     
     aura_env.PrevCast = spellID
     aura_env.PrevCastTime = GetTime()
+    
+    if spellID == aura_env.ids.Halo then
+        aura_env.Archon4pcStacks = 0
+    elseif spellID == aura_env.ids.DevouringPlague then
+        -- Each cast of Devouring Plague increases the stacks by 1
+        aura_env.Archon4pcStacks = aura_env.Archon4pcStacks + 1
+    elseif spellID == aura_env.ids.ShadowCrash then
+        aura_env.LastShadowCrash = GetTime()
+    end
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -709,49 +638,53 @@ aura_env.ids = {
     Halo = 120644,
     MindBlast = 8092,
     MindFlay = 15407,
-    MindSpike = 73510,
-    MindSpikeInsanity = 407466,
+    MindSpike = 73510, -- Check if this is exist
+    MindSpikeInsanity = 407466, -- Check if this is exist
     Mindbender = 200174,
     ShadowCrash = 205385,
     ShadowWordDeath = 32379,
     ShadowWordPain = 589,
-    Shadowfiend = 34433,
+    Shadowfiend = 34433, -- NG name incorrect
     VampiricTouch = 34914,
     VoidBlast = 450983,
     VoidBolt = 205448,
     VoidEruption = 228260,
     VoidTorrent = 263165,
+    VoidVolley = 1242173,
+    Voidwraith = 451235,
     
     -- Talents
+    DepthOfShadowsTalent = 451308,
+    DeathspeakerTalent = 392507,
+    DescendingDarknessTalent = 1242666,
     DevourMatterTalent = 451840,
+    DistortedRealityTalent = 409044,
+    EmpoweredSurgesTalent = 453799,
+    EntropicRiftTalent = 447444,
+    InescapableTormentTalent = 373427,
+    InnerQuietusTalent = 448278,
+    InsidiousIreTalent = 373212,
     MindDevourerTalent = 373202,
     MindMeltTalent = 391090,
-    DistortedRealityTalent = 409044,
-    InescapableTormentTalent = 373427,
-    WhisperingShadowsTalent = 406777,
-    VoidBlastTalent = 450405,
-    PerfectedFormTalent = 453917,
-    PsychicLinkTalent = 199484,
-    PowerSurgeTalent = 453109,
-    EmpoweredSurgesTalent = 453799,
-    VoidEmpowermentTalent = 450138,
-    DepthOfShadowsTalent = 451308,
-    EntropicRiftTalent = 447444,
-    InsidiousIreTalent = 373212,
     MindsEyeTalent = 407470,
-    UnfurlingDarknessTalent = 341273,
-    InnerQuietusTalent = 448278,
+    PerfectedFormTalent = 453917,
+    PowerSurgeTalent = 453109,
+    PsychicLinkTalent = 199484,
+    VoidBlastTalent = 450405,
+    VoidEmpowermentTalent = 450138,
     
     -- Buffs/Debuffs
-    MindSpikeInsanityBuff = 407468,
-    MindFlayInsanityBuff = 391401,
+    AscensionBuff = 391109,
+    DevouringPlagueDebuff = 335467,
+    EntropicRiftBuff = 449887, -- Actually the Void Heart buff since Entropic Rift doesn't have a buff.
     MindDevourerBuff = 373204,
+    MindFlayInsanityBuff = 391401,
+    PowerSurgeBuff = 453113,
     UnfurlingDarknessBuff = 341282,
     UnfurlingDarknessCdBuff = 341291,
-    DeathspeakerBuff = 392511,
-    VoidformBuff = 194249,
     VampiricTouchDebuff = 34914,
-    EntropicRiftBuff = 449887, -- Actually the Void Heart buff since Entropic Rift doesn't have a buff.
+    VoidformBuff = 194249,
+    VoidVolleyBuff = 1242171,
 }
 
 
@@ -878,10 +811,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 
+-- CLEU:SPELL_SUMMON, CLEU:SPELL_CAST_SUCCESS, PLAYER_TOTEM_UPDATE
+
 function(allStates, event, timestamp, subEvent, _, sourceGUID, _, _, _, destGUID, destName, _, _, spellID)  
     
     -- MB/SF initial cast check
-    if UnitGUID("player") == sourceGUID and subEvent == "SPELL_SUMMON" and (spellID == 200174 or spellID == 34433) then
+    if UnitGUID("player") == sourceGUID and subEvent == "SPELL_SUMMON" and (spellID == 200174 or spellID == 34433 or spellID == 451235) then
         local BaseDuration = 15
         local EndTime = GetTime() + BaseDuration
         

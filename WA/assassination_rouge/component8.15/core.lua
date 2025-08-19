@@ -30,6 +30,7 @@ env.test = function()
     local KTrigCD = aura_env.KTrigCD
     aura_env.FlagKTrigCD = true
     local FullGCD = aura_env.FullGCD
+    local GetRemainingStealthDuration = aura_env.GetRemainingStealthDuration
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -459,8 +460,9 @@ env.test = function()
             end
         end
         
+        -- Kichi add for practical next fight use
         -- Dump Shiv on fight end
-        if OffCooldown(ids.Shiv) and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 2 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
+        if OffCooldown(ids.Shiv) and GetSpellChargesFractional(ids.Shiv) > 1 and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 2 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
             -- KTrig("Shiv") return true end
             if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shiv")
@@ -473,7 +475,11 @@ env.test = function()
     
     -- Stealthed Actions
     local Stealthed = function()
-        -- Kichi add PlayerHasBuff(ids.DarkestNightBuff) for parctical use
+
+        -- Kichi add for parctical use
+        if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and not PlayerHasBuff(ids.DarkestNightBuff) and GetRemainingAuraDuration("player", ids.SubterfugeBuff) > 0 and GetRemainingAuraDuration("player", ids.SubterfugeBuff) <= FullGCD()  ) then
+            KTrig("Ambush", "Glow") return true end
+
         -- Apply Deathstalkers Mark if it has fallen off or waiting for Rupture in AoE
         if OffCooldown(ids.Ambush) and ( not TargetHasDebuff(ids.DeathstalkersMarkDebuff) and IsPlayerSpell(ids.DeathstalkersMarkTalent) and EffectiveComboPoints < Variables.EffectiveSpendCp and ( TargetHasDebuff(ids.Rupture) or NearbyEnemies <= 1 or not IsPlayerSpell(ids.SubterfugeTalent)) ) then
             KTrig("Ambush") return true end
@@ -500,11 +506,11 @@ env.test = function()
             KTrig("Envenom") return true end
         
         -- Kichi -- for quick danmage
-        if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= 7 and EffectiveComboPoints >= Variables.EffectiveSpendCp and GetRemainingDebuffDuration("target", ids.CrimsonTempest) <= 2 and not PlayerHasBuff(ids.DarkestNightBuff) and Variables.RegenSaturated and Variables.ScentSaturation and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 or IsPlayerSpell(ids.SuddenDemiseTalent)) ) then
+        if OffCooldown(ids.CrimsonTempest) and ( NearbyEnemies >= aura_env.config["CrimsonTempestThreshold"] and EffectiveComboPoints >= 3 and GetRemainingDebuffDuration("target", ids.CrimsonTempest) <= 2 and not PlayerHasBuff(ids.DarkestNightBuff) and ( Variables.ScentSaturation or GetPlayerStacks(ids.ScentOfBloodBuff) >= 12 ) and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.CrimsonTempest) > 6 or IsPlayerSpell(ids.SuddenDemiseTalent)) ) then
             KTrig("Crimson Tempest") return true end
 
         -- Kichi -- for quick danmage
-        Variables.DeathmarkConditionInStealthed = TargetHasDebuff(ids.Rupture) and ( Variables.DeathmarkKingsbaneCondition or NearbyEnemies > 1 and EffectiveComboPoints >= Variables.EffectiveSpendCp and Variables.ScentSaturation or not IsPlayerSpell(ids.KingsbaneTalent) and TargetHasDebuff(ids.CrimsonTempest) ) and not TargetHasDebuff(ids.Deathmark) and ( not IsPlayerSpell(ids.MasterAssassinTalent) or TargetHasDebuff(ids.Garrote) )
+        Variables.DeathmarkConditionInStealthed = TargetHasDebuff(ids.Rupture) and ( Variables.DeathmarkKingsbaneCondition or NearbyEnemies > 1 and EffectiveComboPoints >= Variables.EffectiveSpendCp and Variables.ScentSaturation and ( TargetHasDebuff(ids.CrimsonTempest) or not IsPlayerSpell(ids.CrimsonTempest) == true ) ) and not TargetHasDebuff(ids.Deathmark) and ( not IsPlayerSpell(ids.MasterAssassinTalent) or TargetHasDebuff(ids.Garrote) )
 
         -- Kichi -- for quick danmage
         if OffCooldown(ids.Deathmark) and ( ( (Variables.DeathmarkConditionInStealthed) and TargetTimeToXPct(0, 60) >= 10 ) or FightRemains(60, NearbyRange) <= 20 ) then

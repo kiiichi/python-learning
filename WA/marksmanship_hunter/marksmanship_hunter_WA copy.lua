@@ -459,7 +459,14 @@ function()
             KTrig("Aimed Shot") return true end
 
         if OffCooldown(ids.Multishot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) and not IsPlayerSpell(ids.AspectOfTheHydraTalent) and ( IsPlayerSpell(ids.SymphonicArsenalTalent) or IsPlayerSpell(ids.SmallGameHunterTalent) ) ) then
-            KTrig("Multishot") return true end
+            -- KTrig("Multishot") return true end
+            if aura_env.config[tostring(ids.Multishot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Multishot")
+            elseif aura_env.config[tostring(ids.Multishot)] ~= true then
+                KTrig("Multishot")
+                return true
+            end 
+        end
         
         if OffCooldown(ids.ArcaneShot) and ( HasPreciseShots and ( not TargetHasSpottersMark or not HasMovingTarget ) ) then
             KTrig("Arcane Shot") return true end
@@ -740,8 +747,15 @@ function()
         
         -- Kichi modify for simc 18bda32_8.9 for no multishot in volley
         if OffCooldown(ids.Multishot) and ( HasPreciseShots and not HasMovingTarget or PlayerHasBuff(ids.TrickShotsBuff) == false ) and not ( PlayerHasBuff(ids.VolleyBuff) and (GetSpellChargesFractional(ids.AimedShot) >= 1) and GetRemainingAuraDuration("player", ids.VolleyBuff) > max(C_Spell.GetSpellInfo(ids.AimedShot).castTime/1000, WeakAuras.gcdDuration()) ) then
-            KTrig("Multishot") return true end
-        
+            -- KTrig("Multishot") return true end
+            if aura_env.config[tostring(ids.Multishot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Multishot")
+            elseif aura_env.config[tostring(ids.Multishot)] ~= true then
+                KTrig("Multishot")
+                return true
+            end 
+        end
+                
         -- Kichi move to None GCDs
         -- if OffCooldown(ids.Trueshot) and ( PlayerHasBuff(ids.DoubleTapBuff) == false ) then
         --     -- KTrig("Trueshot") return true end
@@ -809,7 +823,15 @@ function()
             KTrig("Steady Shot") return true end
         
         if OffCooldown(ids.Multishot) then
-            KTrig("Multishot") return true end
+            -- KTrig("Multishot") return true end
+            if aura_env.config[tostring(ids.Multishot)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Multishot")
+            elseif aura_env.config[tostring(ids.Multishot)] ~= true then
+                KTrig("Multishot")
+                return true
+            end 
+        end
+    
     end
     
     

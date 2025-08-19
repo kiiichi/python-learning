@@ -27,6 +27,7 @@ aura_env.ids = {
     AetherialKindlingTalent = 327541,
     AstralSmolderTalent = 394058,
     BoundlessMoonlightTalent = 424058,
+    BounteousBloomTalent = 429215,
     ControlOfTheDreamTalent = 434249,
     DreamSurgeTalent = 433831,
     EarlySpringTalent = 428937,
@@ -52,6 +53,8 @@ aura_env.ids = {
     CelestialAlignmentOrbitalStrikeBuff = 383410,
     CelestialAlignmentBuff = 194223,
     DreamstateBuff = 450346,
+    DryadBuff = 1236556,
+    DryadsFavorBuff = 1236807,
     FungalGrowthDebuff = 81281,
     IncarnationOrbitalStrikeBuff = 390414,
     IncarnationBuff = 102560,
@@ -59,14 +62,17 @@ aura_env.ids = {
     EclipseSolarBuff = 48517,
     HarmonyOfTheGroveBuff = 428735,
     MoonfireDebuff = 164812,
+    PartingSkiesBuff = 395110,
     SolsticeBuff = 343648,
     StarlordBuff = 279709,
     StarweaversWarpBuff = 393942,
     StarweaversWeftBuff = 393944,
+    StellarFlareDebuff = 202347,
     SunfireDebuff = 164815,
     TouchTheCosmosBuff = 450360,
     UmbralEmbraceBuff = 393763,
 }
+
 
 aura_env.GetSpellCooldown = function(spellId)
     local spellCD = C_Spell.GetSpellCooldown(spellId)

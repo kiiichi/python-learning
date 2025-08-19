@@ -1,8 +1,7 @@
 WeakAuras.WatchGCD()
 
--- Kichi --
 _G.KLIST = { 
-    AssassinationRogue = { 
+    BalanceDruid = { 
         aura_env.config["ExcludeList1"],
         aura_env.config["ExcludeList2"],
         aura_env.config["ExcludeList3"],
@@ -10,87 +9,82 @@ _G.KLIST = {
     }
 }
 
-aura_env.GarroteSnapshots = {}
-aura_env.CrimsonTempestSnapshots = {}
-aura_env.LastCrimsonTempestCount = 0
-aura_env.Envenom1 = 0
-aura_env.Envenom2 = 0
+aura_env.OrbitBreakerBuffStacks = 0
+aura_env.LastFullMoon = 0
+aura_env.LastForceOfNature = 0
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
-    Ambush = 8676,
-    ColdBlood = 382245,
-    CrimsonTempest = 121411,
-    Deathmark = 360194,
-    EchoingReprimand = 385616,
-    Envenom = 32645,
-    FanOfKnives = 51723,
-    Garrote = 703,
-    Kingsbane = 385627,
-    Mutilate = 1329,
-    Rupture = 1943,
-    Shiv = 5938,
-    SliceAndDice = 315496,
-    ThistleTea = 381623,
-    Vanish = 1856,
+    AstralCommunion = 400636,
+    CelestialAlignment = 194223,
+    CelestialAlignmentCooldown = 383410,
+    ConvokeTheSpirits = 391528,
+    ForceOfNature = 205636,
+    FullMoon = 274283,
+    FuryOfElune = 202770,
+    HalfMoon = 274282,
+    Incarnation = 102560,
+    Moonfire = 8921,
+    NewMoon = 274281,
+    Starfall = 191034,
+    Starfire = 194153,
+    Starsurge = 78674,
+    StellarFlare = 202347,
+    Sunfire = 93402,
+    WarriorOfElune = 202425,
+    WildMushroom = 88747,
+    Wrath = 190984,
     
     -- Talents
-    AmplifyingPoisonTalent = 381664,
-    ArterialPrecisionTalent = 400783,
-    BlindsideTalent = 328085,
-    CausticSpatterTalent = 421975,
-    DashingScoundrelTalent = 381797,
-    DeathstalkersMarkTalent = 457052,
-    HandOfFateTalent = 452536,
-    ImprovedGarroteTalent = 381632,
-    IndiscriminateCarnageTalent = 381802,
-    InevitabileEndTalent = 454434,
-    KingsbaneTalent = 385627,
-    LightweightShivTalent = 394983,
-    MasterAssassinTalent = 255989,
-    MomentumOfDespairTalent = 457067,
-    PoisonBombTalent = 255544,
-    ScentOfBloodTalent = 381799,
-    ShroudedSuffocationTalent = 385478,
-    SubterfugeTalent = 108208,
-    ThrownPrecisionTalent = 381629,
-    ViciousVenomsTalent = 381634,
-    TwistTheKnifeTalent = 381669,
-    ZoldyckRecipeTalent = 381798,
-    SuddenDemiseTalent = 423136,
-    ForcedInductionTalent = 470668,
+    AetherialKindlingTalent = 327541,
+    AstralSmolderTalent = 394058,
+    BoundlessMoonlightTalent = 424058,
+    BounteousBloomTalent = 429215,
+    ControlOfTheDreamTalent = 434249,
+    DreamSurgeTalent = 433831,
+    EarlySpringTalent = 428937,
+    GreaterAlignmentTalent = 450184,
+    IncarnationTalent = 102560,
+    LunarCallingTalent = 429523,
+    NaturesBalanceTalent = 202430,
+    NaturesGraceTalent = 450347,
+    OrbitBreakerTalent = 383197,
+    OrbitalStrikeTalent = 390378,
+    PowerOfTheDreamTalent = 434220,
+    SoulOfTheForestTalent = 114107,
+    StarlordTalent = 202345,
+    TreantsOfTheMoonTalent = 428544,
+    UmbralEmbraceTalent = 393760,
+    UmbralIntensityTalent = 383195,
+    WhirlingStarsTalent = 468743,
+    WildSurgesTalent = 406890,
     
-    -- Auras
-    AmplifyingPoisonDebuff = 383414,
-    BlindsideBuff = 121153,
-    CausticSpatterDebuff = 421976,
-    ClearTheWitnessesBuff = 457178,
-    ColdBloodBuff = 382245,
-    CrimsonTempestDebuff = 121411,
-    DarkestNightBuff = 457280,
-    DeadlyPoisonDebuff = 2818,
-    DeathstalkersMarkDebuff = 457129,
-    DeathmarkDebuff = 360194,
-    EnvenomBuff = 32645,
-    FateboundCoinHeadsBuff = 452923,
-    FateboundCoinTailsBuff = 452917,
-    FateboundLuckyCoinBuff = 452562,
-    GarroteDebuff = 703,
-    IndiscriminateCarnageBuff = 385747,
-    KingsbaneDebuff = 385627,
-    LingeringDarknessBuff = 457273,
-    MasterAssassinBuff = 256735,
-    MomentumOfDespairBuff = 457115,
-    VanishBuff = 11327,
-    RuptureDebuff = 1943,
-    ScentOfBloodBuff = 394080,
-    SliceAndDiceBuff = 315496,
-    ShivDebuff = 319504,
-    SubterfugeBuff = 115192,
-    StealthBuff = 1784,
-    ThistleTeaBuff = 381623,
+    -- Buffs/Debuffs
+    BalanceOfAllThingsArcaneBuff = 394050,
+    BalanceOfAllThingsNatureBuff = 394049,
+    CelestialAlignmentOrbitalStrikeBuff = 383410,
+    CelestialAlignmentBuff = 194223,
+    DreamstateBuff = 450346,
+    DryadBuff = 1236556,
+    DryadsFavorBuff = 1236807,
+    FungalGrowthDebuff = 81281,
+    IncarnationOrbitalStrikeBuff = 390414,
+    IncarnationBuff = 102560,
+    EclipseLunarBuff = 48518,
+    EclipseSolarBuff = 48517,
+    HarmonyOfTheGroveBuff = 428735,
+    MoonfireDebuff = 164812,
+    PartingSkiesBuff = 395110,
+    SolsticeBuff = 343648,
+    StarlordBuff = 279709,
+    StarweaversWarpBuff = 393942,
+    StarweaversWeftBuff = 393944,
+    StellarFlareDebuff = 202347,
+    SunfireDebuff = 164815,
+    TouchTheCosmosBuff = 450360,
+    UmbralEmbraceBuff = 393763,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -123,16 +117,10 @@ aura_env.OffCooldown = function(spellID)
     -- if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    if (not usable) and (not nomana) then return false end
+    if (not usable) or nomana then return false end
     
-    -- Kichi --
-    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
-    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
-    local Cooldown = C_Spell.GetSpellCooldown(spellID)
-    local Duration = Cooldown.duration
-    local Remaining = Cooldown.startTime + Duration - GetTime()
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
-
+    local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
     if not OffCooldown then return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
@@ -148,6 +136,10 @@ end
 
 aura_env.IsCasting = function(spellID)
     return select(9, UnitCastingInfo("player")) == spellID
+end
+
+aura_env.OffCooldownNotCasting = function(spellID)
+    return aura_env.OffCooldown(spellID) and not aura_env.IsCasting(spellID)
 end
 
 aura_env.GetStacks = function(unit, spellID, filter)
@@ -178,11 +170,8 @@ aura_env.GetRemainingAuraDuration = function(unit, spellID, filter)
     return Expiration - GetTime()
 end
 
--- Kichi --
 aura_env.GetRemainingDebuffDuration = function(unit, spellID)
-    local duration = aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
-    if duration == nil then duration = 0 end
-    return duration
+    return aura_env.GetRemainingAuraDuration(unit, spellID, "HARMFUL|PLAYER")
 end
 
 aura_env.GetSpellChargesFractional = function(spellID)
@@ -253,9 +242,8 @@ aura_env.GetRemainingSpellCooldown = function(spellID)
     return Remaining
 end
 
-aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
-    -- Kichi --
-    -- local Filter = ""
+aura_env.IsAuraRefreshable = function(SpellID, Unit)
+    local Filter = ""
     if Unit == nil then 
         Unit = "target" 
         Filter = "HARMFUL|PLAYER" 
@@ -269,19 +257,6 @@ aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
     return (RemainingTime / Duration) < 0.3
 end
 
--- Kichi fix
-aura_env.GetRemainingStealthDuration = function()
-    if WA_GetUnitAura("player", aura_env.ids.Stealth) then return 999999999 end
-    
-    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.SubterfugeBuff))
-    if SubterfugeExpiration ~= nil then return SubterfugeExpiration end
-    
-    local ShadowDanceExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.ShadowDanceBuff))
-    if ShadowDanceExpiration ~= nil then return ShadowDanceExpiration end
-    
-    return 0
-end
-
 aura_env.HasBloodlust = function()
     return (WA_GetUnitBuff("player", 2825) or WA_GetUnitBuff("player", 264667) or WA_GetUnitBuff("player", 80353) or WA_GetUnitBuff("player", 32182) or WA_GetUnitBuff("player", 390386) or WA_GetUnitBuff("player", 386540))
 end
@@ -292,11 +267,4 @@ end
 
 aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
-end
-
--- Kichi --
-aura_env.FullGCD = function()
-    local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
-    return FullGCDnum
 end

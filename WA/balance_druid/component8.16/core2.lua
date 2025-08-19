@@ -7,6 +7,10 @@ env.test = function(event, timestamp, subEvent, hideCaster, sourceGUID, sourceNa
         if destGUID == aura_env.ids.FullMoon then
             aura_env.LastFullMoon = GetTime()
         end
+        
+        if destGUID == aura_env.ids.ForceOfNature then
+            aura_env.LastForceOfNature = GetTime()
+        end
     elseif subEvent == "SPELL_PERIODIC_ENERGIZE" then
         if spellID == 202497 then -- Shooting Stars
             aura_env.OrbitBreakerBuffStacks = aura_env.OrbitBreakerBuffStacks + 1

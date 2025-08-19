@@ -6,7 +6,7 @@
 
 WeakAuras.WatchGCD()
 
-_G.KLIST = { 
+_G.NGWA = { 
     BalanceDruid = { 
         aura_env.config["ExcludeList1"],
         aura_env.config["ExcludeList2"],
@@ -17,6 +17,7 @@ _G.KLIST = {
 
 aura_env.OrbitBreakerBuffStacks = 0
 aura_env.LastFullMoon = 0
+aura_env.LastForceOfNature = 0
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
@@ -46,6 +47,7 @@ aura_env.ids = {
     AetherialKindlingTalent = 327541,
     AstralSmolderTalent = 394058,
     BoundlessMoonlightTalent = 424058,
+    BounteousBloomTalent = 429215,
     ControlOfTheDreamTalent = 434249,
     DreamSurgeTalent = 433831,
     EarlySpringTalent = 428937,
@@ -71,6 +73,8 @@ aura_env.ids = {
     CelestialAlignmentOrbitalStrikeBuff = 383410,
     CelestialAlignmentBuff = 194223,
     DreamstateBuff = 450346,
+    DryadBuff = 1236556,
+    DryadsFavorBuff = 1236807,
     FungalGrowthDebuff = 81281,
     IncarnationOrbitalStrikeBuff = 390414,
     IncarnationBuff = 102560,
@@ -78,10 +82,12 @@ aura_env.ids = {
     EclipseSolarBuff = 48517,
     HarmonyOfTheGroveBuff = 428735,
     MoonfireDebuff = 164812,
+    PartingSkiesBuff = 395110,
     SolsticeBuff = 343648,
     StarlordBuff = 279709,
     StarweaversWarpBuff = 393942,
     StarweaversWeftBuff = 393944,
+    StellarFlareDebuff = 202347,
     SunfireDebuff = 164815,
     TouchTheCosmosBuff = 450360,
     UmbralEmbraceBuff = 393763,
@@ -90,21 +96,9 @@ aura_env.ids = {
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
--- Kichi --
--- Kichi --
-aura_env.KTrig = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    if aura_env.FlagKTrigCD then
-        WeakAuras.ScanEvents("K_TRIGED_CD", "Clear", ...)
-    end
-    aura_env.FlagKTrigCD = flase
-end
-
-aura_env.KTrigCD = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    aura_env.FlagKTrigCD = false
+aura_env.NGSend = function(Name, ...)
+    WeakAuras.ScanEvents("NG_GLOW_EXCLUSIVE", Name, ...)
+    WeakAuras.ScanEvents("NG_OUT_OF_RANGE", aura_env.OutOfRange)
 end
 
 aura_env.OffCooldown = function(spellID)
@@ -113,8 +107,7 @@ aura_env.OffCooldown = function(spellID)
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    -- Kichi --
-    -- if aura_env.config[tostring(spellID)] == false then return false end
+    if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
     if (not usable) or nomana then return false end
@@ -269,6 +262,180 @@ aura_env.TargetHasDebuff = function(spellID)
     return WA_GetUnitDebuff("target", spellID, "PLAYER|HARMFUL") ~= nil
 end
 
+---- Keybind Assistance ----------------------------------------------------------------------------------------
+-- Based on https://wago.io/7bcXDdPqi
+-- Initilize setup
+_G.kbTable_master = {}
+_G.UseKeybindAssistance = aura_env.config.UseKeybindAssistance
+local SpamAura = ""
+local SpamCount = 0
+local Updated = false
+
+-- Load custom options
+local custMod = aura_env.config.KeybindSettings.custMod
+local shiftMod = aura_env.config.KeybindSettings.shiftMod
+local ctrlMod = aura_env.config.KeybindSettings.ctrlMod
+local altMod = aura_env.config.KeybindSettings.altMod
+local custMouse = aura_env.config.KeybindSettings.custMouse
+local btnMouse = aura_env.config.KeybindSettings.btnMouse
+local shiftMouse = aura_env.config.KeybindSettings.shiftMouse
+local ctrlMouse = aura_env.config.KeybindSettings.ctrlMouse
+local altMouse = aura_env.config.KeybindSettings.altMouse
+local spamOpt = aura_env.config.KeybindSettings.spamOpt
+local crtog1 = aura_env.config.KeybindSettings.crtog1
+local creplace1 = aura_env.config.KeybindSettings.creplace1
+local crwith1 = aura_env.config.KeybindSettings.crwith1
+local crtog2 = aura_env.config.KeybindSettings.crtog2
+local creplace2 = aura_env.config.KeybindSettings.creplace2
+local crwith2 = aura_env.config.KeybindSettings.crwith2
+local crtog3 = aura_env.config.KeybindSettings.crtog3
+local creplace3 = aura_env.config.KeybindSettings.creplace3
+local crwith3 = aura_env.config.KeybindSettings.crwith3
+
+-- Function to check for WA causing spam
+local function spamCheck(checkAura)
+    local lastAura = SpamAura
+    local prompt = ""
+    if not checkAura then
+        prompt = "Global update initiated"
+        return false, prompt
+    elseif (lastAura and checkAura == lastAura) then
+        if SpamCount > 3 then
+            return true
+        elseif SpamCount == 3 then
+            prompt = checkAura.." is spamming and will be ignored"
+            SpamCount = SpamCount +1
+            return true, prompt
+        end
+    else 
+        prompt = checkAura.." triggered an update"
+        SpamAura = checkAura
+        SpamCount = SpamCount +1
+        return false , prompt
+    end
+end
+
+-- Main Function for populating keybind table
+function _G.kbTable_refresh(auraName)
+    -- If we haven't enabled Keybind Assistance, do nothing.
+    if _G.UseKeybindAssist == false then return end
+    
+    -- Checks if master table is created before running
+    if not _G.kbTable_master then return end
+    
+    
+    -- Checks if same WA has been spamming and stops it
+    local spamResult, spamPrompt = spamCheck(auraName)
+    -- Console printout of check results
+    if spamOpt and spamPrompt then print (spamPrompt) end
+    if spamResult then return; end
+    
+    for slotID=1,180 do
+        local actionType, actionID, _ = GetActionInfo(slotID)
+        local noMouse = true        
+        
+        -- NIL check actionID then populate keybind table
+        -- Keybinds beyond #156 haven't been test yet
+        if actionID then
+            local action = slotID
+            local modact = 1+(action-1)%12
+            local bindstring = ""
+            if (action < 25 or action > 72) and (action <145) then
+                bindstring = 'ACTIONBUTTON'..modact
+            elseif action < 73 and action > 60 then
+                bindstring = 'MULTIACTIONBAR1BUTTON'..modact
+            elseif action < 61 and action > 48 then
+                bindstring = 'MULTIACTIONBAR2BUTTON'..modact
+            elseif action < 37 and action > 24 then
+                bindstring = 'MULTIACTIONBAR3BUTTON'..modact
+            elseif action < 49 and action > 36 then
+                bindstring = 'MULTIACTIONBAR4BUTTON'..modact
+            elseif action >= 145 and action <= 156 then
+                bindstring = 'MULTIACTIONBAR5BUTTON'..modact
+            elseif action >= 157 and action <= 168 then
+                bindstring = 'MULTIACTIONBAR6BUTTON'..modact
+            elseif action >= 169 and action <= 180 then
+                bindstring = 'MULTIACTIONBAR7BUTTON'..modact
+            end
+            local keyBind = GetBindingKey(bindstring)
+            
+            
+            -- Skip forms you're not currently in
+            local FormSkip = false
+            if WA_GetUnitBuff("player", 768) and action >= 97 and action <= 120 then FormSkip = true -- Cat, includes Prowlbar
+            elseif WA_GetUnitBuff("player", 5487) and ((action >= 73 and action <= 96) or (action >= 109 and action <= 120)) then FormSkip = true -- Bear
+            elseif WA_GetUnitBuff("player", 24858) and action >= 73 and action <= 108 then FormSkip = true -- Moonkin
+            elseif not (WA_GetUnitBuff("player", 768) or WA_GetUnitBuff("player", 5487) or WA_GetUnitBuff("player", 24858)) and action > 73 and action <= 120 then FormSkip = true end -- No form?
+            
+            if keyBind and not FormSkip then
+                
+                -- Truncates mouse button keybinds
+                local mouseMod, mouseBtn, btnNum = keyBind:match("(.*)(BUTTON)(.*)")
+                if mouseBtn then
+                    noMouse = false
+                    if custMouse then
+                        if mouseMod == 'SHIFT-' then
+                            mouseMod = shiftMouse
+                        elseif mouseMod == 'CTRL-' then
+                            mouseMod = ctrlMouse
+                        elseif mouseMod == 'ALT-'then
+                            mouseMod = altMouse
+                        end
+                        keyBind = mouseMod..btnMouse..btnNum
+                    end
+                end
+                
+                
+                -- Truncates other modifier keys
+                if custMod and noMouse then
+                    local keyMod,_,keyNum = keyBind:match("(.*)(-)(.*)")
+                    if keyMod then
+                        if keyMod == 'SHIFT' then
+                            keyMod = shiftMod
+                        elseif keyMod == 'CTRL' then
+                            keyMod = ctrlMod
+                        elseif keyMod == 'ALT'then
+                            keyMod = altMod
+                        end 
+                        keyBind = keyMod..keyNum
+                    end
+                end
+                
+                -- Custom string replace for uncommon keybinds
+                if crtog1 then
+                    local creplace = keyBind:gsub(creplace1, crwith1)
+                    keyBind = creplace
+                end
+                if crtog2 then
+                    local creplace = keyBind:gsub(creplace2, crwith2)
+                    keyBind = creplace
+                end
+                if crtog3 then
+                    local creplace = keyBind:gsub(creplace3, crwith3)
+                    keyBind = creplace
+                end
+                
+                -- Items are stored with item name as key to bypass inventory requirement
+                if actionType == 'item' then
+                    actionID = GetItemInfo(actionID)
+                end
+                
+                -- Check for nil, changed or empty keybinds before populating
+                if keyBind and actionID and kbTable_master[actionID] ~= keyBind then
+                    kbTable_master[actionID] = keyBind
+                    Updated = true                  
+                end
+            end
+        end
+    end
+    -- Clear spamcheck to allow WAs to check for updates
+    if Updated then 
+        SpamAura = ""
+        SpamCount = 0
+    end
+end
+
+
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ----------Core1--------------------------------------------------------------------------------------------------------
@@ -302,10 +469,7 @@ function()
     local TargetTimeToXPct = aura_env.TargetTimeToXPct
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
-    -- Kichi --
-    local KTrig = aura_env.KTrig
-    local KTrigCD = aura_env.KTrigCD
-    aura_env.FlagKTrigCD = true
+    local NGSend = aura_env.NGSend
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -313,7 +477,8 @@ function()
     local Variables = {}
     
     ---- Setup Data -----------------------------------------------------------------------------------------------
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1694)
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1921)
+    local OldSetPieces = WeakAuras.GetNumSetItemsEquipped(1694)
     
     local CurrentEclipseID = (PlayerHasBuff(ids.EclipseSolarBuff) and ids.EclipseSolarBuff or nil)
     if CurrentEclipseID == nil then CurrentEclipseID = (PlayerHasBuff(ids.EclipseLunarBuff) and ids.EclipseLunarBuff or nil) end
@@ -374,443 +539,364 @@ function()
             end
         end
     end
-
-    -- Kichi --
-    WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
     
-    -- Kichi --
     -- Only recommend things when something's targeted
-    if aura_env.config["NeedTarget"] then
-        if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
-            WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
-            KTrig("Clear", nil)
-            KTrigCD("Clear", nil) 
-            return end
-    end
+    if UnitExists("target") == false or UnitCanAttack("player", "target") == false then
+        WeakAuras.ScanEvents("NG_GLOW_EXTRAS", {})
+        NGSend("Clear", nil) return end
     
     ---- Variables ------------------------------------------------------------------------------------------------
-    Variables.PassiveAsp = 6 / (1-UnitSpellHaste("player")/100) + (IsPlayerSpell(ids.NaturesBalanceTalent) and 1 or 0) + (IsPlayerSpell(ids.OrbitBreakerTalent) and 1 or 0) * (TargetHasDebuff(ids.MoonfireDebuff) and 1 or 0) * ( (aura_env.OrbitBreakerBuffStacks > ( 27 - 2 * (PlayerHasBuff(ids.SolsticeBuff) and 1 or 0) ) ) and 1 or 0) * 24
+    -- Variable to establish passive AP gen
+    Variables.PassiveAsp = 6 / (1-UnitSpellHaste("player")/100) + (IsPlayerSpell(ids.NaturesBalanceTalent) and 1 or 0) + (((IsPlayerSpell(ids.BounteousBloomTalent) and CurrentTime - aura_env.LastForceOfNature < 10) and 1 or 0) * 15) + (IsPlayerSpell(ids.OrbitBreakerTalent) and 1 or 0) * (TargetHasDebuff(ids.MoonfireDebuff) and 1 or 0) * ( (aura_env.OrbitBreakerBuffStacks > ( 27 - 2 * (PlayerHasBuff(ids.SolsticeBuff) and 1 or 0) ) ) and 1 or 0) * 24
     
+    -- Convoke condition variable
     Variables.ConvokeCondition = FightRemains(60, NearbyRange) < 5 or ( PlayerHasBuff(ids.CaIncBuff) or GetRemainingSpellCooldown(ids.CaInc) > 40 ) and ( not IsPlayerSpell(ids.DreamSurgeTalent) or PlayerHasBuff(ids.HarmonyOfTheGroveBuff) or GetRemainingSpellCooldown(ids.ForceOfNature) > 15 )
     
+    -- Variable used to write time remaining on Eclipse
     Variables.EclipseRemains = max(GetRemainingAuraDuration("player", ids.EclipseLunarBuff), GetRemainingAuraDuration("player", ids.EclipseSolarBuff))
     
+    -- Variable used to enter Eclipse. Negate variable.enter_lunar to enter Solar Eclipse.
     Variables.EnterLunar = IsPlayerSpell(ids.LunarCallingTalent) or NearbyEnemies > 3 - ( ( IsPlayerSpell(ids.UmbralEmbraceTalent) or IsPlayerSpell(ids.SoulOfTheForestTalent)) and 1 or 0)
     
+    -- Variable used for Balance of All Things stacks
     Variables.BoatStacks = GetPlayerStacks(ids.BalanceOfAllThingsArcaneBuff) + GetPlayerStacks(ids.BalanceOfAllThingsNatureBuff)
     
     Variables.CaEffectiveCd = max(GetRemainingSpellCooldown(ids.CaInc), GetRemainingSpellCooldown(ids.ForceOfNature))
     
+    -- Pre_Cd Condition referenced in every CD except for when using 11.2 Keeper Set
     Variables.PreCdCondition = ( not IsPlayerSpell(ids.WhirlingStarsTalent) or not IsPlayerSpell(ids.ConvokeTheSpirits) or GetRemainingSpellCooldown(ids.ConvokeTheSpirits) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 or FightRemains(60, NearbyRange) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + 3 or GetRemainingSpellCooldown(ids.ConvokeTheSpirits) > GetTimeToFullCharges(ids.CaInc) + 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) ) and GetRemainingSpellCooldown(ids.CaInc) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and not PlayerHasBuff(ids.CaIncBuff)
     
+    -- CD_condition used for CA/Incarn
     Variables.CdCondition = Variables.PreCdCondition and ( FightRemains(60, NearbyRange) < ( 15 + 5 * (IsPlayerSpell(ids.IncarnationTalent) and 1 or 0) ) * ( 1 - (IsPlayerSpell(ids.WhirlingStarsTalent) and 1 or 0) * 0.2 ) or TargetTimeToXPct(0, 60) > 10 and ( not IsPlayerSpell(ids.DreamSurgeTalent) or PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) )
+
+    -- This APL is worse than original after the changes so no point running it
+    Variables.Tww3Keeper4Pc = ( IsPlayerSpell(ids.DreamSurgeTalent) and SetPieces > 4 )
+
+    -- Keeper 11.2 CA condition ( These have gotten out of hand. NG won't update these without a reeeally good reason. )
+    Variables.KotgCaCondition = Variables.Tww3Keeper4Pc and MaxAstralPower - CurrentAstralPower <= 50 and GetRemainingSpellCooldown(ids.ForceOfNature) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 and ( GetTimeToFullCharges(ids.CaInc) < 10 or not PlayerHasBuff(ids.CaIncBuff) and ( GetRemainingSpellCooldown(ids.ConvokeTheSpirits) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 or not IsPlayerSpell(ids.ConvokeTheSpirits) ) ) or PlayerHasBuff(ids.HarmonyOfTheGroveBuff) and ( GetRemainingAuraDuration("player", ids.DryadBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and PlayerHasBuff(ids.DryadBuff) or PlayerHasBuff(ids.DryadsFavorBuff) ) or FightRemains(60, NearbyRange) < 16
+
+    -- Keeper 11.2 Incarn condition ( These have gotten out of hand. NG won't update these without a reeeally good reason. )
+    Variables.KotgIncCondition = Variables.Tww3Keeper4Pc and MaxAstralPower - CurrentAstralPower <= 50 and GetRemainingSpellCooldown(ids.ForceOfNature) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and  FightRemains(60, NearbyRange) < min( GetTimeToFullCharges(ids.CaInc), GetRemainingSpellCooldown(ids.ForceOfNature) )
+
+    -- Variable to pool Astral Power for CA with 11.2 4pc
+    Variables.PoolForCd = CurrentAstralPower < 36 * 3 and ( OffCooldown(ids.ConvokeTheSpirits) or not IsPlayerSpell(ids.ConvokeTheSpirits) and not PlayerHasBuff(ids.CaIncBuff) )
+
+    -- Variable to pool Astral Power for Dryads Favor with 11.2 4pc
+    Variables.PoolInCa = PlayerHasBuff(ids.DryadBuff) and ( ( CurrentAstralPower - C_Spell.GetSpellPowerCost(ids.Starsurge)[1].cost ) + ( max( 0, ( GetRemainingAuraDuration("player", ids.DryadBuff) - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) * ( 8 / max(C_Spell.GetSpellInfo(ids.Wrath).castTime/1000, WeakAuras.gcdDuration()) ) + Variables.PassiveAsp ) < C_Spell.GetSpellPowerCost(ids.Starsurge)[1].cost * 2
     
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
     local ExtraGlows = {}
     
-    if OffCooldown(ids.WarriorOfElune) and NearbyEnemies <= 1 and ( ( IsPlayerSpell(ids.LunarCallingTalent) or not IsPlayerSpell(ids.LunarCallingTalent) and Variables.EclipseRemains <= 7 ) and not PlayerHasBuff(ids.DreamstateBuff) and UnitAffectingCombat("player") ) then
+    if OffCooldown(ids.WarriorOfElune) and NearbyEnemies <= 1 and ( IsPlayerSpell(ids.LunarCallingTalent) or not IsPlayerSpell(ids.LunarCallingTalent) and Variables.EclipseRemains <= 7 ) then
         ExtraGlows.WarriorOfElune = true
     end
     
-    if OffCooldown(ids.WarriorOfElune) and NearbyEnemies > 1 and ( not IsPlayerSpell(ids.LunarCallingTalent) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < 7 or IsPlayerSpell(ids.LunarCallingTalent) and not PlayerHasBuff(ids.DreamstateBuff) and UnitAffectingCombat("player") ) then
-    -- if OffCooldown(ids.WarriorOfElune) and NearbyEnemies > 1 and ( not IsPlayerSpell(ids.LunarCallingTalent) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < 7 or IsPlayerSpell(ids.LunarCallingTalent) ) then
+    if OffCooldown(ids.WarriorOfElune) and NearbyEnemies > 1 and ( not IsPlayerSpell(ids.LunarCallingTalent) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < 7 or IsPlayerSpell(ids.LunarCallingTalent) ) then
         ExtraGlows.WarriorOfElune = true
     end
     
-    -- Kichi --
-    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+    WeakAuras.ScanEvents("NG_GLOW_EXTRAS", ExtraGlows, nil)
     
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     -- AoE APL
     local Aoe = function()
+        -- Spend Dryads Favor on AoE (this is wonky)
+        if OffCooldown(ids.Starsurge) and ( PlayerHasBuff(ids.DryadsFavorBuff) ) then
+            NGSend("Starsurge") return true end
+
         if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and InEclipse and (Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) and not GoingIntoLunar) ) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
         
         if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and InEclipse and Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) and not GoingIntoSolar) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Starfall) and ( MaxAstralPower - CurrentAstralPower <= Variables.PassiveAsp + 6 ) then
-            -- KTrig("Starfall") return true end
-            if aura_env.config[tostring(ids.Starfall)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Starfall")
-            elseif aura_env.config[tostring(ids.Starfall)] ~= true then
-                KTrig("Starfall")
-                return true
-            end
-        end
-
+            NGSend("Starfall") return true end
+        
         if OffCooldown(ids.Moonfire) and ( (IsAuraRefreshable(ids.MoonfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.MoonfireDebuff) < 6.6) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.MoonfireDebuff) ) > 6 and (not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or NearbyEnemies - MoonfiredEnemies > 6 or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) and select(2, GetInstanceInfo()) ~= "raid" ) then
-            KTrig("Moonfire") return true end
+            NGSend("Moonfire") return true end
         
         if OffCooldown(ids.Sunfire) and ( (IsAuraRefreshable(ids.SunfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.SunfireDebuff) < 5.4) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.SunfireDebuff) ) > 6 - ( NearbyEnemies / 2 ) ) then
-            KTrig("Sunfire") return true end
+            NGSend("Sunfire") return true end
         
         if OffCooldown(ids.Moonfire) and ( (IsAuraRefreshable(ids.MoonfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.MoonfireDebuff) < 6.6) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.MoonfireDebuff) ) > 6 and (not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or NearbyEnemies - MoonfiredEnemies > 6 or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) and not select(2, GetInstanceInfo()) ~= "raid" ) then
-            KTrig("Moonfire") return true end
+            NGSend("Moonfire") return true end
         
         if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and ( not InEclipse or Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) ) and not GoingIntoLunar and not Variables.PreCdCondition ) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
         
         if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and ( not InEclipse or Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) ) and not GoingIntoSolar ) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.StellarFlare) and ( IsAuraRefreshable(ids.StellarFlare) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.StellarFlare) > 7 + NearbyEnemies ) and NearbyEnemies < ( 11 - (IsPlayerSpell(ids.UmbralIntensityTalent) and 1 or 0) - ( 2 * (IsPlayerSpell(ids.AstralSmolderTalent) and 1 or 0) ) - (IsPlayerSpell(ids.LunarCallingTalent) and 1 or 0) ) ) then
-            -- KTrig("Stellar Flare") return true end
-            if aura_env.config[tostring(ids.StellarFlare)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Stellar Flare")
-            elseif aura_env.config[tostring(ids.StellarFlare)] ~= true then
-                KTrig("Stellar Flare")
-                return true
-            end
-        end
+            NGSend("Stellar Flare") return true end
         
         if OffCooldown(ids.ForceOfNature) and ( Variables.PreCdCondition or GetTimeToFullCharges(ids.CaInc) + 5 + 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 and ( not IsPlayerSpell(ids.ConvokeTheSpirits) or GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + 10 + 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 or FightRemains(60, NearbyRange) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + C_Spell.GetSpellCooldown(ids.ConvokeTheSpirits).duration + 5 ) and ( FightRemains(60, NearbyRange) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 + 5 or FightRemains(60, NearbyRange) < GetRemainingSpellCooldown(ids.CaInc) + 7 ) or IsPlayerSpell(ids.WhirlingStarsTalent) and IsPlayerSpell(ids.ConvokeTheSpirits) and GetRemainingSpellCooldown(ids.ConvokeTheSpirits) > C_Spell.GetSpellCooldown(ids.ForceOfNature).duration - 10 and FightRemains(60, NearbyRange) > GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + 6 ) then
-            -- KTrig("Force Of Nature") return true end
-            if aura_env.config[tostring(ids.ForceOfNature)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Force Of Nature")
-            elseif aura_env.config[tostring(ids.ForceOfNature)] ~= true then
-                KTrig("Force Of Nature")
-                return true
-            end
-        end
+            NGSend("Force of Nature") return true end
         
         if OffCooldown(ids.FuryOfElune) and ( InEclipse ) then
-            -- KTrig("Fury Of Elune") return true end
-            if aura_env.config[tostring(ids.FuryOfElune)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Fury Of Elune")
-            elseif aura_env.config[tostring(ids.FuryOfElune)] ~= true then
-                KTrig("Fury Of Elune")
-                return true
-            end
-        end
-
-        -- Kichi add this for pre-cast for Incarnation
-        if OffCooldown(ids.FuryOfElune) and ( Variables.CdCondition ) then
-            -- KTrig("Fury Of Elune") return true end
-            if aura_env.config[tostring(ids.FuryOfElune)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Fury Of Elune")
-            elseif aura_env.config[tostring(ids.FuryOfElune)] ~= true then
-                KTrig("Fury Of Elune")
-                return true
-            end
-        end
+            NGSend("Fury of Elune") return true end
         
         if GetRemainingSpellCooldown(ids.CelestialAlignmentCooldown) == 0 and aura_env.config[tostring(ids.CelestialAlignment)] and not IsPlayerSpell(ids.Incarnation) and ( Variables.CdCondition ) then
-            -- KTrig("Celestial Alignment") return true end
-            if aura_env.config[tostring(ids.CelestialAlignment)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Celestial Alignment")
-            elseif aura_env.config[tostring(ids.CelestialAlignment)] ~= true then
-                KTrig("Celestial Alignment")
-                return true
-            end
-        end
+            NGSend("Celestial Alignment") return true end
         
         if GetRemainingSpellCooldown(ids.Incarnation) == 0 and aura_env.config[tostring(ids.Incarnation)] and IsPlayerSpell(ids.Incarnation) and ( Variables.CdCondition ) then
-            -- KTrig("Incarnation") return true end
-            if aura_env.config[tostring(ids.Incarnation)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Incarnation")
-            elseif aura_env.config[tostring(ids.Incarnation)] ~= true then
-                KTrig("Incarnation")
-                return true
-            end
-        end
+            NGSend("Incarnation") return true end
         
-        -- Kichi moved this to No GCDs part -- 
-        -- if OffCooldown(ids.WarriorOfElune) and ( not IsPlayerSpell(ids.LunarCallingTalent) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < 7 or IsPlayerSpell(ids.LunarCallingTalent) and not PlayerHasBuff(ids.DreamstateBuff) ) then
-        --     -- KTrig("Warrior Of Elune") return true end
-        --     if aura_env.config[tostring(ids.WarriorOfElune)] == true and aura_env.FlagKTrigCD then
-        --         KTrigCD("Warrior Of Elune")
-        --     elseif aura_env.config[tostring(ids.WarriorOfElune)] ~= true then
-        --         KTrig("Warrior Of Elune")
-        --         return true
-        --     end
-        -- end
+        if OffCooldown(ids.WarriorOfElune) and ( not IsPlayerSpell(ids.LunarCallingTalent) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < 7 or IsPlayerSpell(ids.LunarCallingTalent) and not PlayerHasBuff(ids.DreamstateBuff) ) then
+            NGSend("Warrior of Elune") return true end
         
         if OffCooldown(ids.Starfire) and ( ( not IsPlayerSpell(ids.LunarCallingTalent) and NearbyEnemies <= 1 ) and ( (PlayerHasBuff(ids.EclipseSolarBuff) or GoingIntoSolar) and GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) or CurrentEclipseID == nil ) ) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Starfall) and ( PlayerHasBuff(ids.StarweaversWarpBuff) or PlayerHasBuff(ids.TouchTheCosmosBuff) ) then
-            -- KTrig("Starfall") return true end
-            if aura_env.config[tostring(ids.Starfall)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Starfall")
-            elseif aura_env.config[tostring(ids.Starfall)] ~= true then
-                KTrig("Starfall")
-                return true
-            end
-        end
+            NGSend("Starfall") return true end
         
         if OffCooldown(ids.Starsurge) and ( PlayerHasBuff(ids.StarweaversWeftBuff) ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.Starfall) then
-            -- KTrig("Starfall") return true end
-            if aura_env.config[tostring(ids.Starfall)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Starfall")
-            elseif aura_env.config[tostring(ids.Starfall)] ~= true then
-                KTrig("Starfall")
-                return true
-            end
-        end
+            NGSend("Starfall") return true end
         
         if OffCooldown(ids.ConvokeTheSpirits) and ( ( not PlayerHasBuff(ids.DreamstateBuff) and not PlayerHasBuff(ids.UmbralEmbraceBuff) and NearbyEnemies < 7 or NearbyEnemies <= 1 ) and ( FightRemains(60, NearbyRange) < 5 or ( PlayerHasBuff(ids.CaIncBuff) or GetRemainingSpellCooldown(ids.CaInc) > 40 ) and ( not IsPlayerSpell(ids.DreamSurgeTalent) or PlayerHasBuff(ids.HarmonyOfTheGroveBuff) or GetRemainingSpellCooldown(ids.ForceOfNature) > 15 ) ) ) then
-            -- KTrig("Convoke The Spirits") return true end
-            if aura_env.config[tostring(ids.ConvokeTheSpirits)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Convoke The Spirits")
-            elseif aura_env.config[tostring(ids.ConvokeTheSpirits)] ~= true then
-                KTrig("Convoke The Spirits")
-                return true
-            end
-        end
+            NGSend("Convoke the Spirits") return true end
         
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.NewMoon or IsCasting(ids.FullMoon)) then
-            -- KTrig("New Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("New Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("New Moon")
-                return true
-            end
-        end
+            NGSend("New Moon") return true end
         
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.HalfMoon or IsCasting(ids.NewMoon)) then
-            -- KTrig("Half Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Half Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("Half Moon")
-                return true
-            end
-        end
+            NGSend("Half Moon") return true end
         
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.FullMoon or IsCasting(ids.HalfMoon)) then
-            -- KTrig("Full Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Full Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("Full Moon")
-                return true
-            end
-        end
+            NGSend("Full Moon") return true end
         
         if OffCooldown(ids.WildMushroom) and ( aura_env.PrevCast ~= ids.WildMushroom and not IsCasting(ids.WildMushroom) and not TargetHasDebuff(ids.FungalGrowthDebuff) ) then
-            -- KTrig("Wild Mushroom") return true end
-            if aura_env.config[tostring(ids.WildMushroom)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Wild Mushroom")
-            elseif aura_env.config[tostring(ids.WildMushroom)] ~= true then
-                KTrig("Wild Mushroom")
-                return true
-            end
-        end
+            NGSend("Wild Mushroom") return true end
         
         if OffCooldown(ids.ForceOfNature) and ( not IsPlayerSpell(ids.DreamSurgeTalent) ) then
-            -- KTrig("Force Of Nature") return true end
-            if aura_env.config[tostring(ids.ForceOfNature)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Force Of Nature")
-            elseif aura_env.config[tostring(ids.ForceOfNature)] ~= true then
-                KTrig("Force Of Nature")
-                return true
-            end
-        end
+            NGSend("Force of Nature") return true end
         
         if OffCooldown(ids.Starfire) and ( IsPlayerSpell(ids.LunarCallingTalent) or ( PlayerHasBuff(ids.EclipseLunarBuff) or GoingIntoLunar) and NearbyEnemies > 3 - ( ( IsPlayerSpell(ids.UmbralEmbraceTalent) or IsPlayerSpell(ids.SoulOfTheForestTalent) ) and 1 or 0 ) ) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Wrath) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
     end
     
     -- ST APL
     local St = function()
-
-        -- Kichi moved this to No GCDs part --
-        -- if OffCooldown(ids.WarriorOfElune) and ( IsPlayerSpell(ids.LunarCallingTalent) or not IsPlayerSpell(ids.LunarCallingTalent) and Variables.EclipseRemains <= 7 ) then
-        --     -- KTrig("Warrior Of Elune") return true end
-        --     if aura_env.config[tostring(ids.WarriorOfElune)] == true and aura_env.FlagKTrigCD then
-        --         KTrigCD("Warrior Of Elune")
-        --     elseif aura_env.config[tostring(ids.WarriorOfElune)] ~= true then
-        --         KTrig("Warrior Of Elune")
-        --         return true
-        --     end
-        -- end
-
+        if OffCooldown(ids.WarriorOfElune) and ( IsPlayerSpell(ids.LunarCallingTalent) or not IsPlayerSpell(ids.LunarCallingTalent) and Variables.EclipseRemains <= 7 ) then
+            NGSend("Warrior of Elune") return true end
+        
         if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and InEclipse and Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) and not GoingIntoLunar and not Variables.CdCondition ) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
         
         if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and InEclipse and Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) and not GoingIntoSolar and not Variables.CdCondition) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Sunfire) and ( GetRemainingDebuffDuration("target", ids.SunfireDebuff) < 3 or (IsAuraRefreshable(ids.SunfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.SunfireDebuff) < 5.4) and ( IsPlayerSpell(ids.DreamSurgeTalent) and OffCooldown(ids.ForceOfNature) or IsPlayerSpell(ids.BoundlessMoonlightTalent) and Variables.CdCondition ) ) then
-            KTrig("Sunfire") return true end
+            NGSend("Sunfire") return true end
         
         if OffCooldown(ids.Moonfire) and ( GetRemainingDebuffDuration("target", ids.MoonfireDebuff) < 3 and ( not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) ) then
-            KTrig("Moonfire") return true end
+            NGSend("Moonfire") return true end
         
         if GetRemainingSpellCooldown(ids.CelestialAlignmentCooldown) == 0 and aura_env.config[tostring(ids.CelestialAlignment)] and not IsPlayerSpell(ids.Incarnation) and ( Variables.CdCondition ) then
-            -- KTrig("Celestial Alignment") return true end
-            if aura_env.config[tostring(ids.CelestialAlignment)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Celestial Alignment")
-            elseif aura_env.config[tostring(ids.CelestialAlignment)] ~= true then
-                KTrig("Celestial Alignment")
-                return true
-            end
-        end
+            NGSend("Celestial Alignment") return true end
         
         if GetRemainingSpellCooldown(ids.Incarnation) == 0 and aura_env.config[tostring(ids.Incarnation)] and IsPlayerSpell(ids.Incarnation) and ( Variables.CdCondition ) then
-            -- KTrig("Incarnation") return true end
-            if aura_env.config[tostring(ids.Incarnation)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Incarnation")
-            elseif aura_env.config[tostring(ids.Incarnation)] ~= true then
-                KTrig("Incarnation")
-                return true
-            end
-        end
+            NGSend("Incarnation") return true end
         
         if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and ( not InEclipse or (Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) and not GoingIntoLunar) ) ) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
         
         if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and ( not InEclipse or (Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) and not GoingIntoSolar) ) ) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Starsurge) and ( Variables.CdCondition and MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 20 ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.ForceOfNature) and ( Variables.PreCdCondition or GetTimeToFullCharges(ids.CaInc) + 5 + 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 and ( not IsPlayerSpell(ids.ConvokeTheSpirits) or GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + 10 + 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 or FightRemains(60, NearbyRange) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + C_Spell.GetSpellCooldown(ids.ConvokeTheSpirits).duration + 5 ) and ( FightRemains(60, NearbyRange) > GetSpellBaseCooldown(ids.ForceOfNature)/1000 + 5 or FightRemains(60, NearbyRange) < GetRemainingSpellCooldown(ids.CaInc) + 7 ) or IsPlayerSpell(ids.WhirlingStarsTalent) and IsPlayerSpell(ids.ConvokeTheSpirits) and GetRemainingSpellCooldown(ids.ConvokeTheSpirits) > C_Spell.GetSpellCooldown(ids.ForceOfNature).duration - 10 and FightRemains(60, NearbyRange) > GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + 6 ) then
-            -- KTrig("Force Of Nature") return true end
-            if aura_env.config[tostring(ids.ForceOfNature)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Force Of Nature")
-            elseif aura_env.config[tostring(ids.ForceOfNature)] ~= true then
-                KTrig("Force Of Nature")
-                return true
-            end
-        end
+            NGSend("Force of Nature") return true end
         
         if OffCooldown(ids.FuryOfElune) and ( 5 + Variables.PassiveAsp < MaxAstralPower - CurrentAstralPower ) then
-            -- KTrig("Fury Of Elune") return true end
-            if aura_env.config[tostring(ids.FuryOfElune)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Fury Of Elune")
-            elseif aura_env.config[tostring(ids.FuryOfElune)] ~= true then
-                KTrig("Fury Of Elune")
-                return true
-            end
-        end
-            
+            NGSend("Fury of Elune") return true end
+        
         if OffCooldown(ids.Starfall) and ( PlayerHasBuff(ids.StarweaversWarpBuff) ) then
-            -- KTrig("Starfall") return true end
-            if aura_env.config[tostring(ids.Starfall)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Starfall")
-            elseif aura_env.config[tostring(ids.Starfall)] ~= true then
-                KTrig("Starfall")
-                return true
-            end
-        end
+            NGSend("Starfall") return true end
         
         if OffCooldown(ids.Starsurge) and ( IsPlayerSpell(ids.StarlordTalent) and GetPlayerStacks(ids.StarlordBuff) < 3 ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.Sunfire) and ( (IsAuraRefreshable(ids.SunfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.SunfireDebuff) < 5.4) ) then
-            KTrig("Sunfire") return true end
+            NGSend("Sunfire") return true end
         
         if OffCooldown(ids.Moonfire) and ( (IsAuraRefreshable(ids.MoonfireDebuff) and not IsPlayerSpell(ids.AetherialKindlingTalent) or GetRemainingDebuffDuration("target", ids.MoonfireDebuff) < 6.6) and ( not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) ) then
-            KTrig("Moonfire") return true end
+            NGSend("Moonfire") return true end
         
         if OffCooldown(ids.Starsurge) and ( GetRemainingSpellCooldown(ids.ConvokeTheSpirits) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and Variables.ConvokeCondition and MaxAstralPower - CurrentAstralPower < 50) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.ConvokeTheSpirits) and ( Variables.ConvokeCondition ) then
-            -- KTrig("Convoke The Spirits") return true end
-            if aura_env.config[tostring(ids.ConvokeTheSpirits)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Convoke The Spirits")
-            elseif aura_env.config[tostring(ids.ConvokeTheSpirits)] ~= true then
-                KTrig("Convoke The Spirits")
-                return true
-            end
-        end
-
+            NGSend("Convoke the Spirits") return true end
+        
         if OffCooldown(ids.StellarFlare) and ( IsAuraRefreshable(ids.StellarFlare) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.StellarFlare) > 7 + NearbyEnemies ) ) then
-            -- KTrig("Stellar Flare") return true end
-            if aura_env.config[tostring(ids.StellarFlare)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Stellar Flare")
-            elseif aura_env.config[tostring(ids.StellarFlare)] ~= true then
-                KTrig("Stellar Flare")
-                return true
-            end
-        end
-
+            NGSend("Stellar Flare") return true end
+        
         if OffCooldown(ids.Starsurge) and ( GetRemainingAuraDuration("player", ids.StarlordBuff) > 4 and Variables.BoatStacks >= 3 or FightRemains(60, NearbyRange) < 4 ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.NewMoon or IsCasting(ids.FullMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 10 or FightRemains(60, NearbyRange) < 20 or GetRemainingSpellCooldown(ids.CaInc) > 15 ) then
-            -- KTrig("New Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("New Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("New Moon")
-                return true
-            end
-        end
-
+            NGSend("New Moon") return true end
+        
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.HalfMoon or IsCasting(ids.NewMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 20 and ( GetRemainingAuraDuration("player", ids.EclipseLunarBuff) > max(C_Spell.GetSpellInfo(ids.HalfMoon).castTime/1000, WeakAuras.gcdDuration()) or GetRemainingAuraDuration("player", ids.EclipseSolarBuff) > max(C_Spell.GetSpellInfo(ids.HalfMoon).castTime/1000, WeakAuras.gcdDuration()) ) or FightRemains(60, NearbyRange) < 20 or GetRemainingSpellCooldown(ids.CaInc) > 15 ) then
-            -- KTrig("Half Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Half Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("Half Moon")
-                return true
-            end
-        end
+            NGSend("Half Moon") return true end
         
         if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.FullMoon or IsCasting(ids.HalfMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 40 and ( GetRemainingAuraDuration("player", ids.EclipseLunarBuff) > max(C_Spell.GetSpellInfo(ids.FullMoon).castTime/1000, WeakAuras.gcdDuration()) or GetRemainingAuraDuration("player", ids.EclipseSolarBuff) > max(C_Spell.GetSpellInfo(ids.FullMoon).castTime/1000, WeakAuras.gcdDuration()) ) or FightRemains(60, NearbyRange) < 20 or GetRemainingSpellCooldown(ids.CaInc) > 15 ) then
-            -- KTrig("Full Moon") return true end
-            if aura_env.config[tostring(ids.NewMoon)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Full Moon")
-            elseif aura_env.config[tostring(ids.NewMoon)] ~= true then
-                KTrig("Full Moon")
-                return true
-            end
-        end
-
+            NGSend("Full Moon") return true end
+        
         if OffCooldown(ids.Starsurge) and ( PlayerHasBuff(ids.StarweaversWeftBuff) or PlayerHasBuff(ids.TouchTheCosmosBuff) ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
         if OffCooldown(ids.Starsurge) and ( MaxAstralPower - CurrentAstralPower < Variables.PassiveAsp + 6 + ( 10 + Variables.PassiveAsp ) * ( ( GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) and 1 or 0 ) ) then
-            KTrig("Starsurge") return true end
+            NGSend("Starsurge") return true end
         
-        -- if OffCooldown(ids.ForceOfNature) and ( not IsPlayerSpell(ids.DreamSurgeTalent) ) then
-        --     -- KTrig("Force Of Nature") return true end
-        --     if aura_env.config[tostring(ids.ForceOfNature)] == true and aura_env.FlagKTrigCD then
-        --         KTrigCD("Force Of Nature")
-        --     elseif aura_env.config[tostring(ids.ForceOfNature)] ~= true then
-        --         KTrig("Force Of Nature")
-        --         return true
-        --     end
-        -- end
+        --if OffCooldown(ids.ForceOfNature) and ( not IsPlayerSpell(ids.DreamSurgeTalent) ) then
+        --    NGSend("Force of Nature") return true end
         
         if OffCooldown(ids.WildMushroom) and ( aura_env.PrevCast ~= ids.WildMushroom and not IsCasting(ids.WildMushroom) and not TargetHasDebuff(ids.FungalGrowthDebuff) ) then
-            -- KTrig("Wild Mushroom") return true end
-            if aura_env.config[tostring(ids.WildMushroom)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Wild Mushroom")
-            elseif aura_env.config[tostring(ids.WildMushroom)] ~= true then
-                KTrig("Wild Mushroom")
-                return true
-            end
-        end
-
+            NGSend("Wild Mushroom") return true end
+        
         if OffCooldown(ids.Starfire) and ( IsPlayerSpell(ids.LunarCallingTalent) ) then
-            KTrig("Starfire") return true end
+            NGSend("Starfire") return true end
         
         if OffCooldown(ids.Wrath) then
-            KTrig("Wrath") return true end
+            NGSend("Wrath") return true end
+    end
+
+    -- Make Warrior of Elune work if talented (don't talent this)
+    local KotgSt = function()
+        if OffCooldown(ids.WarriorOfElune) and ( Variables.EclipseRemains <= 7 ) then
+            NGSend("Warrior of Elune") return true end
+
+        -- Enter Eclipse if variable.enter_lunar is true or false
+        if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and InEclipse and Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) or ( Variables.KotgCaCondition or Variables.KotgIncCondition ) and PlayerHasBuff(ids.PartingSkiesBuff) and ( Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) or CurrentEclipseID == nil ) ) then
+            NGSend("Wrath") return true end
+
+        if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and InEclipse and Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) and not PlayerHasBuff(ids.DryadsFavorBuff) and not ( Variables.KotgCaCondition or not Variables.KotgIncCondition ) ) then
+            NGSend("Starfire") return true end
+
+        -- Use dots if less than 3 seconds remaining or if you're about to use CDs
+        if OffCooldown(ids.Moonfire) and ( ( GetRemainingDebuffDuration("target", ids.MoonfireDebuff) < 3 and ( not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) ) or not TargetHasDebuff(ids.MoonfireDebuff) ) then
+            NGSend("Moonfire") return true end
+
+        if OffCooldown(ids.Sunfire) and ( GetRemainingDebuffDuration("target", ids.SunfireDebuff) < 3 or GetRemainingDebuffDuration("target", ids.SunfireDebuff) < min( 12, (PlayerHasBuff(ids.CaIncBuff) and select(5, WA_GetUnitAura("player", ids.CaIncBuff)) or 0) ) and Variables.KotgCaCondition and not PlayerHasBuff(ids.CaIncBuff) ) then
+            NGSend("Sunfire") return true end
+
+        -- Run kotg_pre_cd list for cooldwns
+        if OffCooldown(ids.FuryOfElune) and ( not PlayerHasBuff(ids.CaIncBuff) and Variables.KotgCaCondition or GetRemainingSpellCooldown(ids.ConvokeTheSpirits) > C_Spell.GetSpellCooldown(ids.FuryOfElune).duration ) then
+            NGSend("Fury of Elune") return true end
+
+        -- Cooldowns
+        if GetRemainingSpellCooldown(ids.CelestialAlignmentCooldown) == 0 and aura_env.config[tostring(ids.CelestialAlignment)] and not IsPlayerSpell(ids.Incarnation) and ( Variables.KotgCaCondition ) then
+            NGSend("Celestial Alignment") return true end
+
+        if GetRemainingSpellCooldown(ids.Incarnation) == 0 and aura_env.config[tostring(ids.Incarnation)] and IsPlayerSpell(ids.Incarnation) and ( Variables.KotgIncCondition ) then
+            NGSend("Incarnation") return true end
+
+        -- Starsurge with 4pc buff and CA/Incarn up
+        if OffCooldown(ids.Starsurge) and ( PlayerHasBuff(ids.DryadsFavorBuff) and PlayerHasBuff(ids.CaIncBuff) ) then
+            NGSend("Starsurge") return true end
+
+        -- Enter Lunar from out of Eclipse
+        if OffCooldown(ids.Wrath) and ( Variables.EnterLunar and ( CurrentEclipseID == nil or Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Wrath).castTime/1000) ) ) then
+            NGSend("Wrath") return true end
+
+        if OffCooldown(ids.Starfire) and ( not Variables.EnterLunar and ( CurrentEclipseID == nil or Variables.EclipseRemains < (C_Spell.GetSpellInfo(ids.Starfire).castTime/1000) ) ) then
+            NGSend("Starfire") return true end
+
+        -- Use Stellar Flare if you're about to use CDs and the duration is less than the duration of your CDs
+        if OffCooldown(ids.StellarFlare) and ( GetRemainingDebuffDuration("target", ids.StellarFlareDebuff) <= (PlayerHasBuff(ids.CaIncBuff) and select(5, WA_GetUnitAura("player", ids.CaIncBuff)) or 0) and Variables.PoolForCd or GetRemainingDebuffDuration("target", ids.StellarFlareDebuff) <= (PlayerHasBuff(ids.CaIncBuff) and 1 or 0) and not PlayerHasBuff(ids.DryadsFavorBuff) ) then
+            NGSend("Stellar Flare") return true end
+
+        -- Wrath to pool AP before using CDs
+        if OffCooldown(ids.Wrath) and ( Variables.PoolForCd ) then
+            NGSend("Wrath") return true end
+
+        -- Hard force 2 Starsurge casts at start of Dryad
+        if OffCooldown(ids.Starsurge) and ( GetRemainingAuraDuration("player", ids.DryadBuff) > 8 and PlayerHasBuff(ids.DryadBuff) ) then
+            NGSend("Starsurge") return true end
+
+
+        -- Use Treants if Dryad is up and the duration is less than Treants duration + 2 globals ( Too long now, NG won't update )
+        if OffCooldown(ids.ForceOfNature) and ( PlayerHasBuff(ids.DryadBuff) and (PlayerHasBuff(ids.HarmonyOfTheGroveBuff) and select(5, WA_GetUnitAura("player", ids.HarmonyOfTheGroveBuff)) or 0) > GetRemainingAuraDuration("player", ids.DryadBuff) + 2 or not PlayerHasBuff(ids.CaIncBuff) and ( C_Spell.GetSpellCooldown(ids.ForceOfNature).duration < 5 + ( GetRemainingSpellCooldown(ids.ConvokeTheSpirits) + ( 15 * (IsPlayerSpell(ids.ControlOfTheDreamTalent) and 1 or 0) ) ) ) or FightRemains(60, NearbyRange) < 20 ) then
+            NGSend("Force of Nature") return true end
+
+        -- Proceed with rotation
+        if OffCooldown(ids.FuryOfElune) and ( 5 + Variables.PassiveAsp < MaxAstralPower - CurrentAstralPower and ( GetRemainingSpellCooldown(ids.ConvokeTheSpirits) > 8 or not IsPlayerSpell(ids.ConvokeTheSpirits) ) or FightRemains(60, NearbyRange) < 8 + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
+            NGSend("Fury of Elune") return true end
+
+        if OffCooldown(ids.Starfall) and ( PlayerHasBuff(ids.StarweaversWarpBuff) ) then
+            NGSend("Starfall") return true end
+
+        if OffCooldown(ids.Starsurge) and ( IsPlayerSpell(ids.StarlordTalent) and GetPlayerStacks(ids.StarlordBuff) < 3 and not Variables.PoolInCa and not ( Variables.ConvokeCondition and OffCooldown(ids.ConvokeTheSpirits) ) ) then
+            NGSend("Starsurge") return true end
+
+        if OffCooldown(ids.Sunfire) and ( IsAuraRefreshable(ids.SunfireDebuff) ) then
+            NGSend("Sunfire") return true end
+
+        if OffCooldown(ids.Moonfire) and ( IsAuraRefreshable(ids.MoonfireDebuff) and ( not IsPlayerSpell(ids.TreantsOfTheMoonTalent) or GetRemainingSpellCooldown(ids.ForceOfNature) > 3 and not PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) ) then
+            NGSend("Moonfire") return true end
+
+        -- Convoke when Convoke variable is true and Harmony of the Grove is up
+        if OffCooldown(ids.Starsurge) and ( GetRemainingSpellCooldown(ids.ConvokeTheSpirits) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and Variables.ConvokeCondition and CurrentAstralPower > 36 and GetRemainingAuraDuration("player", ids.DryadBuff) > 4 + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and PlayerHasBuff(ids.DryadBuff) and FightRemains(60, 0) > 5 ) then
+            NGSend("Starsurge") return true end
+
+        if OffCooldown(ids.ConvokeTheSpirits) and ( Variables.ConvokeCondition and PlayerHasBuff(ids.HarmonyOfTheGroveBuff) ) then
+            NGSend("Convoke the Spirits") return true end
+
+        if OffCooldown(ids.StellarFlare) and ( IsAuraRefreshable(ids.StellarFlare) and ( TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.StellarFlare) > 7 + NearbyEnemies ) and not PlayerHasBuff(ids.CaIncBuff) ) then
+            NGSend("Stellar Flare") return true end
+        
+        if OffCooldown(ids.Starsurge) and ( ( GetRemainingAuraDuration("player", ids.StarlordBuff) > 4 and Variables.BoatStacks >= 7 or FightRemains(60, NearbyRange) < 4 ) and not Variables.PoolInCa ) then
+            NGSend("Starsurge") return true end
+        
+        if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.NewMoon or IsCasting(ids.FullMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 10 and (( PlayerHasBuff(ids.HarmonyOfTheGroveBuff) and not PlayerHasBuff(ids.CaIncBuff) or PlayerHasBuff(ids.CaIncBuff) and not OffCooldown(ids.CaInc)) or GetTimeToFullCharges(ids.NewMoon) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) ) or FightRemains(60, NearbyRange) < 20 ) then
+            NGSend("New Moon") return true end
+                    
+        if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.HalfMoon or IsCasting(ids.NewMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 20 and (( PlayerHasBuff(ids.HarmonyOfTheGroveBuff) and not PlayerHasBuff(ids.CaIncBuff) or PlayerHasBuff(ids.CaIncBuff) and not OffCooldown(ids.CaInc)) or GetTimeToFullCharges(ids.NewMoon) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) ) or FightRemains(60, NearbyRange) < 20 ) then
+            NGSend("Half Moon") return true end
+                    
+        if OffCooldown(ids.NewMoon) and HasMoonCharge and (FindSpellOverrideByID(ids.NewMoon) == ids.FullMoon or IsCasting(ids.HalfMoon)) and ( MaxAstralPower - CurrentAstralPower > Variables.PassiveAsp + 40 and (( PlayerHasBuff(ids.HarmonyOfTheGroveBuff) and not PlayerHasBuff(ids.CaIncBuff) or PlayerHasBuff(ids.CaIncBuff) and not OffCooldown(ids.CaInc)) or GetTimeToFullCharges(ids.NewMoon) < GetRemainingSpellCooldown(ids.ConvokeTheSpirits) ) or FightRemains(60, NearbyRange) < 20 ) then
+            NGSend("Full Moon") return true end
+
+        if OffCooldown(ids.Starsurge) and ( PlayerHasBuff(ids.StarweaversWeftBuff) or PlayerHasBuff(ids.TouchTheCosmosBuff) ) then
+            NGSend("Starsurge") return true end
+        
+        if OffCooldown(ids.Starsurge) and ( MaxAstralPower - CurrentAstralPower < Variables.PassiveAsp + 6 + ( 10 + Variables.PassiveAsp ) * ( ( GetRemainingAuraDuration("player", ids.EclipseSolarBuff) < ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) ) and 1 or 0 ) and not Variables.PoolInCa ) then
+            NGSend("Starsurge") return true end
+        
+        if OffCooldown(ids.WildMushroom) and ( aura_env.PrevCast ~= ids.WildMushroom and not IsCasting(ids.WildMushroom) and GetRemainingAuraDuration("target", ids.FungalGrowthDebuff) < 2 ) then
+            NGSend("Wild Mushroom") return true end
+        
+        if OffCooldown(ids.Wrath) then
+            NGSend("Wrath") return true end
+
     end
     
+    -- Run AoE action list when more than 1 target
     if NearbyEnemies > 1 then
         Aoe() return true end
+
+    -- RUN ST action list when just 1 target and no 11.2 Keeper 4pc
+    if not Variables.Tww3Keeper4Pc and NearbyEnemies <= 1 then
+        if St() then return true end end
+
+    -- Run ST action list for 11.2 Keeper 4pc
+    if Variables.Tww3Keeper4Pc and NearbyEnemies <= 1 then
+        if KotgSt() then return true end end
     
-    if St() then return true end
-    
-    -- Kichi --
-    KTrig("Clear")
-    --KTrigCD("Clear")
+    NGSend("Clear")
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -829,6 +915,10 @@ function(event, timestamp, subEvent, hideCaster, sourceGUID, sourceName, sourceF
         
         if destGUID == aura_env.ids.FullMoon then
             aura_env.LastFullMoon = GetTime()
+        end
+        
+        if destGUID == aura_env.ids.ForceOfNature then
+            aura_env.LastForceOfNature = GetTime()
         end
     elseif subEvent == "SPELL_PERIODIC_ENERGIZE" then
         if spellID == 202497 then -- Shooting Stars
@@ -849,15 +939,14 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 
 aura_env.ShouldShowDebuff = function(unit)
-    if (UnitAffectingCombat(unit) or aura_env.config["BypassCombatRequirement"]) and not UnitIsFriend("player", unit) and UnitClassification(unit) ~= "minus" and not WA_GetUnitDebuff(unit, aura_env.config["DebuffID"]) then
-        if _G.KLIST and _G.KLIST.BalanceDruid then
-            for _, ID in ipairs(_G.KLIST.BalanceDruid) do                
+    if UnitAffectingCombat(unit) and not UnitIsFriend("player", unit) and UnitClassification(unit) ~= "minus" and not WA_GetUnitDebuff(unit, aura_env.config["DebuffID"]) then
+        if _G.NGWA and _G.NGWA.BalanceDruid then
+            for _, ID in ipairs(_G.NGWA.BalanceDruid) do                
                 if UnitName(unit) == ID or select(6, strsplit("-", UnitGUID(unit))) == ID then
                     return false
                 end
             end
         end
-        
         return true
     end
 end
@@ -933,100 +1022,3 @@ function(allstates, event, Unit, subEvent, _, sourceGUID, _, _, _, destGUID, _, 
     end
 end
 
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------Rotation Load--------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------------------
-
-aura_env.NearbyEnemies = 0
-
----@class idsTable
-aura_env.ids = {
-    -- Abilities
-    AstralCommunion = 400636,
-    CelestialAlignment = 194223,
-    CelestialAlignmentCooldown = 383410,
-    ConvokeTheSpirits = 391528,
-    ForceOfNature = 205636,
-    FullMoon = 274283,
-    FuryOfElune = 202770,
-    HalfMoon = 274282,
-    Incarnation = 102560,
-    Moonfire = 8921,
-    NewMoon = 274281,
-    Starfall = 191034,
-    Starfire = 194153,
-    Starsurge = 78674,
-    StellarFlare = 202347,
-    Sunfire = 93402,
-    WarriorOfElune = 202425,
-    WildMushroom = 88747,
-    Wrath = 190984,
-    
-    -- Talents
-    AetherialKindlingTalent = 327541,
-    AstralSmolderTalent = 394058,
-    BoundlessMoonlightTalent = 424058,
-    ControlOfTheDreamTalent = 434249,
-    DreamSurgeTalent = 433831,
-    EarlySpringTalent = 428937,
-    GreaterAlignmentTalent = 450184,
-    IncarnationTalent = 102560,
-    LunarCallingTalent = 429523,
-    NaturesBalanceTalent = 202430,
-    NaturesGraceTalent = 450347,
-    OrbitBreakerTalent = 383197,
-    OrbitalStrikeTalent = 390378,
-    PowerOfTheDreamTalent = 434220,
-    SoulOfTheForestTalent = 114107,
-    StarlordTalent = 202345,
-    TreantsOfTheMoonTalent = 428544,
-    UmbralEmbraceTalent = 393760,
-    UmbralIntensityTalent = 383195,
-    WhirlingStarsTalent = 468743,
-    WildSurgesTalent = 406890,
-    
-    -- Buffs/Debuffs
-    BalanceOfAllThingsArcaneBuff = 394050,
-    BalanceOfAllThingsNatureBuff = 394049,
-    CelestialAlignmentOrbitalStrikeBuff = 383410,
-    CelestialAlignmentBuff = 194223,
-    DreamstateBuff = 450346,
-    FungalGrowthDebuff = 81281,
-    IncarnationOrbitalStrikeBuff = 390414,
-    IncarnationBuff = 102560,
-    EclipseLunarBuff = 48518,
-    EclipseSolarBuff = 48517,
-    HarmonyOfTheGroveBuff = 428735,
-    MoonfireDebuff = 164812,
-    SolsticeBuff = 343648,
-    StarlordBuff = 279709,
-    StarweaversWarpBuff = 393942,
-    StarweaversWeftBuff = 393944,
-    SunfireDebuff = 164815,
-    TouchTheCosmosBuff = 450360,
-    UmbralEmbraceBuff = 393763,
-}
-
-aura_env.GetSpellCooldown = function(spellId)
-    local spellCD = C_Spell.GetSpellCooldown(spellId)
-    local spellCharges = C_Spell.GetSpellCharges(spellId)
-    if spellCharges then
-        local rechargeTime = (spellCharges.currentCharges < spellCharges.maxCharges) and (spellCharges.cooldownStartTime + spellCharges.cooldownDuration - GetTime()) or 0
-        return spellCharges.currentCharges, rechargeTime, spellCharges.maxCharges
-    elseif spellCD then
-        local remainingCD = (spellCD.startTime and spellCD.duration) and math.max(spellCD.startTime + spellCD.duration - GetTime(), 0) or 0
-        return 0, remainingCD, 0
-    else
-        return 0, 0, 0
-    end
-end
-
-aura_env.GetSafeSpellIcon = function(spellId)
-    if not spellId or spellId == 0 then
-        return 0  
-    end
-    local spellInfo = C_Spell.GetSpellInfo(spellId)
-    return spellInfo and spellInfo.iconID or 0
-end
