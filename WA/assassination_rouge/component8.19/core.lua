@@ -114,7 +114,7 @@ env.test = function()
                 NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
             end
 
-            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and ( aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 or aura_env.PlayerHasBuff(392403) or aura_env.PlayerHasBuff(392401) ) then
                 NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
             end
             if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
