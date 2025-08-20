@@ -650,7 +650,7 @@ function()
             then
                 KTrig("Fan of Knives") return true
             else
-                KTrig("Fan of Knives", "Not Good") return true 
+                KTrig("Fan of Knives") return true 
             end
         end
         
@@ -661,7 +661,7 @@ function()
             then
                 KTrig("Ambush") return true
             else
-                KTrig("Ambush", "Not Good") return true 
+                KTrig("Ambush") return true 
             end
         end
             
@@ -673,7 +673,7 @@ function()
             then
                 KTrig("Mutilate") return true
             else
-                KTrig("Mutilate", "Not Good") return true 
+                KTrig("Mutilate") return true 
             end 
         end
         
@@ -684,7 +684,7 @@ function()
             then
                 KTrig("Mutilate") return true
             else
-                KTrig("Mutilate", "Not Good") return true 
+                KTrig("Mutilate") return true 
             end 
         end
     end
@@ -899,8 +899,9 @@ function()
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyRefreshableGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 or IsPlayerSpell(ids.SuddenDemiseTalent)) and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
 
+        -- Kichi -- for 1.dot check way
         -- Improve Garrote: Apply or Refresh Improved Garrotes as a final check
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
             KTrig("Garrote") return true end
     end
     
