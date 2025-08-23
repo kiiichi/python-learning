@@ -97,7 +97,8 @@ aura_env.ids = {
     RazoriceDebuff = 51714,
     ReaperOfSoulsBuff = 469172,
     ReapersMarkDebuff = 434765,
-    RemorselessWinterBuff = 196770,
+    RemorselessWinterBuff1 = 196770, -- Initial RemorselessWinter
+    RemorselessWinterBuff2 = 1233152, -- RemorselessWinter if has FrozenDominionTalent
     RimeBuff = 59052,
     UnholyStrengthBuff = 53365,
     UnleashedFrenzyBuff = 376907,
@@ -442,7 +443,7 @@ function()
 
     -- Kichi fix because NG wrong
     -- Frostscythe is equal at 3 targets, except with Rider 4pc which brings Obliterate higher at 3, unless cleaving strikes is up
-    Variables.FrostscythePrio = 3 + ( ( (SetPieces >= 4 ) and not ( IsPlayerSpell(ids.CleavingStrikesTalent) and PlayerHasBuff(ids.RemorselessWinterBuff) ) ) and 1 or 0 )
+    Variables.FrostscythePrio = 3 + ( ( (SetPieces >= 4 ) and not ( IsPlayerSpell(ids.CleavingStrikesTalent) and (PlayerHasBuff(ids.RemorselessWinterBuff1) or PlayerHasBuff(ids.RemorselessWinterBuff2) ) ) ) and 1 or 0 )
 
     Variables.BreathOfSindragosaCheck = IsPlayerSpell(ids.BreathOfSindragosaTalent) and (GetRemainingSpellCooldown(ids.BreathOfSindragosa) > 20 or ( OffCooldown(ids.BreathOfSindragosa) and CurrentRunicPower >= ( 60 - 20 * (IsPlayerSpell(ids.ReapersMarkTalent) and 1 or 0) ) ) )
     
@@ -747,7 +748,8 @@ aura_env.ids = {
     RazoriceDebuff = 51714,
     ReaperOfSoulsBuff = 469172,
     ReapersMarkDebuff = 434765,
-    RemorselessWinterBuff = 196770,
+    RemorselessWinterBuff1 = 196770, -- Initial RemorselessWinter
+    RemorselessWinterBuff2 = 1233152, -- RemorselessWinter if has FrozenDominionTalent
     RimeBuff = 59052,
     UnholyStrengthBuff = 53365,
     UnleashedFrenzyBuff = 376907,
