@@ -606,8 +606,9 @@ function()
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 4 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) or IsPlayerSpell(ids.SuddenDemiseTalent) ) and (not PlayerHasBuff(ids.DarkestNightBuff) or IsPlayerSpell(ids.CausticSpatterTalent) and not TargetHasDebuff(ids.CausticSpatterDebuff)) ) then
             KTrig("Rupture") return true end
 
+        -- Kichi modyfied for simc fixed
         -- Maintain Crimson Tempest unless it would remove a stronger cast
-        if OffCooldown(ids.CrimsonTempest) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.CrimsonTempestDebuff) and ( not TargetHasDebuff(ids.CrimsonTempestDebuff) or aura_env.CrimsonTempestSnapshots[UnitGUID("target")] <= NearbyEnemies ) and not PlayerHasBuff(ids.DarkestNightBuff) and not IsPlayerSpell(ids.AmplifyingPoisonTalent) and NearbyEnemies <= 1 ) then
+        if OffCooldown(ids.CrimsonTempest) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.CrimsonTempestDebuff) and not PlayerHasBuff(ids.DarkestNightBuff) and not IsPlayerSpell(ids.AmplifyingPoisonTalent) ) then
             KTrig("Crimson Tempest") return true end
     end
     
@@ -636,7 +637,8 @@ function()
         if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.ClearTheWitnessesBuff) and ( NearbyEnemies >= 2 - ( ( PlayerHasBuff(ids.LingeringDarknessBuff) or not IsPlayerSpell(ids.ViciousVenomsTalent) ) and 1 or 0 ) ) ) then
             KTrig("Fan of Knives") return true end
         
-        Variables.FokTargetCount = ( NearbyEnemies >= 3 - ((IsPlayerSpell(ids.MomentumOfDespairTalent) and IsPlayerSpell(ids.ThrownPrecisionTalent)) and 1 or 0) + (IsPlayerSpell(ids.ViciousVenomsTalent) and 1 or 0) + (IsPlayerSpell(ids.BlindsideTalent) and 1 or 0) )
+        -- Kichi modified for simc fixed
+        Variables.FokTargetCount = ( NearbyEnemies >= 3 - (IsPlayerSpell(ids.ThrownPrecisionTalent) and 1 or 0) + (IsPlayerSpell(ids.ViciousVenomsTalent) and 1 or 0) + (IsPlayerSpell(ids.BlindsideTalent) and 1 or 0) )
 
         -- Fan of Knives at 6cp for special case Darkest Night
         if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 6 and ( not IsPlayerSpell(ids.ViciousVenomsTalent) or NearbyEnemies >= 2) ) then
@@ -903,6 +905,16 @@ function()
         -- Improve Garrote: Apply or Refresh Improved Garrotes as a final check
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
             KTrig("Garrote") return true end
+
+        -- Kichi modify for simc fixed
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) and GetRemainingAuraDuration("player", ids.IndiscriminateCarnageBuff) <= FullGCD() and NearbyEnemies > 6 ) then
+            KTrig("Garrote") return true end
+
+        -- Kichi modify for simc fixed
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) and GetRemainingAuraDuration("player", ids.IndiscriminateCarnageBuff) <= FullGCD() and NearbyEnemies <= 6 and GetRemainingSpellCooldown(ids.Vanish) > 17 and not PlayerHasBuff(ids.VanishBuff) ) then
+            KTrig("Garrote") return true end            
+
+
     end
     
     -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
@@ -1060,6 +1072,7 @@ function()
     KTrig("Clear")
 
 end
+
 
 
 ----------------------------------------------------------------------------------------------------------------------

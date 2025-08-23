@@ -440,8 +440,9 @@ function()
 
     Variables.RpPooling = IsPlayerSpell(ids.BreathOfSindragosaTalent) and GetRemainingSpellCooldown(ids.BreathOfSindragosa) < 4 * WeakAuras.gcdDuration() and CurrentRunicPower < (60 + ( 35 + 5 * (PlayerHasBuff(ids.IcyOnslaughtBuff) and 1 or 0 ) - ( 10 * CurrentRunes )) ) and Variables.SendingCds 
 
+    -- Kichi fix because NG wrong
     -- Frostscythe is equal at 3 targets, except with Rider 4pc which brings Obliterate higher at 3, unless cleaving strikes is up
-    Variables.FrostscythePrio = 3 + ( ( (SetPieces >= 4 and IsPlayerSpell(ids.RidersChampionTalent)) and not ( IsPlayerSpell(ids.CleavingStrikesTalent) and PlayerHasBuff(ids.RemorselessWinterBuff) ) ) and 1 or 0 )
+    Variables.FrostscythePrio = 3 + ( ( (SetPieces >= 4 ) and not ( IsPlayerSpell(ids.CleavingStrikesTalent) and PlayerHasBuff(ids.RemorselessWinterBuff) ) ) and 1 or 0 )
 
     Variables.BreathOfSindragosaCheck = IsPlayerSpell(ids.BreathOfSindragosaTalent) and (GetRemainingSpellCooldown(ids.BreathOfSindragosa) > 20 or ( OffCooldown(ids.BreathOfSindragosa) and CurrentRunicPower >= ( 60 - 20 * (IsPlayerSpell(ids.ReapersMarkTalent) and 1 or 0) ) ) )
     

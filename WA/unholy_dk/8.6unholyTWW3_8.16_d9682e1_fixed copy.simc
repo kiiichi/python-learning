@@ -1,4 +1,4 @@
-deathknight="TWW3_Death_Knight_Unholy_Rider——2 to 3"
+deathknight="TWW3_Death_Knight_Unholy_Rider_fixed"
 source=default
 spec=unholy
 level=80
@@ -47,14 +47,14 @@ actions+=/call_action_list,name=cds_aoe_san,if=talent.vampiric_strike&active_ene
 actions+=/call_action_list,name=cds_aoe,if=!talent.vampiric_strike&active_enemies>=2
 actions+=/call_action_list,name=cds_cleave_san,if=talent.vampiric_strike&active_enemies=2
 actions+=/call_action_list,name=cds_san,if=talent.vampiric_strike&active_enemies=1
-actions+=/call_action_list,name=cds,if=!talent.vampiric_strike&active_enemies=1
+actions+=/call_action_list,name=cds,if=!talent.vampiric_strike&active_enemies<=2
 # actions+=/call_action_list,name=cleave,if=active_enemies=2
 actions+=/call_action_list,name=aoe_setup,if=active_enemies>=2&cooldown.any_dnd.remains<7&!buff.legion_of_souls.up&(buff.death_and_decay.remains<3|death_knight.fwounded_targets<(active_enemies*0.5))
-actions+=/call_action_list,name=aoe_burst,if=active_enemies>=2&(death_and_decay.ticking|buff.death_and_decay.up&(death_knight.fwounded_targets>=(active_enemies*0.5)|talent.vampiric_strike&active_enemies<16|talent.desecrate&death_knight.fwounded_targets=active_enemies&talent.bursting_sores))
-actions+=/call_action_list,name=aoe,if=active_enemies>=2&!buff.death_and_decay.up
+actions+=/call_action_list,name=aoe_burst,if=active_enemies>=3&(death_and_decay.ticking|buff.death_and_decay.up&(death_knight.fwounded_targets>=(active_enemies*0.5)|talent.vampiric_strike&active_enemies<16|talent.desecrate&death_knight.fwounded_targets=active_enemies&talent.bursting_sores))
+actions+=/call_action_list,name=aoe,if=active_enemies>=3&!buff.death_and_decay.up
 actions+=/run_action_list,name=san_fishing,if=active_enemies=1&talent.gift_of_the_sanlayn&!cooldown.dark_transformation.ready&!buff.gift_of_the_sanlayn.up&buff.essence_of_the_blood_queen.remains<cooldown.dark_transformation.remains+3
 actions+=/call_action_list,name=san_st,if=active_enemies=1&talent.vampiric_strike
-actions+=/call_action_list,name=st,if=active_enemies=1&!talent.vampiric_strike
+actions+=/call_action_list,name=st,if=active_enemies<=2&!talent.vampiric_strike
 
 # AoE
 actions.aoe=festering_strike,if=buff.festering_scythe.react
@@ -214,7 +214,8 @@ actions.variables+=/variable,name=pop_wounds,op=setif,value=1,value_else=0,condi
 actions.variables+=/variable,name=pooling_runic_power,op=setif,value=1,value_else=0,condition=cooldown.summon_gargoyle.remains>5&runic_power<40
 actions.variables+=/variable,name=spend_rp,op=setif,value=1,value_else=0,condition=(!talent.rotten_touch|talent.rotten_touch&!debuff.rotten_touch.up|runic_power.deficit<20)&((talent.improved_death_coil&(active_enemies=2|talent.coil_of_devastation)|rune<3|pet.gargoyle.active|buff.sudden_doom.react|!variable.pop_wounds&debuff.festering_wound.stack>=4))
 actions.variables+=/variable,name=san_coil_mult,op=setif,value=2,value_else=1,condition=buff.essence_of_the_blood_queen.stack>=4
-actions.variables+=/variable,name=epidemic_targets,value=3+talent.improved_death_coil+(talent.frenzied_bloodthirst*variable.san_coil_mult)+(talent.hungering_thirst&talent.harbinger_of_doom&buff.sudden_doom.up)
+# actions.variables+=/variable,name=epidemic_targets,value=3+talent.improved_death_coil+(talent.frenzied_bloodthirst*variable.san_coil_mult)+(talent.hungering_thirst&talent.harbinger_of_doom&buff.sudden_doom.up)
+actions.variables+=/variable,name=epidemic_targets,value=3
 
 head=hollow_sentinels_stonemask,id=237628,bonus_id=6935,ilevel=723,gem_id=213743
 neck=salhadaars_folly,id=242406,bonus_id=7187/1520/8781,ilevel=723,gem_id=213491/213491

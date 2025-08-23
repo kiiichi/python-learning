@@ -113,7 +113,10 @@ actions.core_dot=garrote,if=combo_points.deficit>=1&(pmultiplier<=1)&refreshable
 # Maintain Rupture unless darkest night is up
 actions.core_dot+=/rupture,if=combo_points>=variable.effective_spend_cp&(pmultiplier<=1)&refreshable&!buff.cold_blood.up&target.time_to_die-remains>(4+(talent.dashing_scoundrel*5)+(variable.regen_saturated*6))&(!buff.darkest_night.up|talent.caustic_spatter&!debuff.caustic_spatter.up)
 # Maintain Crimson Tempest unless it would remove a stronger cast
-actions.core_dot+=/crimson_tempest,if=combo_points>=variable.effective_spend_cp&refreshable&pmultiplier<=persistent_multiplier&!buff.darkest_night.up&!talent.amplifying_poison&spell_targets.fan_of_knives=1
+
+# actions.core_dot+=/crimson_tempest,if=combo_points>=variable.effective_spend_cp&refreshable&pmultiplier<=persistent_multiplier&!buff.darkest_night.up&!talent.amplifying_poison&spell_targets.fan_of_knives=1
+actions.core_dot+=/crimson_tempest,if=combo_points>=variable.effective_spend_cp&refreshable&!buff.darkest_night.up&!talent.amplifying_poison
+
 
 # Direct Damage Abilities Envenom at applicable cp if not pooling, capped on amplifying poison stacks, on an animacharged CP, or in aoe. Maintain Caustic Spatter
 actions.direct=variable,name=use_caustic_filler,value=talent.caustic_spatter&dot.rupture.ticking&(!debuff.caustic_spatter.up|debuff.caustic_spatter.remains<=2)&combo_points.deficit>=1&!variable.single_target
@@ -126,7 +129,12 @@ actions.direct+=/envenom,if=buff.darkest_night.up&effective_combo_points>=cp_max
 # Various Checks to see if we need to use a generator
 actions.direct+=/variable,name=use_filler,value=combo_points<=variable.effective_spend_cp&!variable.cd_soon|variable.not_pooling|!variable.single_target
 actions.direct+=/fan_of_knives,if=buff.clear_the_witnesses.up&(spell_targets.fan_of_knives>=2-(buff.lingering_darkness.up|!talent.vicious_venoms))
-actions.direct+=/variable,name=fok_target_count,value=spell_targets.fan_of_knives>=3-(talent.momentum_of_despair&talent.thrown_precision)+talent.vicious_venoms+talent.blindside
+
+
+# actions.direct+=/variable,name=fok_target_count,value=spell_targets.fan_of_knives>=3-(talent.momentum_of_despair&talent.thrown_precision)+talent.vicious_venoms+talent.blindside
+actions.direct+=/variable,name=fok_target_count,value=spell_targets.fan_of_knives>=3-(talent.thrown_precision)+talent.vicious_venoms+talent.blindside
+
+
 # Fan of Knives at 6cp for special case Darkest Night
 actions.direct+=/fan_of_knives,if=buff.darkest_night.up&combo_points=6&(!talent.vicious_venoms|spell_targets.fan_of_knives>=2)
 # Fan of Knives at 3+ targets, accounting for various edge cases
@@ -204,6 +212,9 @@ actions.stealthed+=/rupture,target_if=effective_combo_points>=variable.effective
 actions.stealthed+=/garrote,target_if=min:remains,if=stealthed.improved_garrote&(remains<12|pmultiplier<=1|(buff.indiscriminate_carnage.up&active_dot.garrote<spell_targets.fan_of_knives))&!variable.single_target&target.time_to_die-remains>2&combo_points.deficit>2-buff.darkest_night.up*2
 # Improve Garrote: Apply or Refresh Improved Garrotes as a final check
 actions.stealthed+=/garrote,if=stealthed.improved_garrote&(pmultiplier<=1|refreshable)&combo_points.deficit>=1+2*talent.shrouded_suffocation
+
+actions.stealthed+=/garrote,if=stealthed.improved_garrote&combo_points.deficit>=1+2*talent.shrouded_suffocation&buff.indiscriminate_carnage.remains<gcd&active_enemies>6
+actions.stealthed+=/garrote,if=stealthed.improved_garrote&combo_points.deficit>=1+2*talent.shrouded_suffocation&buff.indiscriminate_carnage.remains<gcd&active_enemies<=6&cooldown.vanish.remains>18&!buff.vanish.up
 
 # Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
 actions.vanish=pool_resource,for_next=1,extra_amount=45
