@@ -408,16 +408,59 @@ function()
     ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
     local ExtraGlows = {}
 
-    if OffCooldownNotCasting(ids.TheHunt) 
-    and not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
+    if OffCooldownNotCasting(ids.TheHunt) and (
+    not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
     and not (aura_env.PrevCast == ids.ReaversGlaive)
     and ( (OffCooldown(ids.EyeBeam) or OffCooldown(ids.Metamorphosis) or OffCooldown(ids.EssenceBreak)) ) 
-    and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) or PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff)>10 )  -- Need to check if ThrillOfTheFightDamageBuff is necessary
+    and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) or PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff) > 10 )
+    or
+    not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
+    and not (aura_env.PrevCast == ids.ReaversGlaive)
+    and ( not OffCooldown(ids.EyeBeam) ) 
+    and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) )
+    )
     then   
-            ExtraGlows.TheHunt = true 
+        print("The Hunt 1")
+        ExtraGlows.TheHunt = true 
     end
     
+    if OffCooldownNotCasting(ids.TheHunt) and (
+    not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
+    and not (aura_env.PrevCast == ids.ReaversGlaive)
+    and ( (OffCooldown(ids.EyeBeam) or OffCooldown(ids.Metamorphosis) or OffCooldown(ids.EssenceBreak)) ) 
+    and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) or PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff) > 10 )
+    or
+    not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
+    and not (aura_env.PrevCast == ids.ReaversGlaive)
+    and ( not OffCooldown(ids.EyeBeam) ) 
+    and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) )
+    )
+
+    and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( (TargetHasDebuff(ids.ReaversMarkDebuff) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent)) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent) ) and FindSpellOverrideByID(ids.ThrowGlaive) ~= ids.ReaversGlaive and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
+        print("The Hunt 2")
+        ExtraGlows.TheHunt = true 
+    end
+
+    if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsPlayerSpell(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 3 ) ) ) and not IsPlayerSpell(ids.InertiaTalent) and not IsPlayerSpell(ids.EssenceBreakTalent) and StartTimeFromCooldown>15 ) then
+        print("Metamorphosis 1")
+        ExtraGlows.Metamorphosis = true 
+    end
+    
+    if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( PlayerHasBuff(ids.RendingStrikeBuff) == false or not IsPlayerSpell(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.EssenceBreakTalent) ) and StartTimeFromCooldown>15 ) then
+        print("Metamorphosis 2")
+        ExtraGlows.Metamorphosis = true 
+    end
+
+
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+
+    -- print("==============")
+    -- print( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) )
+    -- print(GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff)>0 and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 and GetRemainingSpellCooldown(ids.BladeDance) > 0 )
+    -- print(PlayerHasBuff(ids.InnerDemonBuff) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) )
+
+
+
 
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     Variables.RgDs = 0
@@ -429,41 +472,48 @@ function()
     
     -- Aldrachi Reaver
     local ArCooldown = function()
-        if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsPlayerSpell(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 3 ) ) ) and not IsPlayerSpell(ids.InertiaTalent) and not IsPlayerSpell(ids.EssenceBreakTalent) and StartTimeFromCooldown>15 ) then
-            -- KTrig("Metamorphosis") return true end
-            if aura_env.config[tostring(ids.Metamorphosis)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Metamorphosis")
-            elseif aura_env.config[tostring(ids.Metamorphosis)] ~= true then
-                KTrig("Metamorphosis")
-                return true
-            end
-        end
+
+        -- Kichi move to No GCD part
+        -- if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsPlayerSpell(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 3 ) ) ) and not IsPlayerSpell(ids.InertiaTalent) and not IsPlayerSpell(ids.EssenceBreakTalent) and StartTimeFromCooldown>15 ) then
+        --     print("Metamorphosis 1")
+        --     -- KTrig("Metamorphosis") return true end
+        --     if aura_env.config[tostring(ids.Metamorphosis)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Metamorphosis")
+        --     elseif aura_env.config[tostring(ids.Metamorphosis)] ~= true then
+        --         KTrig("Metamorphosis")
+        --         return true
+        --     end
+        -- end
         
-        if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( PlayerHasBuff(ids.RendingStrikeBuff) == false or not IsPlayerSpell(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.EssenceBreakTalent) ) and StartTimeFromCooldown>15 ) then
-            -- KTrig("Metamorphosis") return true end
-            if aura_env.config[tostring(ids.Metamorphosis)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Metamorphosis")
-            elseif aura_env.config[tostring(ids.Metamorphosis)] ~= true then
-                KTrig("Metamorphosis")
-                return true
-            end
-        end
+        -- Kichi move to No GCD part
+        -- if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( PlayerHasBuff(ids.RendingStrikeBuff) == false or not IsPlayerSpell(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.EssenceBreakTalent) ) and StartTimeFromCooldown>15 ) then
+        --     print("Metamorphosis 2")
+        --     -- KTrig("Metamorphosis") return true end
+        --     if aura_env.config[tostring(ids.Metamorphosis)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("Metamorphosis")
+        --     elseif aura_env.config[tostring(ids.Metamorphosis)] ~= true then
+        --         KTrig("Metamorphosis")
+        --         return true
+        --     end
+        -- end
         
-        -- Kichi modify for save TheHunt CD
-        if OffCooldownNotCasting(ids.TheHunt) 
-        and not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
-        and not (aura_env.PrevCast == ids.ReaversGlaive)
-        and ( (OffCooldown(ids.EyeBeam) or OffCooldown(ids.Metamorphosis) or OffCooldown(ids.EssenceBreak)) ) 
-        and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) or PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff)>10 )  -- Need to check if ThrillOfTheFightDamageBuff is necessary
-        and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( (TargetHasDebuff(ids.ReaversMarkDebuff) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent)) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent) ) and FindSpellOverrideByID(ids.ThrowGlaive) ~= ids.ReaversGlaive and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
-            -- KTrig("The Hunt") return true end
-            if aura_env.config[tostring(ids.TheHunt)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("The Hunt")
-            elseif aura_env.config[tostring(ids.TheHunt)] ~= true then
-                KTrig("The Hunt")
-                return true
-            end
-        end
+        -- -- Kichi modify for save TheHunt CD
+        -- -- Kichi move to NO GCD part
+        -- if OffCooldownNotCasting(ids.TheHunt) 
+        -- and not (FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive) 
+        -- and not (aura_env.PrevCast == ids.ReaversGlaive)
+        -- and ( (OffCooldown(ids.EyeBeam) or OffCooldown(ids.Metamorphosis) or OffCooldown(ids.EssenceBreak)) ) 
+        -- and not (PlayerHasBuff(ids.GlaiveFlurryBuff) or PlayerHasBuff(ids.RendingStrikeBuff) or PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff)>10 )  -- Need to check if ThrillOfTheFightDamageBuff is necessary
+
+        -- and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( (TargetHasDebuff(ids.ReaversMarkDebuff) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent)) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent) ) and FindSpellOverrideByID(ids.ThrowGlaive) ~= ids.ReaversGlaive and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
+        --     -- KTrig("The Hunt") return true end
+        --     if aura_env.config[tostring(ids.TheHunt)] == true and aura_env.FlagKTrigCD then
+        --         KTrigCD("The Hunt")
+        --     elseif aura_env.config[tostring(ids.TheHunt)] ~= true then
+        --         KTrig("The Hunt")
+        --         return true
+        --     end
+        -- end
         
         -- Kichi fix for time lack
         if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) ) and GetRemainingSpellCooldown(ids.BladeDance) > 0 and StartTimeFromCooldown > 15 ) then
@@ -631,7 +681,9 @@ function()
             end
         end
         
-        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 and GetRemainingSpellCooldown(ids.BladeDance) > 0 or PlayerHasBuff(ids.InnerDemonBuff) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
+        -- Kichi add GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) > 0 for correction
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff)>0 and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 and GetRemainingSpellCooldown(ids.BladeDance) > 0 or PlayerHasBuff(ids.InnerDemonBuff) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
+            print("Annihilation in ArMeta 1")
             KTrig("Annihilation") return true end
         
         if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and ( GetRemainingSpellCooldown(ids.EyeBeam) <= 0.5 or GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.5 or GetRemainingSpellCooldown(ids.BladeDance) <= 5.5 or GetRemainingAuraDuration("player", ids.InitiativeBuff) < 0 ) ) then       
@@ -656,6 +708,7 @@ function()
         end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.InnerDemonBuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.BladeDance) > 0 or GetRemainingSpellCooldown(ids.Metamorphosis) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) then
+            print("Annihilation in ArMeta 2")
             KTrig("Annihilation") return true end
         
         -- Kichi add from simc
@@ -732,6 +785,7 @@ function()
         end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingSpellCooldown(ids.BladeDance) > 0 or CurrentFury > 60 or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < 5 and OffCooldown(ids.Felblade) or TargetHasDebuff(ids.EssenceBreakDebuff) ) then
+            print("Annihilation in ArMeta 3")
             KTrig("Annihilation") return true end
         
         if OffCooldown(ids.SigilOfFlame) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 and MaxFury - CurrentFury >= 30 + Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + NearbyEnemies  * (IsPlayerSpell(ids.FlamesOfFuryTalent) and 2 or 0 ) ) then
@@ -768,6 +822,7 @@ function()
         end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation then
+            print("Annihilation in ArMeta 4")
             KTrig("Annihilation") return true end
         
         -- NG ADDED LOW PRIO IMMO AURA FOR SINGLE TARGET!
@@ -823,6 +878,7 @@ function()
 
         -- actions.ar_opener+=/annihilation,if=buff.rending_strike.up&buff.thrill_of_the_fight_damage.down
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and not PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) ) then
+            print("Annihilation in ArOpener 1")
             KTrig("Annihilation") return true end
 
         -- actions.ar_opener+=/felblade,if=!talent.inertia&talent.unbound_chaos&buff.unbound_chaos.up&buff.initiative.up&debuff.essence_break.down&active_enemies<=2
@@ -835,6 +891,7 @@ function()
 
         -- actions.ar_opener+=/annihilation,if=talent.inner_demon&buff.inner_demon.up&(!talent.essence_break|cooldown.essence_break.up)
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( IsPlayerSpell(ids.InnerDemonBuff) and PlayerHasBuff(ids.InnerDemonBuff) and (not IsPlayerSpell(ids.EssenceBreakTalent) or OffCooldown(ids.EssenceBreak)) ) then
+            print("Annihilation in ArOpener 2")
             KTrig("Annihilation") return true end
 
         -- actions.ar_opener+=/essence_break,if=(buff.inertia.up|!talent.inertia)&buff.metamorphosis.up&cooldown.blade_dance.remains<=gcd.max&debuff.reavers_mark.up
@@ -886,11 +943,12 @@ function()
         -- actions.ar_opener+=/felblade,if=fury<40&buff.inertia_trigger.down&debuff.essence_break.down
         -- Kichi modify for simc fixed
         -- actions.ar_opener+=/felblade,if=fury<40&buff.inertia_trigger.down&debuff.essence_break.down&!(talent.a_fire_inside&talent.burning_wound&cooldown.immolation_aura.charges_fractional>1&buff.thrill_of_the_fight_damage.up)
+        -- Kichi add "or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff) > 10 or Variables.RgInc" for smooth
         if OffCooldown(ids.Felblade) and CurrentFury < 40 and not PlayerHasBuff(ids.InertiaTriggerBuff) and not TargetHasDebuff(ids.EssenceBreakDebuff) and not (
             IsPlayerSpell(ids.AFireInsideTalent) and
             IsPlayerSpell(ids.BurningWoundTalent) and
             GetSpellChargesFractional(ids.ImmolationAura) > 1 and
-            PlayerHasBuff(ids.ThrillOfTheFightDamageBuff)
+            (PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or GetRemainingAuraDuration("player", ids.ThrillOfTheFightSpeedBuff) > 10 or Variables.RgInc )
         ) then
             KTrig("Felblade") return true end
 
@@ -925,7 +983,8 @@ function()
         end
 
         -- actions.ar_opener+=/metamorphosis,if=buff.metamorphosis.up&cooldown.blade_dance.remains>gcd.max*2&buff.inner_demon.down&(!talent.restless_hunter|prev_gcd.1.death_sweep)&(cooldown.essence_break.remains|!talent.essence_break|!talent.chaotic_transformation)
-        if OffCooldown(ids.Metamorphosis) and PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingSpellCooldown(ids.BladeDance) > WeakAuras.gcdDuration() * 2 and not PlayerHasBuff(ids.InnerDemonBuff) and (not IsPlayerSpell(ids.RestlessHunterTalent) or aura_env.PrevCast == ids.DeathSweep) and (GetRemainingSpellCooldown(ids.EssenceBreak) > 0 or not IsPlayerSpell(ids.EssenceBreakTalent) or not IsPlayerSpell(ids.ChaoticTransformationTalent)) then
+        -- Kichi modify for simc fixed, add "or not OffCooldown(ids.EyeBeam)"
+        if OffCooldown(ids.Metamorphosis) and (PlayerHasBuff(ids.MetamorphosisBuff) or not OffCooldown(ids.EyeBeam)) and GetRemainingSpellCooldown(ids.BladeDance) > WeakAuras.gcdDuration() * 2 and not PlayerHasBuff(ids.InnerDemonBuff) and (not IsPlayerSpell(ids.RestlessHunterTalent) or aura_env.PrevCast == ids.DeathSweep) and (GetRemainingSpellCooldown(ids.EssenceBreak) > 0 or not IsPlayerSpell(ids.EssenceBreakTalent) or not IsPlayerSpell(ids.ChaoticTransformationTalent)) then
             -- KTrig("Metamorphosis") return true end
             if aura_env.config[tostring(ids.Metamorphosis)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Metamorphosis")
@@ -975,6 +1034,7 @@ function()
 
         -- actions.ar_opener+=/annihilation
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation then
+            print("Annihilation in ArOpener 3")
             KTrig("Annihilation") return true end
 
         -- actions.ar_opener+=/demons_bite
@@ -987,9 +1047,10 @@ function()
 
         -- actions.ar_opener+=/annihilation
         if OffCooldown(ids.ChaosStrike) then
+            print("Annihilation in ArOpener 4")
             KTrig("Annihilation", "Not Good") return true end
 
-        KTrig("Thrill Of The Fight Speed Buff", "Not Good")
+        KTrig("Demons Bite", "Not Good")
 
     end
 
@@ -1003,6 +1064,7 @@ function()
             KTrig("Chaos Strike") return true end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies > 2 ) ) then
+            print("Annihilation in Ar 1")
             KTrig("Annihilation") return true end
         
         if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsPlayerSpell(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 3 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 ) then
@@ -1483,7 +1545,8 @@ function()
         if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( ( IsPlayerSpell(ids.EssenceBreakTalent) and aura_env.DemonsurgeDeathSweepBuff and ( PlayerHasBuff(ids.InertiaBuff) and ( GetRemainingSpellCooldown(ids.EssenceBreak) > GetRemainingAuraDuration("player", ids.InertiaBuff) or not IsPlayerSpell(ids.EssenceBreakTalent) ) or GetRemainingSpellCooldown(ids.Metamorphosis) <= 5 and PlayerHasBuff(ids.InertiaTriggerBuff) == false or PlayerHasBuff(ids.InertiaBuff) and aura_env.DemonsurgeAbyssalGazeBuff ) or IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) == false and GetRemainingSpellCooldown(ids.VengefulRetreat) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and PlayerHasBuff(ids.InertiaBuff) == false ) and ( not Variables.FsTier342Piece or not IsPlayerSpell(ids.InertiaTalent) or NearbyEnemies >= 3 and TargetHasDebuff(ids.EssenceBreakDebuff) ) ) then
             KTrig("Death Sweep") return true end
         
-        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.BladeDance) < GetRemainingAuraDuration("player", ids.MetamorphosisBuff) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 or IsPlayerSpell(ids.RestlessHunterTalent) and ( aura_env.DemonsurgeAnnihilationBuff or IsPlayerSpell(ids.ArtOfTheGlaiveTalent) and PlayerHasBuff(ids.InnerDemonBuff) ) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
+        -- Kichi add >0
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.BladeDance) < GetRemainingAuraDuration("player", ids.MetamorphosisBuff) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff)>0 and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 or IsPlayerSpell(ids.RestlessHunterTalent) and ( aura_env.DemonsurgeAnnihilationBuff or IsPlayerSpell(ids.ArtOfTheGlaiveTalent) and PlayerHasBuff(ids.InnerDemonBuff) ) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
             KTrig("Annihilation") return true end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( ( aura_env.DemonsurgeAnnihilationBuff and IsPlayerSpell(ids.RestlessHunterTalent) ) and ( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.BladeDance) or GetRemainingSpellCooldown(ids.Metamorphosis) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) then
