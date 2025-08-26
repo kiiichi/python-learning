@@ -31,7 +31,7 @@ actions.precombat+=/variable,name=trinket2_crit,value=trinket.2.is.mad_queens_ma
 actions.precombat+=/variable,name=fs_tier34_2piece,value=set_bonus.thewarwithin_season_3_2pc
 actions.precombat+=/variable,name=rg_ds,default=0,op=reset
 actions.precombat+=/sigil_of_flame
-actions.precombat+=/immolation_aura
+# actions.precombat+=/immolation_aura
 
 # Executed every time the actor is available.
 # Default actions regardless of hero tree
