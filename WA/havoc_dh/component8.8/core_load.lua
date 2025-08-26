@@ -309,7 +309,7 @@ aura_env.StartTimeFromCooldown = function(spellID)
         return 99999
     end
     local LeftTime = GetTime() - StartTime
-    if LeftTime <= WeakAuras.gcdDuration() then
+    if LeftTime <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) then
         return 99999
     end
     return LeftTime
