@@ -69,6 +69,13 @@ actions.ar+=/pick_up_fragment,type=all,use_off_gcd=1,if=fury<=90
 actions.ar+=/variable,name=fel_barrage,op=set,value=talent.fel_barrage&(cooldown.fel_barrage.remains<gcd.max*7&(active_enemies>=desired_targets+raid_event.adds.count|raid_event.adds.in<gcd.max*7|raid_event.adds.in>90)&(cooldown.metamorphosis.remains|active_enemies>2)|buff.fel_barrage.up)&!(active_enemies=1&!raid_event.adds.exists)
 actions.ar+=/chaos_strike,if=buff.rending_strike.up&buff.glaive_flurry.up&(variable.rg_ds=2|active_enemies>2)&variable.Ktime>10
 actions.ar+=/annihilation,if=buff.rending_strike.up&buff.glaive_flurry.up&(variable.rg_ds=2|active_enemies>2)
+
+# Kichi Single Target 
+actions.ar+=/blade_dance,if=buff.rending_strike.up&buff.glaive_flurry.up&debuff.reavers_mark.stack<2&active_enemies<2&variable.Ktime>10
+actions.ar+=/death_sweep,if=buff.rending_strike.up&buff.glaive_flurry.up&debuff.reavers_mark.stack<2&active_enemies<2
+actions.ar+=/chaos_strike,if=buff.rending_strike.up&buff.glaive_flurry.up&debuff.reavers_mark.stack>=2&active_enemies<2&variable.Ktime>10
+actions.ar+=/annihilation,if=buff.rending_strike.up&buff.glaive_flurry.up&debuff.reavers_mark.stack>=2&active_enemies<2
+
 actions.ar+=/reavers_glaive,if=buff.glaive_flurry.down&buff.rending_strike.down&buff.thrill_of_the_fight_damage.remains<gcd.max*4+(variable.rg_ds=2)+(cooldown.the_hunt.remains<gcd.max*3)*3+(cooldown.eye_beam.remains<gcd.max*3&talent.shattered_destiny)*3&(variable.rg_ds=0|variable.rg_ds=1&cooldown.blade_dance.up|variable.rg_ds=2&cooldown.blade_dance.remains)&(buff.thrill_of_the_fight_damage.up|!prev_gcd.1.death_sweep|!variable.rg_inc)&active_enemies<3&!action.reavers_glaive.last_used<5&debuff.essence_break.down&(buff.metamorphosis.remains>2|cooldown.eye_beam.remains<10|fight_remains<10)&(target.time_to_die>=10|fight_remains<=10)|fight_remains<=10
 actions.ar+=/reavers_glaive,if=buff.glaive_flurry.down&buff.rending_strike.down&(buff.thrill_of_the_fight_damage.remains<4|cooldown.death_sweep.ready|cooldown.blade_dance.ready)&(buff.thrill_of_the_fight_damage.up|!prev_gcd.1.death_sweep|!variable.rg_inc)&active_enemies>2&target.time_to_die>=10&debuff.essence_break.down|fight_remains<=10
 actions.ar+=/call_action_list,name=ar_cooldown
