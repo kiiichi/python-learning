@@ -1,4 +1,4 @@
-demonhunter="TWW3_Demon_Hunter_Havoc_Aldrachi_Reaver_fixed123"
+demonhunter="TWW3_Demon_Hunter_Havoc_Aldrachi_Reaver_fixeddd"
 source=default
 spec=havoc
 level=80
@@ -31,7 +31,7 @@ actions.precombat+=/variable,name=trinket2_crit,value=trinket.2.is.mad_queens_ma
 actions.precombat+=/variable,name=fs_tier34_2piece,value=set_bonus.thewarwithin_season_3_2pc
 actions.precombat+=/variable,name=rg_ds,default=0,op=reset
 actions.precombat+=/sigil_of_flame
-#  actions.precombat+=/immolation_aura
+ actions.precombat+=/immolation_aura
 # actions.precombat+=/immolation_aura,if=!(talent.a_fire_inside&talent.burning_wound)
 
 # Executed every variable.Ktime the actor is available.
@@ -199,7 +199,7 @@ actions.ar_meta+=/fel_rush,if=recharge_time<cooldown.eye_beam.remains&debuff.ess
 actions.ar_meta+=/demons_bite
 
 actions.ar_opener=potion
-actions.ar_opener+=/immolation_aura,if=talent.a_fire_inside&talent.burning_wound&buff.metamorphosis.down
+actions.ar_opener+=/immolation_aura,if=talent.a_fire_inside&talent.burning_wound&buff.metamorphosis.down&active_enemies>=2
 # actions.ar_opener+=/the_hunt
 actions.ar_opener+=/vengeful_retreat,use_off_gcd=1,if=talent.initiative&variable.Ktime>4&buff.metamorphosis.up&(!talent.inertia|buff.inertia_trigger.down)&buff.inner_demon.down&cooldown.blade_dance.remains&gcd.remains<0.1
 actions.ar_opener+=/death_sweep,if=talent.chaotic_transformation&cooldown.metamorphosis.up&buff.glaive_flurry.up
@@ -218,10 +218,10 @@ actions.ar_opener+=/felblade,if=talent.inertia&buff.inertia_trigger.up&buff.meta
 actions.ar_opener+=/the_hunt,if=(buff.metamorphosis.up&hero_tree.aldrachi_reaver&talent.shattered_destiny|!talent.shattered_destiny&hero_tree.aldrachi_reaver|hero_tree.felscarred)&(!talent.initiative|talent.inertia|buff.initiative.up)
 actions.ar_opener+=/felblade,if=fury<40&buff.inertia_trigger.down&debuff.essence_break.down&!(talent.a_fire_inside&talent.burning_wound&cooldown.immolation_aura.charges_fractional>1&buff.thrill_of_the_fight_damage.up)
 actions.ar_opener+=/reavers_glaive,if=debuff.reavers_mark.down&debuff.essence_break.down
-actions.ar_opener+=/eye_beam,if=buff.metamorphosis.down|debuff.essence_break.down&buff.inner_demon.down&(cooldown.blade_dance.remains|talent.essence_break&cooldown.essence_break.up)
+actions.ar_opener+=/eye_beam,if=(buff.metamorphosis.down|debuff.essence_break.down&buff.inner_demon.down&(cooldown.blade_dance.remains|talent.essence_break&cooldown.essence_break.up))&buff.cycle_of_hatred.stack<4
 actions.ar_opener+=/chaos_strike,if=buff.rending_strike.up&active_enemies>2
 actions.ar_opener+=/blade_dance,if=buff.glaive_flurry.up&active_enemies>2
-actions.ar_opener+=/immolation_aura,if=talent.a_fire_inside&talent.burning_wound&buff.metamorphosis.down
+actions.ar_opener+=/immolation_aura,if=talent.a_fire_inside&talent.burning_wound&buff.metamorphosis.down&(active_enemies>=2|fury<80)
 actions.ar_opener+=/death_sweep
 actions.ar_opener+=/metamorphosis,if=(buff.metamorphosis.up|cooldown.eye_beam.remains)&cooldown.blade_dance.remains>gcd.max*2&buff.inner_demon.down&(!talent.restless_hunter|prev_gcd.1.death_sweep)&(cooldown.essence_break.remains|!talent.essence_break|!talent.chaotic_transformation)
 actions.ar_opener+=/sigil_of_spite,if=debuff.reavers_mark.up&debuff.essence_break.down
