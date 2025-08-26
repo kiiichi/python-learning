@@ -1,27 +1,35 @@
-env.test = function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
-    if sourceGUID == UnitGUID("PLAYER") then
-        if spellId == aura_env.ids.RollTheBones then
-            -- Initial prediction
-            local Expires = GetTime() + 30
-            if aura_env.RTBContainerExpires and aura_env.RTBContainerExpires > GetTime() then
-                local Offset = math.min(aura_env.RTBContainerExpires - GetTime(), 9)
-                aura_env.RTBContainerExpires = Expires + Offset
-            else
-                aura_env.RTBContainerExpires = Expires
-            end
-        elseif spellId == aura_env.ids.KillingSpree and IsPlayerSpell(aura_env.ids.DisorientingStrikesTalent) then
-            aura_env.DisorientingStrikesCount = 2
-        elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
-            aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
-        elseif spellId == aura_env.ids.CoupDeGrace and GetTime() - aura_env.PrevCoupCast > 5 and WeakAuras.GetNumSetItemsEquipped(1928) and aura_env.IsPlayerSpell(ids.CoupDeGraceTalent) then
-            aura_env.HasTww34PcTricksterBuff = true
-        elseif spellId == aura_env.ids.CoupDeGrace then
-            aura_env.HasTww34PcTricksterBuff = false
-            aura_env.PrevCoupCast = GetTime()
-        end
-        
-        if spellId == aura_env.ids.KillingSpree then
-            aura_env.LastKillingSpree = GetTime()
-        end
+env.test = function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
+    if sourceGUID ~= UnitGUID("player") then return false end
+    aura_env.PrevCast3 = aura_env.PrevCast2
+    aura_env.PrevCast2 = aura_env.PrevCast
+    aura_env.PrevCast = spellID
+    aura_env.LastDeathSweep = GetTime()
+    
+    -- Consumed Demonsurge explosion.
+    if spellID == aura_env.ids.Annihilation then
+        aura_env.DemonsurgeAnnihilationBuff = false
+    elseif spellID == aura_env.ids.ConsumingFire then
+        aura_env.DemonsurgeConsumingFireBuff = false
+    elseif spellID == aura_env.ids.DeathSweep then
+        aura_env.DemonsurgeDeathSweepBuff = false
+    elseif spellID == aura_env.ids.AbyssalGaze then
+        aura_env.DemonsurgeAbyssalGazeBuff = false
+    elseif spellID == aura_env.ids.SigilOfDoom then
+        aura_env.DemonsurgeSigilOfDoomBuff = false
     end
+    
+    if spellID == aura_env.ids.Metamorphosis then
+        aura_env.DemonsurgeAbyssalGaze = true
+        aura_env.DemonsurgeAnnihilationBuff = true
+        aura_env.DemonsurgeConsumingFireBuff = true
+        aura_env.DemonsurgeDeathSweepBuff = true
+        aura_env.DemonsurgeSigilOfDoomBuff = true
+        return
+    end
+    
+    if spellID == aura_env.ids.ReaversGlaive then
+        aura_env.ReaversGlaiveLastUsed = GetTime()
+    end
+    
+    return
 end

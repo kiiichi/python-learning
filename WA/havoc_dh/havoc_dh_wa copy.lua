@@ -315,7 +315,7 @@ aura_env.StartTimeFromCooldown = function(spellID)
         return 99999
     end
     local LeftTime = GetTime() - StartTime
-    if LeftTime <= WeakAuras.gcdDuration() then
+    if LeftTime <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) then
         return 99999
     end
     return LeftTime
@@ -398,6 +398,9 @@ function()
         end
     end
     
+    -- Kichi add for change time in single target condition
+    if ( NearbyEnemies <= 1 and GetRemainingSpellCooldown(ids.Metamorphosis) > 5 ) then StartTimeFromCooldown = 9999 end
+
     -- Kichi --
     -- Only recommend things when something's targeted
     if aura_env.config["NeedTarget"] then
@@ -800,6 +803,17 @@ function()
             end
         end
         
+        -- Kichi added
+        if OffCooldown(ids.ImmolationAura) and ( GetSpellChargesFractional(ids.ImmolationAura) > 1.9 and CurrentFury <= 40 ) then
+            -- KTrig("Immolation Aura") return true end
+            if aura_env.config[tostring(ids.ImmolationAura)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Immolation Aura")
+            elseif aura_env.config[tostring(ids.ImmolationAura)] ~= true then
+                KTrig("Immolation Aura")
+                return true
+            end
+        end
+
         if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury >= 40 + Variables.FuryGen * 0.5 and not PlayerHasBuff(ids.InertiaTriggerBuff) ) then
             KTrig("Felblade") return true end
         
@@ -864,7 +878,8 @@ function()
         --     KTrig("The Hunt") return true end
 
         -- Kichi add for maximun peak damage
-        if OffCooldown(ids.ImmolationAura) and aura_env.config["MaxPeakDamage"]==true and IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and not PlayerHasBuff(ids.MetamorphosisBuff) then
+        -- Kichi add NearbyEnemies >= 2
+        if OffCooldown(ids.ImmolationAura) and aura_env.config["MaxPeakDamage"]==true and IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and not PlayerHasBuff(ids.MetamorphosisBuff) and NearbyEnemies >= 2 then
             -- KTrig("Immolation Aura") return true end
             if aura_env.config[tostring(ids.ImmolationAura)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Immolation Aura")
@@ -990,15 +1005,26 @@ function()
         end
 
         -- actions.ar_opener+=/chaos_strike,if=buff.rending_strike.up&active_enemies>2
-        if OffCooldown(ids.ChaosStrike) and PlayerHasBuff(ids.RendingStrikeBuff) and NearbyEnemies > 2 then
+        -- Kichi change number
+        if OffCooldown(ids.ChaosStrike) and PlayerHasBuff(ids.RendingStrikeBuff) and NearbyEnemies >= 2 then
             KTrig("Chaos Strike") return true end
 
         -- actions.ar_opener+=/blade_dance,if=buff.glaive_flurry.up&active_enemies>2
-        if OffCooldown(ids.BladeDance) and PlayerHasBuff(ids.GlaiveFlurryBuff) and NearbyEnemies > 2 then
+        -- Kichi change number
+        if OffCooldown(ids.BladeDance) and PlayerHasBuff(ids.GlaiveFlurryBuff) and NearbyEnemies >= 2 then
+            KTrig("Blade Dance") return true end
+
+        -- Kichi add for Single Tatget
+        if OffCooldown(ids.BladeDance) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) and GetTargetStacks(ids.ReaversMarkDebuff)<2 and NearbyEnemies<2 ) then
+            KTrig("Blade Dance") return true end
+        if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) and NearbyEnemies<2 ) then
+            KTrig("Chaos Strike") return true end
+        if OffCooldown(ids.BladeDance) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) and NearbyEnemies<2 ) then
             KTrig("Blade Dance") return true end
 
         -- actions.ar_opener+=/immolation_aura,if=talent.a_fire_inside&talent.burning_wound&buff.metamorphosis.down
-        if OffCooldown(ids.ImmolationAura) and IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and not PlayerHasBuff(ids.MetamorphosisBuff) then
+        -- Kichi add ( NearbyEnemies >= 2 or CurrentFury <= 80 )
+        if OffCooldown(ids.ImmolationAura) and IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and not PlayerHasBuff(ids.MetamorphosisBuff) and ( NearbyEnemies >= 2 or CurrentFury <= 80 ) then
             -- KTrig("Immolation Aura") return true end
             if aura_env.config[tostring(ids.ImmolationAura)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Immolation Aura")
@@ -1026,7 +1052,8 @@ function()
 
         -- Kichi modify for simc fixed
         -- actions.ar_opener+=/sigil_of_spite,if=debuff.reavers_mark.up&(cooldown.eye_beam.remains&cooldown.metamorphosis.remains)&debuff.essence_break.down
-        if OffCooldown(ids.SigilOfSpite) and TargetHasDebuff(ids.ReaversMarkDebuff) and not TargetHasDebuff(ids.EssenceBreakDebuff) then
+        -- Kichi add NearbyEnemies
+        if OffCooldown(ids.SigilOfSpite) and TargetHasDebuff(ids.ReaversMarkDebuff) and not TargetHasDebuff(ids.EssenceBreakDebuff) and NearbyEnemies >= 2 then
             -- KTrig("Sigil Of Spite") return true end
             if aura_env.config[tostring(ids.SigilOfSpite)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Sigil Of Spite")
@@ -1043,6 +1070,17 @@ function()
                 KTrigCD("Eye Beam")
             elseif aura_env.config[tostring(ids.EyeBeam)] ~= true then
                 KTrig("Eye Beam")
+                return true
+            end
+        end
+
+        -- Kichi add
+        if OffCooldown(ids.SigilOfSpite) and TargetHasDebuff(ids.ReaversMarkDebuff) and not TargetHasDebuff(ids.EssenceBreakDebuff) then
+            -- KTrig("Sigil Of Spite") return true end
+            if aura_env.config[tostring(ids.SigilOfSpite)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Sigil Of Spite")
+            elseif aura_env.config[tostring(ids.SigilOfSpite)] ~= true then
+                KTrig("Sigil Of Spite")
                 return true
             end
         end
@@ -1091,14 +1129,38 @@ function()
         
         Variables.FelBarrage = IsPlayerSpell(ids.FelBarrageTalent) and ( GetRemainingSpellCooldown(ids.FelBarrage) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 or NearbyEnemies > 2 ) or PlayerHasBuff(ids.FelBarrageBuff) )
         
-        if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies > 2 ) and StartTimeFromCooldown>10 ) then
+        -- Kichi change NearbyEnemies
+        if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies >= 2 ) and StartTimeFromCooldown>10 ) then
             KTrig("Chaos Strike") return true end
         
-        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies > 2 ) ) then
+        -- Kichi change NearbyEnemies
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies >= 2 ) ) then
             print("Annihilation in Ar 1")
             KTrig("Annihilation") return true end
-        
-        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsPlayerSpell(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 3 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 ) then
+
+        -- Kichi add for Single Tatget
+        if OffCooldown(ids.BladeDance) and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and GetTargetStacks(ids.ReaversMarkDebuff)<2 and NearbyEnemies<2 and StartTimeFromCooldown>10 ) then
+            KTrig("Blade Dance") return true end
+        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and GetTargetStacks(ids.ReaversMarkDebuff)<2 and NearbyEnemies<2 ) then
+            KTrig("Death Sweep") return true end
+        if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and GetTargetStacks(ids.ReaversMarkDebuff)>=2 and NearbyEnemies<2 and StartTimeFromCooldown>10 ) then
+            KTrig("Chaos Strike") return true end
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and GetTargetStacks(ids.ReaversMarkDebuff)>=2 and NearbyEnemies<2 ) then
+            KTrig("Annihilation") return true end
+
+        -- Kichi add ( GetTargetStacks(ids.ReaversMarkDebuff)<2 and OffCooldown(ids.BladeDance) ), aura_env.config["EndingReaversGlaive"], change NearbyEnemies number
+        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( GetTargetStacks(ids.ReaversMarkDebuff)<2 and OffCooldown(ids.BladeDance) ) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsPlayerSpell(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 2 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 and aura_env.config["EndingReaversGlaive"] ) then
+            -- KTrig("Reavers Glaive") return true end
+            if aura_env.config[tostring(ids.ThrowGlaive)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Reavers Glaive")
+            elseif aura_env.config[tostring(ids.ThrowGlaive)] ~= true then
+                KTrig("Reavers Glaive")
+                return true
+            end
+        end
+
+        -- Kichi add ( GetTargetStacks(ids.ReaversMarkDebuff)>=2 ), aura_env.config["EndingReaversGlaive"], change NearbyEnemies number
+        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( GetTargetStacks(ids.ReaversMarkDebuff)>=2 ) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsPlayerSpell(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 2 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 and aura_env.config["EndingReaversGlaive"] ) then
             -- KTrig("Reavers Glaive") return true end
             if aura_env.config[tostring(ids.ThrowGlaive)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Reavers Glaive")
@@ -1108,7 +1170,8 @@ function()
             end
         end
         
-        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and (GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < 4 or OffCooldown(ids.BladeDance)) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies > 2 and TargetTimeToXPct(0, 50) >= 10 and not TargetHasDebuff(ids.EssenceBreakDebuff) or FightRemains(60, NearbyRange) <= 10 ) then
+        -- Kichi add aura_env.config["EndingReaversGlaive"], change NearbyEnemies number
+        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and (GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < 4 or OffCooldown(ids.BladeDance)) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies >= 2 and TargetTimeToXPct(0, 50) >= 10 and not TargetHasDebuff(ids.EssenceBreakDebuff) or FightRemains(60, NearbyRange) <= 10 and aura_env.config["EndingReaversGlaive"] ) then
             -- KTrig("Reavers Glaive") return true end
             if aura_env.config[tostring(ids.ThrowGlaive)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Reavers Glaive")
@@ -1251,7 +1314,8 @@ function()
         
         -- Kichi add again and not PlayerHasBuff(ids.GlaiveFlurryBuff) , why he remove?
         -- NG Removed "and not PlayerHasBuff(ids.GlaiveFlurryBuff)"
-        if OffCooldown(ids.EyeBeam) and ( GetRemainingSpellCooldown(ids.BladeDance) < 7 and ( ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or (not PlayerHasBuff(ids.RendingStrikeBuff) and not PlayerHasBuff(ids.GlaiveFlurryBuff)) ) ) ) then
+        -- Kichi removed GetRemainingSpellCooldown(ids.BladeDance) < 7
+        if OffCooldown(ids.EyeBeam) and ( true and ( ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or (not PlayerHasBuff(ids.RendingStrikeBuff) and not PlayerHasBuff(ids.GlaiveFlurryBuff)) ) ) ) then
             -- KTrig("Eye Beam") return true end
             if aura_env.config[tostring(ids.EyeBeam)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Eye Beam")
