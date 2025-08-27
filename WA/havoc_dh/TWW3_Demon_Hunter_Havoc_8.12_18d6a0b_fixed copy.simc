@@ -1,4 +1,4 @@
-demonhunter="TWW3_Demon_Hunter_Havoc_Aldrachi_Reaver_fixeddddd"
+demonhunter="TWW3_Demon_Hunter_Havoc_Aldrachi_Reaver_fixeddd"
 source=default
 spec=havoc
 level=80
@@ -106,10 +106,11 @@ actions.ar+=/immolation_aura,if=fight_remains<15&cooldown.blade_dance.remains&ta
 
 
 # actions.ar+=/eye_beam,if=(buff.thrill_of_the_fight_damage.up|buff.rending_strike.down&buff.glaive_flurry.down) # In Kichi's WA
-actions.ar+=/eye_beam,if=(cooldown.blade_dance.remains<7|raid_event.adds.up)&(active_enemies>desired_targets*2&(buff.thrill_of_the_fight_damage.up|buff.rending_strike.down&buff.glaive_flurry.down)|raid_event.adds.in>30-buff.cycle_of_hatred.stack*5|fight_style.dungeonroute&!raid_event.adds.in<=40-buff.cycle_of_hatred.stack*5)&(!variable.trinket1_steroids&!variable.trinket2_steroids|variable.trinket1_steroids&(trinket.1.stat.any.cooldown_remains<gcd.max*3|trinket.1.stat.any.cooldown_remains>30-buff.cycle_of_hatred.stack*5)|variable.trinket2_steroids&(trinket.2.stat.any.cooldown_remains<gcd.max*3|trinket.2.stat.any.cooldown_remains>30-buff.cycle_of_hatred.stack*5))|fight_remains<10
+actions.ar+=/eye_beam,if=(active_enemies>desired_targets*2&(buff.thrill_of_the_fight_damage.up|buff.rending_strike.down&buff.glaive_flurry.down)|raid_event.adds.in>30-buff.cycle_of_hatred.stack*5|fight_style.dungeonroute&!raid_event.adds.in<=40-buff.cycle_of_hatred.stack*5)&(!variable.trinket1_steroids&!variable.trinket2_steroids|variable.trinket1_steroids&(trinket.1.stat.any.cooldown_remains<gcd.max*3|trinket.1.stat.any.cooldown_remains>30-buff.cycle_of_hatred.stack*5)|variable.trinket2_steroids&(trinket.2.stat.any.cooldown_remains<gcd.max*3|trinket.2.stat.any.cooldown_remains>30-buff.cycle_of_hatred.stack*5))|fight_remains<10
 
 # talent.essence_break&(cooldown.essence_break.remains<gcd.max*2+5*talent.shattered_destiny|talent.shattered_destiny&cooldown.essence_break.remains>10)&(cooldown.blade_dance.remains<7|raid_event.adds.up)&(!talent.initiative|cooldown.vengeful_retreat.remains>10|!talent.inertia&!talent.momentum|raid_event.adds.up)&(active_enemies+3>=desired_targets+raid_event.adds.count|raid_event.adds.in>30-talent.cycle_of_hatred.rank*6)&(!talent.inertia|buff.inertia_trigger.up|action.immolation_aura.charges=0&action.immolation_aura.recharge_time>5)&(!raid_event.adds.up|raid_event.adds.remains>8)&(!variable.trinket1_steroids&!variable.trinket2_steroids|variable.trinket1_steroids&(trinket.1.cooldown.remains<gcd.max*3|trinket.1.cooldown.remains>20)|variable.trinket2_steroids&(trinket.2.cooldown.remains<gcd.max*3|trinket.2.cooldown.remains>20))|fight_remains<10
 actions.ar+=/blade_dance,if=(cooldown.eye_beam.remains>=gcd.max*2|active_enemies>=2&buff.glaive_flurry.up&(raid_event.adds.in>30-buff.cycle_of_hatred.stack*5|raid_event.adds.remains>=cooldown.eye_beam.remains&cooldown.eye_beam.remains<gcd.max*2))&buff.rending_strike.down
+actions.ar+=/blade_dance,if=buff.glaive_flurry.up&buff.rending_strike.down
 actions.ar+=/chaos_strike,if=buff.rending_strike.up
 actions.ar+=/sigil_of_flame,if=(active_enemies>3|debuff.essence_break.down)&fury<70
 actions.ar+=/felblade,if=fury.deficit>=40+variable.fury_gen*0.5&!buff.inertia_trigger.up&(!talent.blind_fury|cooldown.eye_beam.remains>5)
@@ -156,7 +157,8 @@ actions.ar_cooldown+=/use_item,slot=trinket1,if=((cooldown.eye_beam.remains<gcd.
 actions.ar_cooldown+=/use_item,slot=trinket2,if=((cooldown.eye_beam.remains<gcd.max&active_enemies>1|buff.metamorphosis.up&(cooldown.metamorphosis.remains<buff.metamorphosis.remains|cooldown.metamorphosis.remains>=20|cooldown.metamorphosis.up))&(raid_event.adds.in>trinket.2.cooldown.duration-15|raid_event.adds.remains>8|fight_style.dungeonroute&!raid_event.adds.in<=trinket.2.cooldown.duration)|!trinket.2.has_buff.any|fight_remains<25)&!trinket.2.is.mister_locknstalk&!variable.trinket2_crit&!trinket.2.is.skardyns_grace&!trinket.2.is.treacherous_transmitter&!trinket.2.is.unyielding_netherprism&!trinket.2.is.signet_of_the_priory&(!variable.special_trinket|trinket.1.cooldown.remains>20|(trinket.2.cooldown.duration>90&trinket.2.has_buff.agility))
 # actions.ar_cooldown+=/the_hunt,if=debuff.essence_break.down&(active_enemies>=desired_targets+raid_event.adds.count|raid_event.adds.in>45)&(debuff.reavers_mark.up|raid_event.adds.remains>=15)&buff.reavers_glaive.down&(buff.metamorphosis.remains>5|buff.metamorphosis.down)&(!talent.initiative|buff.initiative.up|variable.Ktime>5)&variable.Ktime>5&(!talent.inertia&buff.unbound_chaos.down|buff.inertia_trigger.down)
 actions.ar_cooldown+=/the_hunt,if=debuff.essence_break.down&(active_enemies>=desired_targets+raid_event.adds.count|raid_event.adds.in>45)&(debuff.reavers_mark.up|raid_event.adds.remains>=15)&buff.reavers_glaive.down&(buff.metamorphosis.remains>5|buff.metamorphosis.down)&(!talent.inertia&buff.unbound_chaos.down|buff.inertia_trigger.down)
-actions.ar_cooldown+=/sigil_of_spite,if=debuff.essence_break.down&(debuff.reavers_mark.remains>=2-talent.quickened_sigils)&cooldown.blade_dance.remains&variable.Ktime>15
+# actions.ar_cooldown+=/sigil_of_spite,if=debuff.essence_break.down&((debuff.reavers_mark.remains>=2-talent.quickened_sigils))&cooldown.blade_dance.remains&variable.Ktime>15
+actions.ar_cooldown+=/sigil_of_spite,if=debuff.essence_break.down&cooldown.blade_dance.remains&variable.Ktime>15
 
 actions.ar_fel_barrage=variable,name=generator_up,op=set,value=cooldown.felblade.remains<gcd.max|cooldown.sigil_of_flame.remains<gcd.max
 actions.ar_fel_barrage+=/variable,name=gcd_drain,op=set,value=gcd.max*32

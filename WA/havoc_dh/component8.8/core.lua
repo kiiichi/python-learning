@@ -179,8 +179,8 @@ env.test = function()
         --     end
         -- end
         
-        -- Kichi fix for time lack
-        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) ) and GetRemainingSpellCooldown(ids.BladeDance) > 0 and StartTimeFromCooldown > 15 ) then
+        -- Kichi fix for time lack, remove ( GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) )
+        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( true ) and GetRemainingSpellCooldown(ids.BladeDance) > 0 and StartTimeFromCooldown > 15 ) then
             -- KTrig("Sigil Of Spite") return true end
             if aura_env.config[tostring(ids.SigilOfSpite)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Sigil Of Spite")
@@ -982,6 +982,10 @@ env.test = function()
         -- talent.essence_break&(cooldown.essence_break.remains<gcd.max*2+5*talent.shattered_destiny|talent.shattered_destiny&cooldown.essence_break.remains>10)&(cooldown.blade_dance.remains<7|raid_event.adds.up)&(!talent.initiative|cooldown.vengeful_retreat.remains>10|!talent.inertia&!talent.momentum|raid_event.adds.up)&(active_enemies+3>=desired_targets+raid_event.adds.count|raid_event.adds.in>30-talent.cycle_of_hatred.rank*6)&(!talent.inertia|buff.inertia_trigger.up|action.immolation_aura.charges=0&action.immolation_aura.recharge_time>5)&(!raid_event.adds.up|raid_event.adds.remains>8)&(!variable.trinket1_steroids&!variable.trinket2_steroids|variable.trinket1_steroids&(trinket.1.cooldown.remains<gcd.max*3|trinket.1.cooldown.remains>20)|variable.trinket2_steroids&(trinket.2.cooldown.remains<gcd.max*3|trinket.2.cooldown.remains>20))|fight_remains<10
         
         if OffCooldown(ids.BladeDance) and ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 or NearbyEnemies >= 2 and PlayerHasBuff(ids.GlaiveFlurryBuff) ) and PlayerHasBuff(ids.RendingStrikeBuff) == false ) then
+            KTrig("Blade Dance") return true end
+
+        -- Kichi add
+        if OffCooldown(ids.BladeDance) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) and PlayerHasBuff(ids.RendingStrikeBuff) == false ) then
             KTrig("Blade Dance") return true end
         
         if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) ) then
