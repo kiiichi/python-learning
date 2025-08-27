@@ -299,7 +299,7 @@ end
 -- Kichi --
 aura_env.FullGCD = function()
     local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    local FullGCDnum = math.max(0.75, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
     return FullGCDnum
 end
 
