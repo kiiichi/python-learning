@@ -125,6 +125,11 @@ aura_env.IsCasting = function(spellID)
     return select(9, UnitCastingInfo("player")) == spellID
 end
 
+-- Kichi add
+aura_env.IsChanneling = function(spellID)
+    return select(8, UnitChannelInfo("player")) == spellID
+end
+
 aura_env.OffCooldownNotCasting = function(spellID)
     return aura_env.OffCooldown(spellID) and not aura_env.IsCasting(spellID)
 end
@@ -320,7 +325,8 @@ function()
     aura_env.FlagKTrigCD = true
     local FullGCD = aura_env.FullGCD
     local TalentRank = aura_env.TalentRank
-    
+    local IsChanneling = aura_env.IsChanneling
+
     ---@class idsTable
     local ids = aura_env.ids
     aura_env.OutOfRange = false
@@ -353,7 +359,7 @@ function()
             NearbyEnemies = NearbyEnemies + 1
         end
     end
-    
+
     -- Kichi --
     WeakAuras.ScanEvents("K_NEARBY_ENEMIES", NearbyEnemies)
 
@@ -443,7 +449,7 @@ function()
         end
         
         -- Use Missiles to get Nether Precision up for your burst window, clipping logic applies as long as you don't have Aether Attunement.
-        if OffCooldown(ids.ArcaneMissiles) and not aura_env.UsedMissiles and ( ((aura_env.PrevCast == ids.Evocation or IsCasting(ids.Evocation)) or (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) or Variables.Opener ) and NetherPrecisionStacks == 0 ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and not aura_env.UsedMissiles and ( ((aura_env.PrevCast == ids.Evocation or IsCasting(ids.Evocation)) or (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) or Variables.Opener ) and NetherPrecisionStacks == 0 ) then
             KTrig("Arcane Missiles") return true end
         
         -- Kichi remove: FightRemains(60, NearbyRange) < 25
@@ -544,7 +550,7 @@ function()
             KTrig("Arcane Barrage") return true end
         
         -- Use Aether Attunement up before casting Touch if you have S2 4pc equipped to avoid munching.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Kichi use micro to instead --
@@ -557,11 +563,11 @@ function()
             KTrig("Arcane Barrage") return true end
         
         -- Use Clearcasting procs to keep Nether Precision up, if you don't have S2 4pc try to pool Aether Attunement for cooldown windows.
-        if OffCooldown(ids.ArcaneMissiles) and ( ( PlayerHasBuff(ids.ClearcastingBuff) and (NetherPrecisionStacks == 0) and ( ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 7 and GetRemainingSpellCooldown(ids.ArcaneSurge) > GcdMax * 7 ) or GetPlayerStacks(ids.ClearcastingBuff) > 1 or not IsSpellKnown(ids.MagisSparkTalent) or ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 4 and GetPlayerStacks(ids.AetherAttunementBuff) == 0 ) or (OldSetPieces >= 4) ) ) or ( FightRemains(60, NearbyRange) < 5 and PlayerHasBuff(ids.ClearcastingBuff) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( ( PlayerHasBuff(ids.ClearcastingBuff) and (NetherPrecisionStacks == 0) and ( ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 7 and GetRemainingSpellCooldown(ids.ArcaneSurge) > GcdMax * 7 ) or GetPlayerStacks(ids.ClearcastingBuff) > 1 or not IsSpellKnown(ids.MagisSparkTalent) or ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 4 and GetPlayerStacks(ids.AetherAttunementBuff) == 0 ) or (OldSetPieces >= 4) ) ) or ( FightRemains(60, NearbyRange) < 5 and PlayerHasBuff(ids.ClearcastingBuff) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Missile to refill charges if you have High Voltage and either Aether Attunement or more than one Clearcasting proc. Recheck AOE
-        if OffCooldown(ids.ArcaneMissiles) and ( IsPlayerSpell(ids.HighVoltageTalent) and ( GetPlayerStacks(ids.ClearcastingBuff) > 1 or ( PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.AetherAttunementBuff) ) ) and CurrentArcaneCharges < 3 ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( IsPlayerSpell(ids.HighVoltageTalent) and ( GetPlayerStacks(ids.ClearcastingBuff) > 1 or ( PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.AetherAttunementBuff) ) ) and CurrentArcaneCharges < 3 ) then
             KTrig("Arcane Missiles") return true end
 
         -- Use Intuition.
@@ -641,7 +647,7 @@ function()
         --     KTrig("Arcane Barrage") return true end
         
         -- -- Kichi add to modify 4.14 simc to lower arcane_blast frequency in AOE
-        -- if OffCooldown(ids.ArcaneMissiles) and ( NearbyEnemies > 1 and IsPlayerSpell(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) and CurrentArcaneCharges < 3 ) then
+        -- if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( NearbyEnemies > 1 and IsPlayerSpell(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) and CurrentArcaneCharges < 3 ) then
         --     KTrig("Arcane Missiles") return true end
 
         -- Kichi add distance check for Arcane Explosion: and WeakAuras.CheckRange("target", 10, "<=")
@@ -679,14 +685,14 @@ function()
         end
 
         -- When Arcane Soul is up, use Missiles to generate Nether Precision as needed while also ensuring you end Soul with 3 Clearcasting.
-        if OffCooldown(ids.ArcaneMissiles) and ( (NetherPrecisionStacks == 0) and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSoulBuff) and GetRemainingAuraDuration("player", ids.ArcaneSoulBuff) > GcdMax * ( 4 - (PlayerHasBuff(ids.ClearcastingBuff) and 1 or 0) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( (NetherPrecisionStacks == 0) and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSoulBuff) and GetRemainingAuraDuration("player", ids.ArcaneSoulBuff) > GcdMax * ( 4 - (PlayerHasBuff(ids.ClearcastingBuff) and 1 or 0) ) ) then
             KTrig("Arcane Missiles") return true end
         
         if OffCooldown(ids.ArcaneBarrage) and ( PlayerHasBuff(ids.ArcaneSoulBuff) ) then
             KTrig("Arcane Barrage") return true end
         
         -- Dump a clearcasting proc before you go into Soul if you have one.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSurgeBuff) and GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) < GcdMax * 2 ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSurgeBuff) and GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) < GcdMax * 2 ) then
             KTrig("Arcane Missiles") return true end
 
         -- Prioritize Tempo and Intuition if they are about to expire.
@@ -698,7 +704,7 @@ function()
             KTrig("Arcane Barrage") return true end
         
         -- Spend Aether Attunement if you have 4pc S2 set before Touch.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * ( 3 - ( 1.5 * ( ( NearbyEnemies > 3 and ( not IsSpellKnown(ids.TimeLoopTalent) or IsSpellKnown(ids.ResonanceTalent) ) ) and 1 or 0 ) ) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * ( 3 - ( 1.5 * ( ( NearbyEnemies > 3 and ( not IsSpellKnown(ids.TimeLoopTalent) or IsSpellKnown(ids.ResonanceTalent) ) ) and 1 or 0 ) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- -- Kichi use micro to instead --
@@ -730,7 +736,7 @@ function()
             KTrig("Arcane Barrage") return true end
         
         -- Missiles to recoup Charges with High Voltage or maintain Nether Precision and combine it with other Barrage buffs.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or ( NetherPrecisionStacks == 0 and GetPlayerStacks(ids.ClearcastingBuff) > 1 or GetPlayerStacks(ids.SpellfireSpheresBuff) == 6 or PlayerHasBuff(ids.BurdenOfPowerBuff) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) ) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or ( NetherPrecisionStacks == 0 and GetPlayerStacks(ids.ClearcastingBuff) > 1 or GetPlayerStacks(ids.SpellfireSpheresBuff) == 6 or PlayerHasBuff(ids.BurdenOfPowerBuff) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Barrage with Burden if 2-4 targets and you have a way to recoup Charges, however skip this is you have Bauble and don't have High Voltage.

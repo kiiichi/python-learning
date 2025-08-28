@@ -30,41 +30,42 @@ aura_env.ids = {
     
     -- Talents
     ArcaneBombardmentTalent = 384581,
-    ArcingCleaveTalent = 231564,
-    ArcaneTempoTalent = 383980,
     ArcaneHarmonyTalent = 384452,
+    ArcaneTempoTalent = 383980,
+    ArcingCleaveTalent = 231564,
     ChargedOrbTalent = 384651,
     ConsortiumsBaubleTalent = 461260,
     EnlightenedTalent = 321387,
+    HighVoltageTalent = 461248,
     ImpetusTalent = 383676,
     LeydrinkerTalent = 452196,
     MagisSparkTalent = 454016,
-    SplinteringSorceryTalent = 443739,
-    HighVoltageTalent = 461248,
-    ShiftingShardsTalent = 444675,
     OrbBarrageTalent = 384858,
     ResonanceTalent = 205028,
     ReverberateTalent = 281482,
+    ShiftingShardsTalent = 444675,
     SpellfireSpheresTalent = 448601,
+    SplinteringSorceryTalent = 443739,
     TimeLoopTalent = 452924,
     
     -- Buffs
     AetherAttunementBuff = 453601,
     AethervisionBuff = 467634,
     ArcaneHarmonyBuff = 384455,
+    ArcaneSoulBuff = 451038,
     ArcaneSurgeBuff = 365362,
     ArcaneTempoBuff = 383997,
+    BurdenOfPowerBuff = 451049,
     ClearcastingBuff = 263725,
-    LeydrinkerBuff = 453758,
-    NetherPrecisionBuff = 383783,
+    GloriousIncandescenceBuff = 451073,
     -- Kichi fix this id beacause it is wrong --
     IntuitionBuff = 1223797,
-    UnerringProficiencyBuff = 444981,
+    LeydrinkerBuff = 453758,
+    NetherPrecisionBuff = 383783,
     SiphonStormBuff = 384267,
-    BurdenOfPowerBuff = 451049,
-    GloriousIncandescenceBuff = 451073,
-    ArcaneSoulBuff = 451038,
+    SpellfireSpheresBuff = 448604,
     TouchOfTheMagiDebuff = 210824,
+    UnerringProficiencyBuff = 444981,
 }
 
 ---- Utility Functions ----------------------------------------------------------------------------------------
@@ -92,7 +93,7 @@ aura_env.OffCooldown = function(spellID)
         local c = a < b -- Throw an error
     end
     
-    if not IsPlayerSpell(spellID) then return false end
+    if not C_SpellBook.IsSpellKnown(spellID) then return false end
     -- Kichi --
     -- if aura_env.config[tostring(spellID)] == false then return false end
     
@@ -105,7 +106,7 @@ aura_env.OffCooldown = function(spellID)
     local Cooldown = C_Spell.GetSpellCooldown(spellID)
     local Duration = Cooldown.duration
     local Remaining = Cooldown.startTime + Duration - GetTime()
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= math.max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75))
 
     if not OffCooldown then return false end
     
@@ -261,7 +262,7 @@ end
 -- Kichi --
 aura_env.FullGCD = function()
     local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    local FullGCDnum = math.max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75)
     return FullGCDnum
 end
 
@@ -312,6 +313,7 @@ function()
     local TargetTimeToXPct = aura_env.TargetTimeToXPct
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
+    local IsSpellKnown = C_SpellBook.IsSpellKnown
     -- Kichi --
     local KTrig = aura_env.KTrig
     local KTrigCD = aura_env.KTrigCD
@@ -322,6 +324,8 @@ function()
     ---@class idsTable
     local ids = aura_env.ids
     aura_env.OutOfRange = false
+    local Variables = {}
+    local GcdMax = max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75)
     
     ---- Setup Data -----------------------------------------------------------------------------------------------     
     local SetPieces = WeakAuras.GetNumSetItemsEquipped(1924)
@@ -363,17 +367,18 @@ function()
             return end
     end
     
-    ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
-    local ExtraGlows = {}
+    ---- Variables -------------------------------------------------------------------------------------------
     
-    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
-    
-    ---- Normal GCDs -------------------------------------------------------------------------------------------
-    
-    local Variables = {}
+    Variables.SoulBurst = aura_env.config["SoulBurstSwitch"]
+    if SetPieces >= 4 and IsSpellKnown(ids.SpellfireSpheresTalent) and IsSpellKnown(ids.ResonanceTalent) and not IsSpellKnown(ids.MagisSparkTalent) and ( NearbyEnemies >= 3 ) and Variables.SoulBurst then
+        Variables.SoulCd = true
+    else
+        Variables.SoulCd = false
+    end
+
     Variables.AoeTargetCount = 2
     
-    if not IsPlayerSpell(ids.ArcingCleaveTalent) then
+    if not IsSpellKnown(ids.ArcingCleaveTalent) then
     Variables.AoeTargetCount = 9 end
     
     if not TargetHasDebuff(ids.TouchOfTheMagiDebuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) == 0 then
@@ -386,11 +391,19 @@ function()
     end
     
     Variables.AoeList = aura_env.config["AoeList"]
+
+    ---- No GCDs - Can glow at the same time as a regular ability ------------------------------------------------- 
+    local ExtraGlows = {}
+    
+    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
+    
+    ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     local CdOpener = function()
-        -- Kichi remove (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) because use TouchOfTheMagi macro --
-        -- Touch of the Magi used when Arcane Barrage is mid-flight or if you just used Arcane Surge and you don't have 4 Arcane Charges, the wait simulates the time it takes to queue another spell after Touch when you Surge into Touch, throws up Touch as soon as possible even without Barraging first if it's ready for miniburn.
-        if OffCooldown(ids.TouchOfTheMagi) and ( true and ( GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) > 5 or IsCasting(ids.ArcaneSurge) or GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 ) or ( (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) and (CurrentArcaneCharges < 4 or NetherPrecisionStacks == 0 )) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) ) ) then
+        -- Touch of the Magi used if you just used Arcane Surge, the wait simulates the time it takes to queue another spell after Touch when you Surge into Touch, otherwise we'll Touch off cooldown either after Barrage or if we just need Charges.
+        -- Kichi because use TouchOfTheMagi macro so remove: ( ( CurrentArcaneCharges < 4 and not (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage) ) ) or (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage) ) )
+        -- Kichi remove: FightRemains(60, NearbyRange) < 15
+        if OffCooldown(ids.TouchOfTheMagi) and ( aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge) or ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and OffCooldown(ids.TouchOfTheMagi) and true ) ) then
             -- KTrig("Touch Of The Magi") return true end
             if aura_env.config[tostring(ids.TouchOfTheMagi)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Touch Of The Magi")
@@ -404,7 +417,7 @@ function()
             KTrig("Arcane Blast") return true end
         
         -- Use Orb for Charges on the opener if you have High Voltage as the Missiles will generate the remaining Charge you need
-        if OffCooldown(ids.ArcaneOrb) and ( IsPlayerSpell(ids.HighVoltageTalent) and Variables.Opener and not aura_env.UsedOrb ) then
+        if OffCooldown(ids.ArcaneOrb) and ( IsSpellKnown(ids.HighVoltageTalent) and Variables.Opener and not aura_env.UsedOrb ) then
             -- KTrig("Arcane Orb") return true end
             if aura_env.config[tostring(ids.ArcaneOrb)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Arcane Orb")
@@ -415,10 +428,11 @@ function()
         end
         
         -- Barrage before Evocation if Tempo will expire
-        if OffCooldown(ids.ArcaneBarrage) and Variables.Opener and not aura_env.UsedBarrage and ( PlayerHasBuff(ids.ArcaneTempoBuff) and OffCooldown(ids.Evocation) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 5 ) then
+        if OffCooldown(ids.ArcaneBarrage) and Variables.Opener and not aura_env.UsedBarrage and ( PlayerHasBuff(ids.ArcaneTempoBuff) and OffCooldown(ids.Evocation) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) < GcdMax * 5 ) then
             KTrig("Arcane Barrage") return true end
         
-        if OffCooldown(ids.Evocation) and ( GetRemainingSpellCooldown(ids.ArcaneSurge) < (max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 5 ) then
+        -- Kichi remove: FightRemains(60, NearbyRange) < 25
+        if OffCooldown(ids.Evocation) and ( GetRemainingSpellCooldown(ids.ArcaneSurge) < (GcdMax * 3) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 5 or false ) then
             -- KTrig("Evocation") return true end
             if aura_env.config[tostring(ids.Evocation)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Evocation")
@@ -429,11 +443,11 @@ function()
         end
         
         -- Use Missiles to get Nether Precision up for your burst window, clipping logic applies as long as you don't have Aether Attunement.
-        if OffCooldown(ids.ArcaneMissiles) and not aura_env.UsedMissiles and ( (((aura_env.PrevCast == ids.Evocation or IsCasting(ids.Evocation)) or (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge))) or Variables.Opener ) and NetherPrecisionStacks == 0 ) then
+        if OffCooldown(ids.ArcaneMissiles) and not aura_env.UsedMissiles and ( ((aura_env.PrevCast == ids.Evocation or IsCasting(ids.Evocation)) or (aura_env.PrevCast == ids.ArcaneSurge or IsCasting(ids.ArcaneSurge)) or Variables.Opener ) and NetherPrecisionStacks == 0 ) then
             KTrig("Arcane Missiles") return true end
         
-        -- Kichi modify this via add "or TargetHasDebuff(ids.TouchOfTheMagiDebuff)" to fix if good luck to get ArcaneSurge --
-        if OffCooldownNotCasting(ids.ArcaneSurge) and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < ( max(C_Spell.GetSpellInfo(ids.ArcaneSurge).castTime/1000, WeakAuras.gcdDuration()) + ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( (CurrentArcaneCharges == 4) and 1 or 0 ) ) ) or TargetHasDebuff(ids.TouchOfTheMagiDebuff) ) then
+        -- Kichi remove: FightRemains(60, NearbyRange) < 25
+        if OffCooldownNotCasting(ids.ArcaneSurge) and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < ( max(C_Spell.GetSpellInfo(ids.ArcaneSurge).castTime/1000, WeakAuras.gcdDuration()) + ( GcdMax * ( (CurrentArcaneCharges == 4) and 1 or 0 ) ) ) or false ) then
             -- KTrig("Arcane Surge") return true end
             if aura_env.config[tostring(ids.ArcaneSurge)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Arcane Surge")
@@ -445,11 +459,56 @@ function()
 
     end
     
+    -- actions.cd_opener_soul=arcane_surge,if=(cooldown.touch_of_the_magi.remains<15)
+    -- actions.cd_opener_soul+=/evocation,if=buff.arcane_surge.up&(buff.arcane_surge.remains<=8.5|((buff.glorious_incandescence.up|buff.intuition.react)&buff.arcane_surge.remains<=10))
+    -- actions.cd_opener_soul+=/touch_of_the_magi,if=(buff.arcane_surge.remains<=2.5&prev_gcd.1.arcane_barrage)|(cooldown.evocation.remains>40&cooldown.evocation.remains<60&prev_gcd.1.arcane_barrage)
+    local CdOpenerSoul = function()
+        -- Arcane Surge if Touch of the Magi cooldown is less than 15 seconds
+        if OffCooldownNotCasting(ids.ArcaneSurge) and (GetRemainingSpellCooldown(ids.TouchOfTheMagi) < 15) then
+            -- KTrig("Arcane Surge") return true end
+            if aura_env.config[tostring(ids.ArcaneSurge)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Arcane Surge")
+            elseif aura_env.config[tostring(ids.ArcaneSurge)] ~= true then
+                KTrig("Arcane Surge")
+                return true
+            end
+        end
+
+        -- Evocation if Arcane Surge buff is up and (buff duration <= 8.5 or (Glorious Incandescence or Intuition up and buff duration <= 10))
+        -- Kichi change time number for simc fix
+        if OffCooldown(ids.Evocation) and PlayerHasBuff(ids.ArcaneSurgeBuff) and (
+            GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) <= 11 or
+            ((PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff)) and GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) <= 13)
+        ) then
+            -- KTrig("Evocation") return true end
+            if aura_env.config[tostring(ids.Evocation)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Evocation")
+            elseif aura_env.config[tostring(ids.Evocation)] ~= true then
+                KTrig("Evocation")
+                return true
+            end
+        end
+
+        -- Touch of the Magi if Arcane Surge buff remains <= 2.5 and previous GCD was Arcane Barrage or Evocation cooldown > 40 and < 60 and previous GCD was Arcane Barrage
+        -- Kichi use arcane_barrage micro so remove: aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)
+        if OffCooldown(ids.TouchOfTheMagi) and ( (PlayerHasBuff(ids.ArcaneSurgeBuff) and
+            GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) <= 2.5 and ( true )) or ( GetRemainingSpellCooldown(ids.Evocation) > 40 and GetRemainingSpellCooldown(ids.Evocation) < 60 and ( true )) )
+        then
+            -- KTrig("Touch Of The Magi") return true end
+            if aura_env.config[tostring(ids.TouchOfTheMagi)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Touch Of The Magi")
+            elseif aura_env.config[tostring(ids.TouchOfTheMagi)] ~= true then
+                KTrig("Touch Of The Magi")
+                return true
+            end
+        end
+    end
+
     local Spellslinger = function()
         -- With Shifting Shards we can use Shifting Power whenever basically favoring cooldowns slightly, without it though we want to use it outside of cooldowns, don't cast if it'll conflict with Intuition expiration.
-        if OffCooldown(ids.ShiftingPower) and ( ( ( ( ( ( C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges == 0 ) and GetRemainingSpellCooldown(ids.ArcaneOrb) > 16 ) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < 20 ) and PlayerHasBuff(ids.ArcaneSurgeBuff) == false and PlayerHasBuff(ids.SiphonStormBuff) == false and TargetHasDebuff(ids.TouchOfTheMagiDebuff) == false and ( not PlayerHasBuff(ids.IntuitionBuff) or (PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) > 3.5 ) ) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) > ( 12 + 6 * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) or 
-        ( (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) and IsPlayerSpell(ids.ShiftingShardsTalent) and ( not PlayerHasBuff(ids.IntuitionBuff) or (PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) > 3.5 ) ) and ( PlayerHasBuff(ids.ArcaneSurgeBuff) or TargetHasDebuff(ids.TouchOfTheMagiDebuff) or GetRemainingSpellCooldown(ids.Evocation) < 20 ) ) ) and 
-        FightRemains(60, NearbyRange) > 10 and ( GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2.5 or PlayerHasBuff(ids.ArcaneTempoBuff) == false ) ) then
+        if OffCooldown(ids.ShiftingPower) and ( ( ( ( ( ( C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges == 0 ) and GetRemainingSpellCooldown(ids.ArcaneOrb) > 16 ) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < 20 ) and PlayerHasBuff(ids.ArcaneSurgeBuff) == false and PlayerHasBuff(ids.SiphonStormBuff) == false and TargetHasDebuff(ids.TouchOfTheMagiDebuff) == false and ( not PlayerHasBuff(ids.IntuitionBuff) or (PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) > 3.5 ) ) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) > ( 12 + 6 * GcdMax ) ) or 
+                ( (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) and IsSpellKnown(ids.ShiftingShardsTalent) and ( not PlayerHasBuff(ids.IntuitionBuff) or (PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) > 3.5 ) ) and ( PlayerHasBuff(ids.ArcaneSurgeBuff) or TargetHasDebuff(ids.TouchOfTheMagiDebuff) or GetRemainingSpellCooldown(ids.Evocation) < 20 ) ) ) and 
+            FightRemains(60, NearbyRange) > 10 and ( GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) > GcdMax * 2.5 or PlayerHasBuff(ids.ArcaneTempoBuff) == false ) ) then
             -- KTrig("Shifting Power") return true end
             if aura_env.config[tostring(ids.ShiftingPower)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shifting Power")
@@ -459,7 +518,7 @@ function()
             end
         end
 
-        if OffCooldown(ids.Supernova) and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetPlayerStacks(ids.UnerringProficiencyBuff) == 30 ) then
+        if OffCooldown(ids.Supernova) and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) <= GcdMax and GetPlayerStacks(ids.UnerringProficiencyBuff) == 30 ) then
             -- KTrig("Supernova") return true end
             if aura_env.config[tostring(ids.Supernova)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Supernova")
@@ -481,16 +540,16 @@ function()
         end
 
         -- Barrage if Tempo is about to expire.
-        if OffCooldown(ids.ArcaneBarrage) and ( PlayerHasBuff(ids.ArcaneTempoBuff) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( PlayerHasBuff(ids.ArcaneTempoBuff) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) <= GcdMax * 2 ) then
             KTrig("Arcane Barrage") return true end
         
         -- Use Aether Attunement up before casting Touch if you have S2 4pc equipped to avoid munching.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) ) then
+        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 3 and PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Kichi use micro to instead --
         -- -- Barrage if Touch is up or will be up while Barrage is in the air.
-        -- if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
+        -- if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 0.050 ), GcdMax ) ) and ( GetRemainingSpellCooldown(ids.ArcaneSurge) > 30 and GetRemainingSpellCooldown(ids.ArcaneSurge) < 75 ) ) then
         --     KTrig("Arcane Barrage") return true end
 
         -- Anticipate the Intuition granted from the Season 3 set bonus.
@@ -498,7 +557,7 @@ function()
             KTrig("Arcane Barrage") return true end
         
         -- Use Clearcasting procs to keep Nether Precision up, if you don't have S2 4pc try to pool Aether Attunement for cooldown windows.
-        if OffCooldown(ids.ArcaneMissiles) and ( ( PlayerHasBuff(ids.ClearcastingBuff) and (NetherPrecisionStacks == 0) and ( ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and GetRemainingSpellCooldown(ids.ArcaneSurge) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 ) or GetPlayerStacks(ids.ClearcastingBuff) > 1 or not IsPlayerSpell(ids.MagisSparkTalent) or ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 and GetPlayerStacks(ids.AetherAttunementBuff) == 0 ) or (OldSetPieces >= 4) ) ) or ( FightRemains(60, NearbyRange) < 5 and PlayerHasBuff(ids.ClearcastingBuff) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and ( ( PlayerHasBuff(ids.ClearcastingBuff) and (NetherPrecisionStacks == 0) and ( ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 7 and GetRemainingSpellCooldown(ids.ArcaneSurge) > GcdMax * 7 ) or GetPlayerStacks(ids.ClearcastingBuff) > 1 or not IsSpellKnown(ids.MagisSparkTalent) or ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 4 and GetPlayerStacks(ids.AetherAttunementBuff) == 0 ) or (OldSetPieces >= 4) ) ) or ( FightRemains(60, NearbyRange) < 5 and PlayerHasBuff(ids.ClearcastingBuff) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Missile to refill charges if you have High Voltage and either Aether Attunement or more than one Clearcasting proc. Recheck AOE
@@ -518,11 +577,11 @@ function()
             KTrig("Arcane Blast") return true end
 
         -- Barrage if you're going to run out of mana and have Orb ready.
-        if OffCooldown(ids.ArcaneBarrage) and ( (CurrentMana/MaxMana*100) < 10 and PlayerHasBuff(ids.ArcaneSurgeBuff) == false and ( GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( (CurrentMana/MaxMana*100) < 10 and PlayerHasBuff(ids.ArcaneSurgeBuff) == false and ( GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax ) ) then
             KTrig("Arcane Barrage") return true end
         
         -- Orb in ST if you don't have Charged Orb, will overcap soon, and before entering cooldowns.
-        if OffCooldown(ids.ArcaneOrb) and ( NearbyEnemies == 1 and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < 6 or not IsPlayerSpell(ids.ChargedOrbTalent) or PlayerHasBuff(ids.ArcaneSurgeBuff) or GetSpellChargesFractional(ids.ArcaneOrb) > 1.5 ) ) then
+        if OffCooldown(ids.ArcaneOrb) and ( NearbyEnemies == 1 and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) < 6 or not IsSpellKnown(ids.ChargedOrbTalent) or PlayerHasBuff(ids.ArcaneSurgeBuff) or GetSpellChargesFractional(ids.ArcaneOrb) > 1.5 ) ) then
             -- KTrig("Arcane Orb") return true end
             if aura_env.config[tostring(ids.ArcaneOrb)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Arcane Orb")
@@ -533,7 +592,7 @@ function()
         end
 
         -- Barrage if you have orb coming off cooldown in AOE and you don't have enough harmony stacks to make it worthwhile to hold for set proc.
-        if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies >= 2 and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and ( GetPlayerStacks(ids.ArcaneHarmonyBuff) <= ( 8 + ( 10 * (SetPieces >= 4 and 0 or 1) ) ) ) and ( ( ( (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) or (aura_env.PrevCast == ids.ArcaneOrb or IsCasting(ids.ArcaneOrb)) ) and NetherPrecisionStacks == 1 ) or NetherPrecisionStacks == 2 or (NetherPrecisionStacks == 0) ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies >= 2 and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax and ( GetPlayerStacks(ids.ArcaneHarmonyBuff) <= ( 8 + ( 10 * (SetPieces >= 4 and 0 or 1) ) ) ) and ( ( ( (aura_env.PrevCast == ids.ArcaneBarrage or IsCasting(ids.ArcaneBarrage)) or (aura_env.PrevCast == ids.ArcaneOrb or IsCasting(ids.ArcaneOrb)) ) and NetherPrecisionStacks == 1 ) or NetherPrecisionStacks == 2 or (NetherPrecisionStacks == 0) ) ) then
             KTrig("Arcane Barrage") return true end
 
         if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies > 2 and ( CurrentArcaneCharges == 4 and not (SetPieces >= 4) ) ) then
@@ -551,7 +610,7 @@ function()
         end
         
         -- Arcane Barrage in AOE if you have Aether Attunement ready and High Voltage
-        if OffCooldown(ids.ArcaneBarrage) and ( IsPlayerSpell(ids.HighVoltageTalent) and NearbyEnemies >= 2 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.AetherAttunementBuff) and PlayerHasBuff(ids.ClearcastingBuff) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( IsSpellKnown(ids.HighVoltageTalent) and NearbyEnemies >= 2 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.AetherAttunementBuff) and PlayerHasBuff(ids.ClearcastingBuff) ) then
             KTrig("Arcane Barrage") return true end
         
         -- Use Orb more aggressively if cleave and a little less in AOE.
@@ -566,15 +625,15 @@ function()
         end
 
         -- Barrage if Orb is available in AOE.
-        if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies > 1 and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( NearbyEnemies > 1 and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax ) then
             KTrig("Arcane Barrage") return true end
         
         -- If you have High Voltage throw out a Barrage before you need to use Clearcasting for NP.
-        if OffCooldown(ids.ArcaneBarrage) and ( IsPlayerSpell(ids.HighVoltageTalent) and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and NetherPrecisionStacks == 1 ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and NetherPrecisionStacks == 1 ) then
             KTrig("Arcane Barrage") return true end
 
         -- Barrage with Orb Barrage or execute if you have orb up and no Nether Precision or no way to get another and use Arcane Orb to recover Arcane Charges, old resources for Touch of the Magi if you have Magi's Spark. Skip this with Season 3 set.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies <= 1 and ( IsPlayerSpell(ids.OrbBarrageTalent) or ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ArcaneBombardmentTalent) ) ) and ( GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and CurrentArcaneCharges == 4 and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 6 or not IsPlayerSpell(ids.MagisSparkTalent) ) and ( (NetherPrecisionStacks == 0) or ( NetherPrecisionStacks == 1 and GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) ) and not ( SetPieces >= 4 ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies <= 1 and ( IsSpellKnown(ids.OrbBarrageTalent) or ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) ) ) and ( GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax ) and CurrentArcaneCharges == 4 and ( GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 6 or not IsSpellKnown(ids.MagisSparkTalent) ) and ( (NetherPrecisionStacks == 0) or ( NetherPrecisionStacks == 1 and GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) ) and not ( SetPieces >= 4 ) ) then
             KTrig("Arcane Barrage") return true end
         
         -- -- Kichi add to modify 4.14 simc to lower arcane_blast frequency in AOE
@@ -585,18 +644,18 @@ function()
         -- if OffCooldown(ids.ArcaneMissiles) and ( NearbyEnemies > 1 and IsPlayerSpell(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) and CurrentArcaneCharges < 3 ) then
         --     KTrig("Arcane Missiles") return true end
 
-        -- Kichi add distance check for Arcane Explosion
+        -- Kichi add distance check for Arcane Explosion: and WeakAuras.CheckRange("target", 10, "<=")
         -- Use Explosion for your first charge or if you have High Voltage you can use it for charge 2 and 3, but at a slightly higher target count.
-        if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( NearbyEnemies > 1 and ( ( CurrentArcaneCharges < 1 and not IsPlayerSpell(ids.HighVoltageTalent) ) or ( CurrentArcaneCharges < 3 and ( GetPlayerStacks(ids.ClearcastingBuff) == 0 or IsPlayerSpell(ids.ReverberateTalent) ) ) ) ) then   
+        if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( NearbyEnemies > 1 and ( ( CurrentArcaneCharges < 1 and not IsSpellKnown(ids.HighVoltageTalent) ) or ( CurrentArcaneCharges < 3 and ( GetPlayerStacks(ids.ClearcastingBuff) == 0 or IsSpellKnown(ids.ReverberateTalent) ) ) ) ) then   
             KTrig("Arcane Explosion") return true end
 
-        -- Kichi add distance check for Arcane Explosion
+        -- Kichi add distance check for Arcane Explosion: and WeakAuras.CheckRange("target", 10, "<=")
         -- You can use Arcane Explosion in single target for your first 2 charges when you have no Clearcasting procs and aren't out of mana. This is only a very slight gain for some profiles so don't feel you have to do this.
         if OffCooldown(ids.ArcaneExplosion) and WeakAuras.CheckRange("target", 10, "<=") and ( NearbyEnemies == 1 and CurrentArcaneCharges < 2 and not PlayerHasBuff(ids.ClearcastingBuff) ) then
             KTrig("Arcane Explosion") return true end
         
         -- Barrage in execute if you're at the end of Touch or at the end of Surge windows. Skip this with Season 3 set.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( ( ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) < ( max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 1.25 ) ) and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) > 0.75 ) ) or ( ( GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and PlayerHasBuff(ids.ArcaneSurgeBuff) ) ) and CurrentArcaneCharges == 4 ) and not ( SetPieces >= 4 ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( ( ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) < ( GcdMax * 1.25 ) ) and ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) > 0.75 ) ) or ( ( GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) < GcdMax ) and PlayerHasBuff(ids.ArcaneSurgeBuff) ) ) and CurrentArcaneCharges == 4 ) and not ( SetPieces >= 4 ) ) then
             KTrig("Arcane Barrage") return true end
             
         -- Nothing else to do? Blast. Out of mana? Barrage.
@@ -620,52 +679,62 @@ function()
         end
 
         -- When Arcane Soul is up, use Missiles to generate Nether Precision as needed while also ensuring you end Soul with 3 Clearcasting.
-        if OffCooldown(ids.ArcaneMissiles) and ( (NetherPrecisionStacks == 0) and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSoulBuff) and GetRemainingAuraDuration("player", ids.ArcaneSoulBuff) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 4 - (PlayerHasBuff(ids.ClearcastingBuff) and 1 or 0) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and ( (NetherPrecisionStacks == 0) and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSoulBuff) and GetRemainingAuraDuration("player", ids.ArcaneSoulBuff) > GcdMax * ( 4 - (PlayerHasBuff(ids.ClearcastingBuff) and 1 or 0) ) ) then
             KTrig("Arcane Missiles") return true end
         
         if OffCooldown(ids.ArcaneBarrage) and ( PlayerHasBuff(ids.ArcaneSoulBuff) ) then
             KTrig("Arcane Barrage") return true end
         
-        -- Prioritize Tempo and Intuition if they are about to expire, spend Aether Attunement if you have 4pc S2 set before Touch.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( PlayerHasBuff(ids.ArcaneTempoBuff) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) or ( PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) then
+        -- Dump a clearcasting proc before you go into Soul if you have one.
+        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.ArcaneSurgeBuff) and GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) < GcdMax * 2 ) then
+            KTrig("Arcane Missiles") return true end
+
+        -- Prioritize Tempo and Intuition if they are about to expire.
+        if OffCooldown(ids.ArcaneBarrage) and ( ( PlayerHasBuff(ids.ArcaneTempoBuff) and GetRemainingAuraDuration("player", ids.ArcaneTempoBuff) < ( GcdMax + ( GcdMax * ( NetherPrecisionStacks == 1 and 1 or 0 ) ) ) ) or ( PlayerHasBuff(ids.IntuitionBuff) and GetRemainingAuraDuration("player", ids.IntuitionBuff) < ( GcdMax + ( GcdMax * ( NetherPrecisionStacks == 1 and 1 or 0 ) ) ) ) ) then
             KTrig("Arcane Barrage") return true end
         
-        if OffCooldown(ids.ArcaneBarrage) and ( ( IsPlayerSpell(ids.OrbBarrageTalent) and NearbyEnemies > 1 and GetPlayerStacks(ids.ArcaneHarmonyBuff) >= 18 and ( ( NearbyEnemies > 3 and ( IsPlayerSpell(ids.ResonanceTalent) or IsPlayerSpell(ids.HighVoltageTalent) ) ) or (NetherPrecisionStacks == 0) or NetherPrecisionStacks == 1 or ( NetherPrecisionStacks == 2 and GetPlayerStacks(ids.ClearcastingBuff) == 3 ) ) ) ) then
+        -- Gamble on Orb Barrage in AOE to prevent overcapping on Harmony stacks.
+        if OffCooldown(ids.ArcaneBarrage) and ( ( IsSpellKnown(ids.OrbBarrageTalent) and NearbyEnemies > 1 and GetPlayerStacks(ids.ArcaneHarmonyBuff) >= 18 and ( ( NearbyEnemies > 3 and ( IsSpellKnown(ids.ResonanceTalent) or IsSpellKnown(ids.HighVoltageTalent) ) ) or (NetherPrecisionStacks == 0) or NetherPrecisionStacks == 1 or ( NetherPrecisionStacks == 2 and GetPlayerStacks(ids.ClearcastingBuff) == 3 ) ) ) ) then
             KTrig("Arcane Barrage") return true end
-                
-        -- if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 3 - ( 1.5 * ( NearbyEnemies > 3 and ( not IsPlayerSpell(ids.TimeLoopTalent) or IsPlayerSpell(ids.ResonanceTalent) ) ) ) ) ) then
-        -- Kichi fix for error： attempt to perform arithmetic on a boolean value
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 3 - ( 1.5 * (( NearbyEnemies > 3 and ( not IsPlayerSpell(ids.TimeLoopTalent) or IsPlayerSpell(ids.ResonanceTalent) ) ) and 1 or 0) ) ) ) then
+        
+        -- Spend Aether Attunement if you have 4pc S2 set before Touch.
+        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and (OldSetPieces >= 4) and PlayerHasBuff(ids.AetherAttunementBuff) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * ( 3 - ( 1.5 * ( ( NearbyEnemies > 3 and ( not IsSpellKnown(ids.TimeLoopTalent) or IsSpellKnown(ids.ResonanceTalent) ) ) and 1 or 0 ) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
-        -- Blast whenever you have the bonus from Leydrinker or Magi's Spark up, don't let spark expire in AOE.
-        if OffCooldown(ids.ArcaneBlast) and ( ( ( aura_env.NeedArcaneBlastSpark and ( ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) < ( (C_Spell.GetSpellInfo(ids.ArcaneBlast).castTime/1000) + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) or NearbyEnemies <= 1 or IsPlayerSpell(ids.LeydrinkerTalent) ) ) or PlayerHasBuff(ids.LeydrinkerBuff) ) and CurrentArcaneCharges == 4 and ( (NetherPrecisionStacks > 0) or GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) then
-            KTrig("Arcane Blast") return true end
-        
-        -- Kichi use micro to instead --
+        -- -- Kichi use micro to instead --
         -- -- Barrage into Touch if you have charges when it comes up.
-        -- if OffCooldown(ids.ArcaneBarrage) and ( CurrentArcaneCharges == 4 and ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 50 ), max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) then
-        --     KTrig("Arcane Barrage") return true end
+        -- if OffCooldown(ids.ArcaneBarrage) and ( CurrentArcaneCharges == 4 and ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 0.05 ), GcdMax ) ) and not Variables.SoulCd ) then
+        --  KTrig("Arcane Barrage") return true end
+        -- if OffCooldown(ids.ArcaneBarrage) and ( ( OffCooldown(ids.TouchOfTheMagi) or GetRemainingSpellCooldown(ids.TouchOfTheMagi) < min( ( 0.75 + 0.05 ), GcdMax ) ) and ( not PlayerHasBuff(ids.ArcaneSurgeBuff) or ( PlayerHasBuff(ids.ArcaneSurgeBuff) and GetRemainingAuraDuration("player", ids.ArcaneSurgeBuff) <= 2.5 ) ) and Variables.SoulCd ) then
+        -- --  KTrig("Arcane Barrage") return true end
 
-        -- AOE Barrage conditions are optimized for funnel, avoids overcapping Harmony stacks (line below Tempo line above), spending Charges when you have a way to recoup them via High Voltage or Orb while pooling sometimes for Touch with various talent optimizations.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( IsPlayerSpell(ids.HighVoltageTalent) and NearbyEnemies > 1 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and NetherPrecisionStacks == 1 ) ) then
+        -- Blast if Magi's Spark is up.
+        if OffCooldown(ids.ArcaneBlast) and ( aura_env.NeedArcaneBlastSpark and CurrentArcaneCharges == 4 ) then
+            KTrig("Arcane Blast") return true end
+
+        -- -- Blast whenever you have the bonus from Leydrinker or Magi's Spark up, don't let spark expire in AOE.
+        -- if OffCooldown(ids.ArcaneBlast) and ( ( ( aura_env.NeedArcaneBlastSpark and ( ( GetRemainingDebuffDuration("target", ids.TouchOfTheMagiDebuff) < ( (C_Spell.GetSpellInfo(ids.ArcaneBlast).castTime/1000) + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) or NearbyEnemies <= 1 or IsPlayerSpell(ids.LeydrinkerTalent) ) ) or PlayerHasBuff(ids.LeydrinkerBuff) ) and CurrentArcaneCharges == 4 and ( (NetherPrecisionStacks > 0) or GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) then
+        --     KTrig("Arcane Blast") return true end
+        
+        -- AOE Barrage conditions revolve around sending Barrages various talents. Whenever you have Clearcasting and Nether Precision or if you have Aether Attunement to recharge with High Voltage. Whenever you have Orb Barrage you should gamble basically any chance you get in execute. Lastly, with Arcane Orb available, you can send Barrage as long as you're not going to use Touch soon and don't have a reason to use Blast up.
+        if OffCooldown(ids.ArcaneBarrage) and ( ( IsSpellKnown(ids.HighVoltageTalent) and NearbyEnemies > 1 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and NetherPrecisionStacks == 1 ) ) then
             KTrig("Arcane Barrage") return true end
         
-        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies > 1 and IsPlayerSpell(ids.HighVoltageTalent) and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.AetherAttunementBuff) and PlayerHasBuff(ids.GloriousIncandescenceBuff) == false and PlayerHasBuff(ids.IntuitionBuff) == false ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( IsSpellKnown(ids.HighVoltageTalent) and NearbyEnemies > 1 and CurrentArcaneCharges == 4 and PlayerHasBuff(ids.ClearcastingBuff) and PlayerHasBuff(ids.AetherAttunementBuff) and PlayerHasBuff(ids.GloriousIncandescenceBuff) == false and PlayerHasBuff(ids.IntuitionBuff) == false ) ) then
             KTrig("Arcane Barrage") return true end
         
-        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies > 2 and IsPlayerSpell(ids.OrbBarrageTalent) and IsPlayerSpell(ids.HighVoltageTalent) and not aura_env.NeedArcaneBlastSpark and CurrentArcaneCharges == 4 and (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ArcaneBombardmentTalent) and ( (NetherPrecisionStacks > 0) or ( (NetherPrecisionStacks == 0) and GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies > 2 and IsSpellKnown(ids.OrbBarrageTalent) and IsSpellKnown(ids.HighVoltageTalent) and not aura_env.NeedArcaneBlastSpark and CurrentArcaneCharges == 4 and (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) and ( (NetherPrecisionStacks > 0) or ( (NetherPrecisionStacks == 0) and GetPlayerStacks(ids.ClearcastingBuff) == 0 ) ) ) ) then
             KTrig("Arcane Barrage") return true end
         
-        if OffCooldown(ids.ArcaneBarrage) and ( ( ( NearbyEnemies > 2 or ( NearbyEnemies > 1 and (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ArcaneBombardmentTalent) ) ) and GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.TouchOfTheMagi) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 6 and ( not aura_env.NeedArcaneBlastSpark or not IsPlayerSpell(ids.MagisSparkTalent) ) and (NetherPrecisionStacks > 0) and ( IsPlayerSpell(ids.HighVoltageTalent) or NetherPrecisionStacks == 2 or ( NetherPrecisionStacks == 1 and not PlayerHasBuff(ids.ClearcastingBuff) ) ) ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies > 2 or ( NearbyEnemies > 1 and (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) ) ) and GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 6 and ( not aura_env.NeedArcaneBlastSpark or not IsSpellKnown(ids.MagisSparkTalent) ) and (NetherPrecisionStacks > 0) and ( IsSpellKnown(ids.HighVoltageTalent) or ( ( not PlayerHasBuff(ids.LeydrinkerBuff) or ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) and NearbyEnemies >= 4 and IsSpellKnown(ids.ResonanceTalent) ) ) and NetherPrecisionStacks == 2 ) or ( NetherPrecisionStacks == 1 and not PlayerHasBuff(ids.ClearcastingBuff) ) ) ) then
             KTrig("Arcane Barrage") return true end
         
-        -- Missiles to recoup Charges with High Voltage or maintain Nether Precisioin.
-        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsPlayerSpell(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or (NetherPrecisionStacks == 0) ) ) then
+        -- Missiles to recoup Charges with High Voltage or maintain Nether Precision and combine it with other Barrage buffs.
+        if OffCooldown(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or ( NetherPrecisionStacks == 0 and GetPlayerStacks(ids.ClearcastingBuff) > 1 or GetPlayerStacks(ids.SpellfireSpheresBuff) == 6 or PlayerHasBuff(ids.BurdenOfPowerBuff) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
         -- Barrage with Burden if 2-4 targets and you have a way to recoup Charges, however skip this is you have Bauble and don't have High Voltage.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( CurrentArcaneCharges == 4 and NearbyEnemies > 1 and NearbyEnemies < 5 and PlayerHasBuff(ids.BurdenOfPowerBuff) and ( ( IsPlayerSpell(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) ) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) or ( GetRemainingSpellCooldown(ids.ArcaneOrb) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges > 0 ) ) ) and ( not IsPlayerSpell(ids.ConsortiumsBaubleTalent) or IsPlayerSpell(ids.HighVoltageTalent) ) ) then
+        if OffCooldown(ids.ArcaneBarrage) and ( ( CurrentArcaneCharges == 4 and NearbyEnemies > 1 and NearbyEnemies < 5 and PlayerHasBuff(ids.BurdenOfPowerBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) ) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) or ( GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax or C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges > 0 ) ) ) and ( not IsSpellKnown(ids.ConsortiumsBaubleTalent) or IsSpellKnown(ids.HighVoltageTalent) ) ) then
             KTrig("Arcane Barrage") return true end
         
         -- Arcane Orb to recover Charges quickly if below 3.
@@ -702,12 +771,18 @@ function()
         KTrig("Arcane Barrage") return true end
     
     -- Enter cooldowns, then action list depending on your hero talent choices
-    if CdOpener() then return true end
+    if not Variables.SoulCd then 
+        if CdOpener() then return true end 
+    end
+
+    if Variables.SoulCd then
+        if CdOpenerSoul() then return true end
+    end
     
-    if IsPlayerSpell(ids.SpellfireSpheresTalent) then
+    if IsSpellKnown(ids.SpellfireSpheresTalent) then
         if Sunfury() then return true end end
     
-    if not IsPlayerSpell(ids.SpellfireSpheresTalent) then
+    if not IsSpellKnown(ids.SpellfireSpheresTalent) then
         if Spellslinger() then return true end end
     
     if OffCooldown(ids.ArcaneBarrage) then
@@ -715,7 +790,7 @@ function()
 
     -- Kichi --
     KTrig("Clear")
-    -- KTrigCD("Clear")
+    KTrigCD("Clear")
 
 end
 
@@ -771,41 +846,42 @@ aura_env.ids = {
     
     -- Talents
     ArcaneBombardmentTalent = 384581,
-    ArcingCleaveTalent = 231564,
-    ArcaneTempoTalent = 383980,
     ArcaneHarmonyTalent = 384452,
+    ArcaneTempoTalent = 383980,
+    ArcingCleaveTalent = 231564,
     ChargedOrbTalent = 384651,
     ConsortiumsBaubleTalent = 461260,
     EnlightenedTalent = 321387,
+    HighVoltageTalent = 461248,
     ImpetusTalent = 383676,
     LeydrinkerTalent = 452196,
     MagisSparkTalent = 454016,
-    SplinteringSorceryTalent = 443739,
-    HighVoltageTalent = 461248,
-    ShiftingShardsTalent = 444675,
     OrbBarrageTalent = 384858,
     ResonanceTalent = 205028,
     ReverberateTalent = 281482,
+    ShiftingShardsTalent = 444675,
     SpellfireSpheresTalent = 448601,
+    SplinteringSorceryTalent = 443739,
     TimeLoopTalent = 452924,
     
     -- Buffs
     AetherAttunementBuff = 453601,
     AethervisionBuff = 467634,
     ArcaneHarmonyBuff = 384455,
+    ArcaneSoulBuff = 451038,
     ArcaneSurgeBuff = 365362,
     ArcaneTempoBuff = 383997,
+    BurdenOfPowerBuff = 451049,
     ClearcastingBuff = 263725,
-    LeydrinkerBuff = 453758,
-    NetherPrecisionBuff = 383783,
+    GloriousIncandescenceBuff = 451073,
     -- Kichi fix this id beacause it is wrong --
     IntuitionBuff = 1223797,
-    UnerringProficiencyBuff = 444981,
+    LeydrinkerBuff = 453758,
+    NetherPrecisionBuff = 383783,
     SiphonStormBuff = 384267,
-    BurdenOfPowerBuff = 451049,
-    GloriousIncandescenceBuff = 451073,
-    ArcaneSoulBuff = 451038,
+    SpellfireSpheresBuff = 448604,
     TouchOfTheMagiDebuff = 210824,
+    UnerringProficiencyBuff = 444981,
 }
 
 aura_env.GetSpellCooldown = function(spellId)

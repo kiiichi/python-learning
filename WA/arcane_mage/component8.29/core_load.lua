@@ -119,6 +119,11 @@ aura_env.IsCasting = function(spellID)
     return select(9, UnitCastingInfo("player")) == spellID
 end
 
+-- Kichi add
+aura_env.IsChanneling = function(spellID)
+    return select(8, UnitChannelInfo("player")) == spellID
+end
+
 aura_env.OffCooldownNotCasting = function(spellID)
     return aura_env.OffCooldown(spellID) and not aura_env.IsCasting(spellID)
 end
