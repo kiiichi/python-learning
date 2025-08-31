@@ -1029,23 +1029,23 @@ or PlayerHasBuff(ids.VisceralStrengthUnholyBuff)  ) then
         -- print("4")
         if CdsSan() then return true end end
     
-    if not IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies <= 1 then
+    if not IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies <= 2 then
         -- print("5")
         if Cds() then return true end end
     
-    if NearbyEnemies == 2 then
-        -- print("6")
-        if Cleave() then return true end end
+    -- if NearbyEnemies == 2 then
+    --     -- print("6")
+    --     if Cleave() then return true end end
     
     if NearbyEnemies >= 2 and GetRemainingSpellCooldown(ids.DeathAndDecay) < 7 and not PlayerHasBuff(ids.LegionOfSoulsBuff) and ( GetRemainingAuraDuration("player", ids.DeathAndDecayBuff) < 3 or TargetsWithFesteringWounds < (NearbyEnemies/2) ) then
         -- print("7")
         if AoeSetup() then return true end end
     
-    if NearbyEnemies >= 2 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecayBuff) and (TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) or IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies < 16 or IsPlayerSpell(ids.DesecrateTalent) and TargetsWithFesteringWounds >= NearbyEnemies and IsPlayerSpell(ids.BurstingSoresTalent)) ) then
+    if NearbyEnemies >= 3 and ( PlayerHasBuff(ids.DeathAndDecayBuff) or PlayerHasBuff(ids.DeathAndDecayBuff) and (TargetsWithFesteringWounds >= ( NearbyEnemies * 0.5 ) or IsPlayerSpell(ids.VampiricStrikeTalent) and NearbyEnemies < 16 or IsPlayerSpell(ids.DesecrateTalent) and TargetsWithFesteringWounds >= NearbyEnemies and IsPlayerSpell(ids.BurstingSoresTalent)) ) then
         -- print("8")
         if AoeBurst() then return true end end
     
-    if NearbyEnemies >= 2 and not PlayerHasBuff(ids.DeathAndDecayBuff) then
+    if NearbyEnemies >= 3 and not PlayerHasBuff(ids.DeathAndDecayBuff) then
         -- print("9")
         if Aoe() then return true end end
     
@@ -1056,7 +1056,7 @@ or PlayerHasBuff(ids.VisceralStrengthUnholyBuff)  ) then
     if NearbyEnemies <= 1 and IsPlayerSpell(ids.VampiricStrikeTalent) then
         if SanSt() then return true end end
     
-    if NearbyEnemies <= 1 and not IsPlayerSpell(ids.VampiricStrikeTalent) then
+    if NearbyEnemies <= 2 and not IsPlayerSpell(ids.VampiricStrikeTalent) then
         if St() then return true end end
     
     -- Kichi --

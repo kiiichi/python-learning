@@ -1,3 +1,27 @@
+hunter="Anniecpt"
+level=80
+role=dps
+spec=beast_mastery
+
+talents=C0PAAAAAAAAAAAAAAAAAAAAAAAMmxwCsBzwQDbAAAAAAYMzsNjxMDYmxMsYmxMjxMzMZGzMzYmxYmxMMGGDjxMWmBbAAAAAAAA
+
+head=,id=229271,bonus_id=10354/11960/6652/12176/12178/11983/1504/10255,ilevel=655
+neck=,id=232663,bonus_id=10844/6652/10355/11987/1504/10255/10879/10396,gem_id=213743/213482,ilevel=655
+shoulder=,id=229269,bonus_id=6652/10390/12179/11962/11987/1504/10255,ilevel=655
+chest=,id=229274,enchant_id=7364,bonus_id=11987/10355/11958/6652/12178/1504/10255,ilevel=655
+waist=,id=234501,bonus_id=10390/40/12176/11964/10383/11988/1507/10255,ilevel=658
+legs=,id=158341,enchant_id=7601,bonus_id=11987/10390/6652/11964/10383/10063/10255,ilevel=655
+feet=,id=221035,enchant_id=7424,bonus_id=11987/10390/6652/11964/10383/3147/10255,ilevel=655
+wrist=,id=219342,enchant_id=7385,bonus_id=10421/9633/8902/9627/12043/11303/8960/8793/12040/12176,ilevel=675
+hands=,id=229272,bonus_id=10355/11959/6652/12179/11987/1504/10255,ilevel=655
+finger1=,id=178871,enchant_id=7340,bonus_id=10390/6652/10383/10879/10396/11988/9967/10255,gem_id=213479/213455,ilevel=658
+finger2=,id=228411,enchant_id=7340,bonus_id=12028/1511,gem_id=228638/228639/228640,ilevel=658
+trinket1=,id=133282,bonus_id=10390/6652/10383/10299/11342/10255,ilevel=639
+trinket2=,id=232541,bonus_id=10390/6652/10383/11987/1491/10255,ilevel=655
+back=,id=234507,enchant_id=7403,bonus_id=11985/10390/6652/11964/10383/1498/10255,ilevel=649
+main_hand=,id=234492,enchant_id=7445,bonus_id=10390/6652/10384/11988/1507/10255,ilevel=658
+
+
 
 # This default action priority list is automatically created based on your character.
 # It is a attempt to provide you with a action list that is both simple and practicable,
