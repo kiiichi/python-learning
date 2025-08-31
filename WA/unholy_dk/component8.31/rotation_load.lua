@@ -1,7 +1,7 @@
+---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
-    AbominationLimb = 383269,
     Apocalypse = 275699,
     ArmyOfTheDead = 42650,
     DarkArbiter = 207349,
@@ -9,8 +9,11 @@ aura_env.ids = {
     DeathAndDecay = 43265,
     DeathCoil = 47541,
     Defile = 152280,
+    Desecrate = 1234698,
     Epidemic = 207317,
-    FesteringStrike = 85948, 
+    FesteringStrike = 85948,     
+    FesteringScythe = 458128,
+    LegionOfSouls = 383269,
     Outbreak = 77575, 
     RaiseAbomination = 455395,
     RaiseDead = 46584,
@@ -19,17 +22,16 @@ aura_env.ids = {
     SummonGargoyle = 49206,
     UnholyAssault = 207289,
     VampiricStrike = 433895,
-    VileContagion = 390279,
-    -- Kichi split FesteringStrike and FesteringScy -- 
-    FesteringScy = 458128,
     
     -- Talents
     ApocalypseTalent = 275699,
     BurstingSoresTalent = 207264,
     CoilOfDevastationTalent = 390270,
     CommanderOfTheDeadTalent = 390259,
+    DesecrateTalent = 1234559,
     DoomedBiddingTalent = 455386,
     EbonFeverTalent = 207269,
+    FesteringScytheTalent = 455397,
     FestermightTalent = 377590,
     FrenziedBloodthirstTalent = 434075,
     GiftOfTheSanlaynTalent = 434152,
@@ -39,6 +41,7 @@ aura_env.ids = {
     ImprovedDeathStrikeTalent = 374277,
     MenacingMagusTalent = 455135,
     MorbidityTalent = 377592,
+    PestilenceTalent = 277234,
     PlaguebringerTalent = 390175,
     RaiseAbominationTalent = 455395,
     RottenTouchTalent = 390275,
@@ -56,16 +59,19 @@ aura_env.ids = {
     DeathAndDecayBuff = 188290,
     DeathRotDebuff = 377540,
     EssenceOfTheBloodQueenBuff = 433925,
-    FesteringScytheBuff = 458123, -- 458123 is kichi, 458128 is NGA
+    FesteringScytheBuff = 458123,
+    FesteringScytheStacksBuff = 459238,
     FesteringWoundDebuff = 194310,
     FestermightBuff = 377591,
     FrostFeverDebuff = 55095,
     GiftOfTheSanlaynBuff = 434153,
     InflictionOfSorrowBuff = 460049,
+    LegionOfSoulsBuff = 383269,
     RottenTouchDebuff = 390276,
     RunicCorruptionBuff = 51460,
     SuddenDoomBuff = 81340,
     VirulentPlagueDebuff = 191587,
+    VisceralStrengthUnholyBuff = 1234532,
     WinningStreakBuff = 1216813,
 }
 

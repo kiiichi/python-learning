@@ -11,6 +11,8 @@ _G.KLIST = {
 }
 
 aura_env.GarroteSnapshots = {}
+aura_env.CrimsonTempestSnapshots = {}
+aura_env.LastCrimsonTempestCount = 0
 aura_env.Envenom1 = 0
 aura_env.Envenom2 = 0
 
@@ -19,7 +21,8 @@ aura_env.Envenom2 = 0
 aura_env.ids = {
     -- Abilities
     Ambush = 8676,
-    ColdBlood = 382245,
+    ColdBlood1 = 382245, -- Kichi add for different id
+    ColdBlood2 = 456330, -- Kichi add for different id
     CrimsonTempest = 121411,
     Deathmark = 360194,
     EchoingReprimand = 385616,
@@ -39,43 +42,54 @@ aura_env.ids = {
     ArterialPrecisionTalent = 400783,
     BlindsideTalent = 328085,
     CausticSpatterTalent = 421975,
+    DarkestNightTalent = 457058,
     DashingScoundrelTalent = 381797,
     DeathstalkersMarkTalent = 457052,
     HandOfFateTalent = 452536,
     ImprovedGarroteTalent = 381632,
     IndiscriminateCarnageTalent = 381802,
+    InevitabileEndTalent = 454434,
     KingsbaneTalent = 385627,
     LightweightShivTalent = 394983,
     MasterAssassinTalent = 255989,
     MomentumOfDespairTalent = 457067,
+    PoisonBombTalent = 255544,
     ScentOfBloodTalent = 381799,
     ShroudedSuffocationTalent = 385478,
     SubterfugeTalent = 108208,
     ThrownPrecisionTalent = 381629,
     ViciousVenomsTalent = 381634,
     TwistTheKnifeTalent = 381669,
+    ZoldyckRecipeTalent = 381798,
     SuddenDemiseTalent = 423136,
+    ForcedInductionTalent = 470668,
     
     -- Auras
     AmplifyingPoisonDebuff = 383414,
     BlindsideBuff = 121153,
     CausticSpatterDebuff = 421976,
     ClearTheWitnessesBuff = 457178,
-    CrimsonTempestDebuff = 121411,
+    ColdBloodBuff1 = 382245, -- Kichi add for different id
+    ColdBloodBuff2 = 456330, -- Kichi add for different id
+    CrimsonTempestDebuff = 121411, 
     DarkestNightBuff = 457280,
     DeadlyPoisonDebuff = 2818,
     DeathstalkersMarkDebuff = 457129,
+    DeathmarkDebuff = 360194,
     EnvenomBuff = 32645,
     FateboundCoinHeadsBuff = 452923,
     FateboundCoinTailsBuff = 452917,
     FateboundLuckyCoinBuff = 452562,
+    GarroteDebuff = 703,
     IndiscriminateCarnageBuff = 385747,
     KingsbaneDebuff = 385627,
     LingeringDarknessBuff = 457273,
     MasterAssassinBuff = 256735,
     MomentumOfDespairBuff = 457115,
     VanishBuff = 11327,
+    RuptureDebuff = 1943,
     ScentOfBloodBuff = 394080,
+    SliceAndDiceBuff = 315496,
     ShivDebuff = 319504,
     SubterfugeBuff = 115192,
     StealthBuff = 1784,
@@ -258,10 +272,11 @@ aura_env.IsAuraRefreshable = function(SpellID, Unit, Filter)
     return (RemainingTime / Duration) < 0.3
 end
 
+-- Kichi fix
 aura_env.GetRemainingStealthDuration = function()
     if WA_GetUnitAura("player", aura_env.ids.Stealth) then return 999999999 end
     
-    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.Subterfuge))
+    local SubterfugeExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.SubterfugeBuff))
     if SubterfugeExpiration ~= nil then return SubterfugeExpiration end
     
     local ShadowDanceExpiration = select(6, WA_GetUnitAura("player", aura_env.ids.ShadowDanceBuff))
@@ -285,6 +300,6 @@ end
 -- Kichi --
 aura_env.FullGCD = function()
     local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    local FullGCDnum = math.max(0.75, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
     return FullGCDnum
 end

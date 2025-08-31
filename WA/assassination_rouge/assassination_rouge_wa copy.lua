@@ -27,7 +27,8 @@ aura_env.Envenom2 = 0
 aura_env.ids = {
     -- Abilities
     Ambush = 8676,
-    ColdBlood = 382245,
+    ColdBlood1 = 382245, -- Kichi add for different id
+    ColdBlood2 = 456330, -- Kichi add for different id
     CrimsonTempest = 121411,
     Deathmark = 360194,
     EchoingReprimand = 385616,
@@ -74,8 +75,9 @@ aura_env.ids = {
     BlindsideBuff = 121153,
     CausticSpatterDebuff = 421976,
     ClearTheWitnessesBuff = 457178,
-    ColdBloodBuff = 382245,
-    CrimsonTempestDebuff = 121411,
+    ColdBloodBuff1 = 382245, -- Kichi add for different id
+    ColdBloodBuff2 = 456330, -- Kichi add for different id
+    CrimsonTempestDebuff = 121411, 
     DarkestNightBuff = 457280,
     DeadlyPoisonDebuff = 2818,
     DeathstalkersMarkDebuff = 457129,
@@ -304,7 +306,7 @@ end
 -- Kichi --
 aura_env.FullGCD = function()
     local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    local FullGCDnum = math.max(0.75, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
     return FullGCDnum
 end
 
@@ -495,7 +497,7 @@ function()
     ---- Variables ------------------------------------------------------------------------------------------------
     
     -- Determine combo point finish condition
-    Variables.EffectiveSpendCp = max(MaxComboPoints - 2, 5 * (IsPlayerSpell(ids.HandOfFateTalent) and 1 or 0))
+    Variables.EffectiveSpendCp = max(MaxComboPoints - 2, 5)
     
     -- Conditional to check if there is only one enemy
     Variables.SingleTarget = NearbyEnemies <= 1
@@ -540,17 +542,32 @@ function()
     -- Kichi --
     -- if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 and not TargetHasDebuff(ids.KingsbaneDebuff) or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
     -- same with NG
-    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
+    if OffCooldown(ids.ThistleTea) and ( IsPlayerSpell(ids.DeathstalkersMarkTalent) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) ) then
     ExtraGlows.ThistleTea = true 
     end
     
     -- Cold Blood with similar conditions to Envenom,
-    if OffCooldown(ids.ColdBlood) and ( GetRemainingSpellCooldown(ids.Deathmark) > 10 and not PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( Variables.NotPooling or GetTargetStacks(ids.AmplifyingPoisonDebuff) >= 20 or not (NearbyEnemies < 2) ) and not PlayerHasBuff(ids.VanishBuff) and ( not OffCooldown(ids.Kingsbane) or not (NearbyEnemies < 2) ) and not OffCooldown(ids.Deathmark) ) then
+    if OffCooldown(ids.ColdBlood1) and ( GetRemainingSpellCooldown(ids.Deathmark) > 10 and not PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( Variables.NotPooling or GetTargetStacks(ids.AmplifyingPoisonDebuff) >= 20 or not (NearbyEnemies < 2) ) and not PlayerHasBuff(ids.VanishBuff) and ( not OffCooldown(ids.Kingsbane) or not (NearbyEnemies < 2) ) and not OffCooldown(ids.Deathmark) ) then
     ExtraGlows.ColdBlood = true end
 
     -- Vold Blood for Edge Case or Envenoms during shiv
-    if OffCooldown(ids.ColdBlood) and ( ( GetPlayerStacks(ids.FateboundCoinHeadsBuff) > 0 and GetPlayerStacks(ids.FateboundCoinTailsBuff) > 0) or TargetHasDebuff(ids.ShivDebuff) and ( GetRemainingSpellCooldown(ids.Deathmark) > 50 and not (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)) or TargetHasDebuff(ids.KingsbaneDebuff) and (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)) or not IsPlayerSpell(ids.InevitabileEndTalent) and EffectiveComboPoints >= Variables.EffectiveSpendCp ) ) then
+    if OffCooldown(ids.ColdBlood1) and ( ( GetPlayerStacks(ids.FateboundCoinHeadsBuff) > 0 and GetPlayerStacks(ids.FateboundCoinTailsBuff) > 0) or TargetHasDebuff(ids.ShivDebuff) and ( GetRemainingSpellCooldown(ids.Deathmark) > 50 and not (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)) or TargetHasDebuff(ids.KingsbaneDebuff) and (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)) or not IsPlayerSpell(ids.InevitabileEndTalent) and EffectiveComboPoints >= Variables.EffectiveSpendCp ) ) then
         ExtraGlows.ColdBlood = true end
+
+    -- -- actions.cds+=/cold_blood,use_off_gcd=1,if=(buff.fatebound_coin_tails.stack>0&buff.fatebound_coin_heads.stack>0)|debuff.shiv.up&(cooldown.deathmark.remains>50&(!set_bonus.tww3_fatebound_4pc)|dot.kingsbane.ticking&(set_bonus.tww3_fatebound_4pc)|!talent.inevitabile_end&effective_combo_points>=variable.effective_spend_cp)
+    -- if OffCooldown(ids.ColdBlood1) and (
+    --     (GetPlayerStacks(ids.FateboundCoinTailsBuff) > 0 and GetPlayerStacks(ids.FateboundCoinHeadsBuff) > 0)
+    --     or (
+    --         TargetHasDebuff(ids.ShivDebuff)
+    --         and (
+    --             (GetRemainingSpellCooldown(ids.Deathmark) > 50 and not (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)))
+    --             or (TargetHasDebuff(ids.KingsbaneDebuff) and (SetPieces >= 4 and IsPlayerSpell(ids.HandOfFateTalent)))
+    --             or (not IsPlayerSpell(ids.InevitabileEndTalent) and EffectiveComboPoints >= Variables.EffectiveSpendCp)
+    --         )
+    --     )
+    -- ) then
+    --     ExtraGlows.ColdBlood = true
+    -- end
 
     WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
 
@@ -786,7 +803,7 @@ function()
         
         -- Kichi add for practical next fight use
         -- Dump Shiv on fight end
-        if OffCooldown(ids.Shiv) and GetSpellChargesFractional(ids.Shiv) > 1 and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 2 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
+        if OffCooldown(ids.Shiv) and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 3 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
             -- KTrig("Shiv") return true end
             if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shiv")
@@ -797,7 +814,7 @@ function()
         end
 
         -- Kichi add for get full use of Shiv's CD
-        if OffCooldown(ids.Shiv) and ( GetSpellChargesFractional(ids.Shiv) > 1.9 and SetPieces >= 4 and GetTargetStacks(ids.DeathstalkersMarkDebuff) <= 1 and (MaxComboPoints - EffectiveComboPoints < 2) and (GetRemainingSpellCooldown(ids.Deathmark) > 30) and (GetRemainingSpellCooldown(ids.Kingsbane) > 30 or not IsPlayerSpell(ids.KingsbaneTalent)) ) then
+        if OffCooldown(ids.Shiv) and ( GetSpellChargesFractional(ids.Shiv) > 1.9 and SetPieces >= 4 and GetTargetStacks(ids.DeathstalkersMarkDebuff) <= 2 and (MaxComboPoints - EffectiveComboPoints < 2) and (GetRemainingSpellCooldown(ids.Deathmark) > 30) and (GetRemainingSpellCooldown(ids.Kingsbane) > 30 or not IsPlayerSpell(ids.KingsbaneTalent)) ) then
             -- KTrig("Shiv") return true end
             if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shiv")
@@ -920,7 +937,7 @@ function()
     -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
     local Vanish = function()
         -- Vanish to fish for Fateful Ending
-        if OffCooldown(ids.Vanish) and ( TargetHasDebuff(ids.DeathmarkDebuff) and PlayerHasBuff(ids.ColdBloodBuff) and GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 1 and GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 1 ) then
+        if OffCooldown(ids.Vanish) and ( TargetHasDebuff(ids.DeathmarkDebuff) and (PlayerHasBuff(ids.ColdBloodBuff1) or PlayerHasBuff(ids.ColdBloodBuff2)) and GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 1 and GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 1 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -985,7 +1002,7 @@ function()
         
         -- Kichi change condition, swap Deathmark and Shiv sequence for simc fixed
         -- Check for Applicable Shiv usage
-        if not TargetHasDebuff(ids.ShivDebuff) and ( PlayerHasBuff(ids.DarkestNightBuff) and ( not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies < 2 or PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 ) ) then
+        if not TargetHasDebuff(ids.ShivDebuff) and ( not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies < 2 or PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 ) then
             if Shiv() then 
                 -- return true end
                 if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
@@ -1070,6 +1087,7 @@ function()
         return true end
     
     KTrig("Clear")
+    KTrigCD("Clear")
 
 end
 
@@ -1229,11 +1247,31 @@ aura_env.MissingGarrote = 0
 aura_env.NearbyRuptured = 0
 aura_env.MissingRupture = 0
 
+WeakAuras.WatchGCD()
+
+-- Kichi --
+_G.KLIST = { 
+    AssassinationRogue = { 
+        aura_env.config["ExcludeList1"],
+        aura_env.config["ExcludeList2"],
+        aura_env.config["ExcludeList3"],
+        aura_env.config["ExcludeList4"],
+    }
+}
+
+aura_env.GarroteSnapshots = {}
+aura_env.CrimsonTempestSnapshots = {}
+aura_env.LastCrimsonTempestCount = 0
+aura_env.Envenom1 = 0
+aura_env.Envenom2 = 0
+
+---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
     -- Abilities
     Ambush = 8676,
-    ColdBlood = 382245,
+    ColdBlood1 = 382245, -- Kichi add for different id
+    ColdBlood2 = 456330, -- Kichi add for different id
     CrimsonTempest = 121411,
     Deathmark = 360194,
     EchoingReprimand = 385616,
@@ -1253,6 +1291,7 @@ aura_env.ids = {
     ArterialPrecisionTalent = 400783,
     BlindsideTalent = 328085,
     CausticSpatterTalent = 421975,
+    DarkestNightTalent = 457058,
     DashingScoundrelTalent = 381797,
     DeathstalkersMarkTalent = 457052,
     HandOfFateTalent = 452536,
@@ -1279,8 +1318,9 @@ aura_env.ids = {
     BlindsideBuff = 121153,
     CausticSpatterDebuff = 421976,
     ClearTheWitnessesBuff = 457178,
-    ColdBloodBuff = 382245,
-    CrimsonTempestDebuff = 121411,
+    ColdBloodBuff1 = 382245, -- Kichi add for different id
+    ColdBloodBuff2 = 456330, -- Kichi add for different id
+    CrimsonTempestDebuff = 121411, 
     DarkestNightBuff = 457280,
     DeadlyPoisonDebuff = 2818,
     DeathstalkersMarkDebuff = 457129,
@@ -1304,6 +1344,8 @@ aura_env.ids = {
     StealthBuff = 1784,
     ThistleTeaBuff = 381623,
 }
+
+
 
 
 aura_env.GetSpellCooldown = function(spellId)

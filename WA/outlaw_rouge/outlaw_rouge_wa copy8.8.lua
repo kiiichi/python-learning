@@ -493,11 +493,13 @@ function()
     end
     
     -- High priority Ghostly Strike as it is off-gcd. 1 FTH builds prefer to not use it at max CPs.
+    -- Kichi change to: TalentRank(ids.FanTheHammerTalentNode)
     if OffCooldown(ids.GhostlyStrike) and ( CurrentComboPoints < MaxComboPoints or TalentRank(ids.FanTheHammerTalentNode) > 1 ) then
         ExtraGlows.GhostlyStrike = true
     end
     
     -- Thistle Tea
+    -- Kichi remove custom setting: ThistleTeaEnergy
     if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTea) and ( CurrentEnergy < ThistleTeaEnergy or TargetTimeToXPct(0, 999) < C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) ) then
         ExtraGlows.ThistleTea = true
     end
@@ -550,10 +552,12 @@ function()
             KTrig("Blade Flurry") return true end
 
         -- With 2 ranks in Fan the Hammer, consume Opportunity as a higher priority if at max stacks or if it will expire.
+        -- Kichi change to: TalentRank(ids.FanTheHammerTalentNode)
         if OffCooldown(ids.PistolShot) and ( TalentRank(ids.FanTheHammerTalentNode) > 1 and PlayerHasBuff(ids.OpportunityBuff) and ( GetPlayerStacks(ids.OpportunityBuff) >= (IsPlayerSpell(ids.FanTheHammerTalent) and 6 or 1) or GetRemainingAuraDuration("player", ids.OpportunityBuff) < 2 ) ) then
             KTrig("Pistol Shot") return true end
         
         -- With Fan the Hammer, consume Opportunity if it will not overcap CPs, or with 1 CP at minimum.
+        -- Kichi change to: TalentRank(ids.FanTheHammerTalentNode)
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.FanTheHammerTalent) and PlayerHasBuff(ids.OpportunityBuff) and ( MaxComboPoints - CurrentComboPoints >= ( 1 + ( (IsPlayerSpell(ids.QuickDrawTalent) and 1 or 0) + (PlayerHasBuff(ids.BroadsideBuff) and 1 or 0) ) * ( TalentRank(ids.FanTheHammerTalentNode) + 1 ) ) or CurrentComboPoints <= (IsPlayerSpell(ids.RuthlessnessTalent) and 1 or 0) ) ) then
             KTrig("Pistol Shot") return true end
         
@@ -673,6 +677,7 @@ function()
     
     local Cds = function()
         -- Maintain Blade Flurry at 2+ targets.
+        -- Kichi remove custom setting to : BFHeadsup
         if OffCooldown(ids.BladeFlurry) and ( NearbyEnemies >= 2 and GetRemainingAuraDuration("player", ids.BladeFlurry) < BFHeadsup ) then
             KTrig("Blade Flurry") return true end
         
@@ -710,6 +715,7 @@ function()
         end
         
         -- Use Blade Rush at minimal energy outside of stealth
+        -- Kichi remove custom setting to: BRKSEnergy
         if OffCooldown(ids.BladeRush) and ( CurrentEnergy < BRKSEnergy and not IsStealthed ) then
             KTrig("Blade Rush") return true end
     end
@@ -723,6 +729,7 @@ function()
             KTrig("Dispatch") return true end
         
         -- Inside stealth, 2FTH builds can consume Opportunity for Greenskins, or with max stacks + Broadside active + minimal CPs.
+        -- Kichi change to: TalentRank(ids.FanTheHammerTalentNode)
         if OffCooldown(ids.PistolShot) and ( IsPlayerSpell(ids.CrackshotTalent) and TalentRank(ids.FanTheHammerTalentNode) > 1 and GetPlayerStacks(ids.OpportunityBuff) >= 6 and ( PlayerHasBuff(ids.BroadsideBuff) and CurrentComboPoints <= 1 or PlayerHasBuff(ids.GreenskinsWickersBuff) ) ) then
             KTrig("Pistol Shot") return true end
         

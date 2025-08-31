@@ -10,6 +10,15 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
             else
                 aura_env.Envenom1 = aura_env.GetRemainingAuraDuration("player", aura_env.ids.Envenom) + GetTime()
             end
+        elseif spellID == aura_env.ids.CrimsonTempest then
+            local NearbyEnemies = 0
+            for i = 1, 40 do
+                local unit = "nameplate"..i
+                if UnitExists(unit) and not UnitIsFriend("player", unit) and WeakAuras.CheckRange(unit, 10, "<=") then
+                    NearbyEnemies = NearbyEnemies + 1
+                end
+            end
+            aura_env.LastCrimsonTempestCount = min(NearbyEnemies, 5)
         end
     end
     
@@ -18,6 +27,8 @@ env.test = function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _
             local Multiplier = (aura_env.PlayerHasBuff(392403) or aura_env.PlayerHasBuff(392401)) and 1.5 or 1
             
             aura_env.GarroteSnapshots[targetGUID] = Multiplier
+        elseif spellID == aura_env.ids.CrimsonTempestDebuff then
+            aura_env.CrimsonTempestSnapshots[targetGUID] = aura_env.LastCrimsonTempestCount
         end
     end
 
