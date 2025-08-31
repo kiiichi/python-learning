@@ -82,7 +82,10 @@ actions.cds+=/sprint,if=(trinket.1.is.scroll_of_momentum|trinket.2.is.scroll_of_
 # Maintain Blade Flurry at 2+ targets.
 actions.cds+=/blade_flurry,if=spell_targets>=2&buff.blade_flurry.remains<gcd
 # Use Keep it Rolling immediately with any 4 RTB buffs. If a natural 5 buff is rolled, then wait until the final 6th buff is obtained from Count the Odds.
-actions.cds+=/keep_it_rolling,if=rtb_buffs>=4&rtb_buffs.normal<=2|rtb_buffs.normal>=5&rtb_buffs=6|rtb_buffs>=3&(buff.broadside.up|buff.ruthless_precision.up)
+actions.cds+=/keep_it_rolling,if=rtb_buffs>=4&rtb_buffs.normal<=2|rtb_buffs.normal>=5&rtb_buffs=6
+
+actions.cds+=/keep_it_rolling,if=rtb_buffs>=3&rtb_buffs.normal<=2&((buff.broadside.up|buff.ruthless_precision.up)&buff.true_bearing.up)
+
 # Call the various Roll the Bones rules.
 actions.cds+=/call_action_list,name=roll_the_bones
 # Call items before Vanish, as some items should not be used in stealth and have priority over stealth.

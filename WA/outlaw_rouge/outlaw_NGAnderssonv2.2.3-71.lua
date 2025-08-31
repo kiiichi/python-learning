@@ -15,6 +15,7 @@ aura_env.PrevCoupCast = 99999999
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
+
     -- Abilities
     AdrenalineRush = 13750,
     Ambush = 8676,
@@ -595,8 +596,7 @@ function()
             NGSend("Ambush") return true end
         
         -- Outside of stealth, Trickster builds should prioritize Sinister Strike when Unseen Blade is guaranteed. This is mostly neutral/irrelevant for Hidden Opportunity builds.
-        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and not IsSpellKnown(ids.HiddenOpportunityTalent) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 and not
-        aura_env.HasTww34PcTricksterBuff) then
+        if OffCooldown(ids.SinisterStrike) and ( HasDisorientingStrikes and not IsStealthed and not IsSpellKnown(ids.HiddenOpportunityTalent) and GetPlayerStacks(ids.EscalatingBladeBuff) < 4 and not aura_env.HasTww34PcTricksterBuff) then
             NGSend("Sinister Strike") return true end
         
         -- With Audacity + Hidden Opportunity + Fan the Hammer, consume Opportunity to proc Audacity any time Ambush is not available.

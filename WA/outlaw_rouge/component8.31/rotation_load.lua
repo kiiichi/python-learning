@@ -28,6 +28,7 @@ aura_env.ids = {
     Vanish = 1856,
     
     -- Talents
+    CoupDeGraceTalent = 441423,
     CrackshotTalent = 423703,
     DeftManeuversTalent = 381878,
     DisorientingStrikesTalent = 441274,
@@ -50,11 +51,13 @@ aura_env.ids = {
     QuickDrawTalent = 196938,
     RuthlessnessTalent = 14161,
     SealFateTalent = 14190,
+    SleightOfHandTalent = 381839,
     SubterfugeTalent = 108208,
     SuperchargerTalent = 470347,
     SurprisingStrikesTalent = 441273,
     TakeEmBySurpriseTalent = 382742,
     UnderhandedUpperHandTalent = 424044,
+    UnseenBladeTalent = 441146,
     WithoutATraceTalent = 382513,
     
     -- Buffs

@@ -1,5 +1,11 @@
 WeakAuras.WatchGCD()
 
+aura_env.RTBContainerExpires = 0
+aura_env.DisorientingStrikesCount = 0
+aura_env.HasTww34PcTricksterBuff = false
+aura_env.LastKillingSpree = 0
+aura_env.PrevCoupCast = 99999999
+
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
 aura_env.ids = {
@@ -27,6 +33,7 @@ aura_env.ids = {
     Vanish = 1856,
     
     -- Talents
+    CoupDeGraceTalent = 441423,
     CrackshotTalent = 423703,
     DeftManeuversTalent = 381878,
     DisorientingStrikesTalent = 441274,
@@ -49,11 +56,13 @@ aura_env.ids = {
     QuickDrawTalent = 196938,
     RuthlessnessTalent = 14161,
     SealFateTalent = 14190,
+    SleightOfHandTalent = 381839,
     SubterfugeTalent = 108208,
     SuperchargerTalent = 470347,
     SurprisingStrikesTalent = 441273,
     TakeEmBySurpriseTalent = 382742,
     UnderhandedUpperHandTalent = 424044,
+    UnseenBladeTalent = 441146,
     WithoutATraceTalent = 382513,
     
     -- Buffs
@@ -81,9 +90,6 @@ aura_env.ids = {
     KillingSpreeBuff = 51690,
 }
 
-aura_env.RTBContainerExpires = 0
-aura_env.DisorientingStrikesCount = 0
-
 ---- Utility Functions ----------------------------------------------------------------------------------------
 aura_env.OutOfRange = false
 
@@ -110,29 +116,19 @@ aura_env.KTrigCD = function(Name, ...)
     aura_env.FlagKTrigCD = false
 end
 
--- Kichi --
 aura_env.OffCooldown = function(spellID)
     if spellID == nil then
         local c = a < b -- Throw an error
     end
     
     if not IsPlayerSpell(spellID) then return false end
-    -- Kichi --
-    -- if aura_env.config[tostring(spellID)] == false then return false end
+    if aura_env.config[tostring(spellID)] == false then return false end
     
     local usable, nomana = C_Spell.IsSpellUsable(spellID)
-    -- Kichi only for outlaw killing spree --
-    -- if (not usable) and (not nomana) then return false end
-    if (not usable) and not(WA_GetUnitBuff("player", 51690) ~= nil) and (not nomana) then return false end
+    if (not usable) and (not nomana) then return false end
     
-    -- Kichi --
-    -- local Duration = C_Spell.GetSpellCooldown(spellID).duration
-    -- local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
-    local Cooldown = C_Spell.GetSpellCooldown(spellID)
-    local Duration = Cooldown.duration
-    local Remaining = Cooldown.startTime + Duration - GetTime()
-    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration() or (Remaining <= WeakAuras.gcdDuration())
-
+    local Duration = C_Spell.GetSpellCooldown(spellID).duration
+    local OffCooldown = Duration == nil or Duration == 0 or Duration == WeakAuras.gcdDuration()
     if not OffCooldown then return false end
     
     local SpellIdx, SpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellID)
@@ -293,7 +289,7 @@ end
 -- Kichi --
 aura_env.FullGCD = function()
     local baseGCD = 1.5
-    local FullGCDnum = math.max(1, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
+    local FullGCDnum = math.max(0.75, baseGCD / (1 + UnitSpellHaste("player") / 100 ))
     return FullGCDnum
 end
 
