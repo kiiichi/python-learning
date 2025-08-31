@@ -9,6 +9,8 @@ aura_env.playerInCombat = false
 aura_env.stunInLastCast = false
 
 
+-- CLEU:SPELL_CAST_SUCCESS PLAYER_REGEN_DISABLED PLAYER_REGEN_ENABLED
+
 function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellID)
     local FullGCD = 1
     local timestamp = 0

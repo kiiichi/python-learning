@@ -47,6 +47,7 @@ aura_env.ids = {
     ArterialPrecisionTalent = 400783,
     BlindsideTalent = 328085,
     CausticSpatterTalent = 421975,
+    DarkestNightTalent = 457058,
     DashingScoundrelTalent = 381797,
     DeathstalkersMarkTalent = 457052,
     HandOfFateTalent = 452536,
@@ -430,7 +431,7 @@ function()
                 NearbyUnenhancedGarroted = NearbyUnenhancedGarroted + 1
             end
 
-            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 then
+            if IsAuraRefreshable(ids.Garrote, unit, "HARMFUL|PLAYER") and ( aura_env.GarroteSnapshots[UnitGUID(unit)] <= 1 or aura_env.PlayerHasBuff(392403) or aura_env.PlayerHasBuff(392401) ) then
                 NearbyRefreshableGarroted = NearbyRefreshableGarroted + 1
             end
             if IsAuraRefreshable(ids.Rupture, unit, "HARMFUL|PLAYER") then
@@ -537,8 +538,10 @@ function()
     -- Use with shiv or in niche cases at the end of Kingsbane if not already up
     -- if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
     -- Kichi --
-    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 and not TargetHasDebuff(ids.KingsbaneDebuff) or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
-        ExtraGlows.ThistleTea = true 
+    -- if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 and not TargetHasDebuff(ids.KingsbaneDebuff) or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
+    -- same with NG
+    if OffCooldown(ids.ThistleTea) and ( not PlayerHasBuff(ids.ThistleTeaBuff) and GetRemainingDebuffDuration("target", ids.ShivDebuff) >= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and TargetHasDebuff(ids.KingsbaneDebuff) and GetRemainingDebuffDuration("target", ids.KingsbaneDebuff) <= 6 or not PlayerHasBuff(ids.ThistleTeaBuff) and FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.ThistleTea).currentCharges * 6 ) then
+    ExtraGlows.ThistleTea = true 
     end
     
     -- Cold Blood with similar conditions to Envenom,
@@ -603,8 +606,9 @@ function()
         if OffCooldown(ids.Rupture) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.Rupture) and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Rupture) > ( 4 + ( (IsPlayerSpell(ids.DashingScoundrelTalent) and 1 or 0) * 5 ) + ( (Variables.RegenSaturated and 1 or 0) * 6 ) ) or IsPlayerSpell(ids.SuddenDemiseTalent) ) and (not PlayerHasBuff(ids.DarkestNightBuff) or IsPlayerSpell(ids.CausticSpatterTalent) and not TargetHasDebuff(ids.CausticSpatterDebuff)) ) then
             KTrig("Rupture") return true end
 
+        -- Kichi modyfied for simc fixed
         -- Maintain Crimson Tempest unless it would remove a stronger cast
-        if OffCooldown(ids.CrimsonTempest) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.CrimsonTempestDebuff) and ( not TargetHasDebuff(ids.CrimsonTempestDebuff) or aura_env.CrimsonTempestSnapshots[UnitGUID("target")] <= NearbyEnemies ) and not PlayerHasBuff(ids.DarkestNightBuff) and not IsPlayerSpell(ids.AmplifyingPoisonTalent) and NearbyEnemies <= 1 ) then
+        if OffCooldown(ids.CrimsonTempest) and ( EffectiveComboPoints >= Variables.EffectiveSpendCp and IsAuraRefreshable(ids.CrimsonTempestDebuff) and not PlayerHasBuff(ids.DarkestNightBuff) and not IsPlayerSpell(ids.AmplifyingPoisonTalent) ) then
             KTrig("Crimson Tempest") return true end
     end
     
@@ -630,7 +634,11 @@ function()
         -- Various checks to see if we need to use a generator
         Variables.UseFiller = CurrentComboPoints <= Variables.EffectiveSpendCp and not Variables.CdSoon or Variables.NotPooling or not (NearbyEnemies < 2)
         
-        Variables.FokTargetCount = ( PlayerHasBuff(ids.ClearTheWitnessesBuff) and ( NearbyEnemies >= 2 - (( PlayerHasBuff(ids.LingeringDarknessBuff) or not IsPlayerSpell(ids.ViciousVenomsTalent) ) and 1 or 0) ) ) or ( NearbyEnemies >= 3 - (( IsPlayerSpell(ids.MomentumOfDespairTalent) and IsPlayerSpell(ids.ThrownPrecisionTalent) ) and 1 or 0) + (IsPlayerSpell(ids.ViciousVenomsTalent) and 1 or 0) + (IsPlayerSpell(ids.BlindsideTalent) and 1 or 0) )
+        if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.ClearTheWitnessesBuff) and ( NearbyEnemies >= 2 - ( ( PlayerHasBuff(ids.LingeringDarknessBuff) or not IsPlayerSpell(ids.ViciousVenomsTalent) ) and 1 or 0 ) ) ) then
+            KTrig("Fan of Knives") return true end
+        
+        -- Kichi modified for simc fixed
+        Variables.FokTargetCount = ( NearbyEnemies >= 3 - (IsPlayerSpell(ids.ThrownPrecisionTalent) and 1 or 0) + (IsPlayerSpell(ids.ViciousVenomsTalent) and 1 or 0) + (IsPlayerSpell(ids.BlindsideTalent) and 1 or 0) )
 
         -- Fan of Knives at 6cp for special case Darkest Night
         if OffCooldown(ids.FanOfKnives) and ( PlayerHasBuff(ids.DarkestNightBuff) and EffectiveComboPoints == 6 and ( not IsPlayerSpell(ids.ViciousVenomsTalent) or NearbyEnemies >= 2) ) then
@@ -644,7 +652,7 @@ function()
             then
                 KTrig("Fan of Knives") return true
             else
-                KTrig("Fan of Knives", "Not Good") return true 
+                KTrig("Fan of Knives") return true 
             end
         end
         
@@ -655,7 +663,7 @@ function()
             then
                 KTrig("Ambush") return true
             else
-                KTrig("Ambush", "Not Good") return true 
+                KTrig("Ambush") return true 
             end
         end
             
@@ -667,7 +675,7 @@ function()
             then
                 KTrig("Mutilate") return true
             else
-                KTrig("Mutilate", "Not Good") return true 
+                KTrig("Mutilate") return true 
             end 
         end
         
@@ -678,7 +686,7 @@ function()
             then
                 KTrig("Mutilate") return true
             else
-                KTrig("Mutilate", "Not Good") return true 
+                KTrig("Mutilate") return true 
             end 
         end
     end
@@ -778,7 +786,7 @@ function()
         
         -- Kichi add for practical next fight use
         -- Dump Shiv on fight end
-        if OffCooldown(ids.Shiv) and GetSpellChargesFractional(ids.Shiv) > 1 and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 2 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
+        if OffCooldown(ids.Shiv) and ( FightRemains(60, NearbyRange) <= C_Spell.GetSpellCharges(ids.Shiv).currentCharges * ( 8 + 2 * (( SetPieces >= 4 and IsPlayerSpell(ids.DeathstalkersMarkTalent) ) and 1 or 0)) ) then
             -- KTrig("Shiv") return true end
             if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Shiv")
@@ -787,6 +795,19 @@ function()
                 return true
             end
         end
+
+        -- Kichi add for get full use of Shiv's CD
+        if OffCooldown(ids.Shiv) and ( GetSpellChargesFractional(ids.Shiv) > 1.9 and SetPieces >= 4 and GetTargetStacks(ids.DeathstalkersMarkDebuff) <= 1 and (MaxComboPoints - EffectiveComboPoints < 2) and (GetRemainingSpellCooldown(ids.Deathmark) > 30) and (GetRemainingSpellCooldown(ids.Kingsbane) > 30 or not IsPlayerSpell(ids.KingsbaneTalent)) ) then
+            -- KTrig("Shiv") return true end
+            if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Shiv")
+            elseif aura_env.config[tostring(ids.Shiv)] ~= true then
+                KTrig("Shiv")
+                return true
+            end
+        end
+
+
     end
     
     -- Stealthed Actions
@@ -880,15 +901,26 @@ function()
         if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( NearbyRefreshableGarroted > 0 or ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or ( PlayerHasBuff(ids.IndiscriminateCarnageBuff) and NearbyGarroted < NearbyEnemies ) ) and not (NearbyEnemies < 2) and (TargetTimeToXPct(0, 60) - GetRemainingDebuffDuration("target", ids.Garrote) > 2 or IsPlayerSpell(ids.SuddenDemiseTalent)) and MaxComboPoints - EffectiveComboPoints > 2 - (PlayerHasBuff(ids.DarkestNightBuff) and 2 or 0)) then
             KTrig("Garrote") return true end
 
+        -- Kichi -- for 1.dot check way
         -- Improve Garrote: Apply or Refresh Improved Garrotes as a final check
-        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or aura_env.GarroteSnapshots[UnitGUID("target")] <= 1 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and ( ( not TargetHasDebuff(ids.Garrote) or NearbyUnenhancedGarroted > 0 ) or IsAuraRefreshable(ids.Garrote) ) and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) ) then
             KTrig("Garrote") return true end
+
+        -- Kichi modify for simc fixed
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) and GetRemainingAuraDuration("player", ids.IndiscriminateCarnageBuff) <= FullGCD() and NearbyEnemies > 6 ) then
+            KTrig("Garrote") return true end
+
+        -- Kichi modify for simc fixed
+        if OffCooldown(ids.Garrote) and ( HasImprovedGarroteBuff and MaxComboPoints - EffectiveComboPoints >= 1 + 2 * (IsPlayerSpell(ids.ShroudedSuffocationTalent) and 1 or 0) and GetRemainingAuraDuration("player", ids.IndiscriminateCarnageBuff) <= FullGCD() and NearbyEnemies <= 6 and GetRemainingSpellCooldown(ids.Vanish) > 17 and not PlayerHasBuff(ids.VanishBuff) ) then
+            KTrig("Garrote") return true end            
+
+
     end
     
     -- Stealth Cooldowns Vanish Sync for Improved Garrote with Deathmark
     local Vanish = function()
         -- Vanish to fish for Fateful Ending
-        if OffCooldown(ids.Vanish) and ( PlayerHasBuff(ids.ColdBloodBuff) and GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 1 and GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 1 or not PlayerHasBuff(ids.FateboundLuckyCoinBuff) and EffectiveComboPoints >= Variables.EffectiveSpendCp and ( GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 5 or GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 5 ) ) then
+        if OffCooldown(ids.Vanish) and ( TargetHasDebuff(ids.DeathmarkDebuff) and PlayerHasBuff(ids.ColdBloodBuff) and GetPlayerStacks(ids.FateboundCoinTailsBuff) >= 1 and GetPlayerStacks(ids.FateboundCoinHeadsBuff) >= 1 ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -924,7 +956,7 @@ function()
         if OffCooldown(ids.Vanish) and ( IsPlayerSpell(ids.MasterAssassinTalent) and TargetHasDebuff(ids.Deathmark) and GetRemainingDebuffDuration("target", ids.Kingsbane) <= 6 + 3 * (IsPlayerSpell(ids.SubterfugeTalent) and 2 or 0) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
-                KTrigCD("Vanish", "Quick")
+                KTrigCD("Vanish")
             elseif aura_env.config[tostring(ids.Vanish)] ~= true then
                 KTrig("Vanish")
                 return true
@@ -953,7 +985,7 @@ function()
         
         -- Kichi change condition, swap Deathmark and Shiv sequence for simc fixed
         -- Check for Applicable Shiv usage
-        if PlayerHasBuff(ids.DarkestNightBuff) and ( not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies < 2 or PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 ) then
+        if not TargetHasDebuff(ids.ShivDebuff) and ( PlayerHasBuff(ids.DarkestNightBuff) and ( not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies < 2 or PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 ) ) then
             if Shiv() then 
                 -- return true end
                 if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
@@ -977,7 +1009,7 @@ function()
 
         -- Kichi change condition, swap Deathmark and Shiv sequence for simc fixed
         -- Check for Applicable Shiv usage
-        if not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 then
+        if not TargetHasDebuff(ids.ShivDebuff) and not PlayerHasBuff(ids.DarkestNightBuff) and NearbyEnemies > 1 then
             if Shiv() then 
                 -- return true end
                 if aura_env.config[tostring(ids.Shiv)] == true and aura_env.FlagKTrigCD then
@@ -1009,6 +1041,7 @@ function()
 
     end
 
+    
     -- Call Stealthed Actions
     if IsStealthed or PlayerHasBuff(ids.IndiscriminateCarnageBuff) or HasImprovedGarroteBuff or abs(GetRemainingAuraDuration("player", ids.MasterAssassinBuff)) > 0 then
         if Stealthed() then 
@@ -1038,7 +1071,9 @@ function()
     
     KTrig("Clear")
 
+
 end
+
 
 
 ----------------------------------------------------------------------------------------------------------------------
