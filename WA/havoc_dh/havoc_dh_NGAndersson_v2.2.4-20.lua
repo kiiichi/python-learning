@@ -472,6 +472,7 @@ function()
     local FightRemains = aura_env.FightRemains
     local IsAuraRefreshable = aura_env.IsAuraRefreshable
     local NGSend = aura_env.NGSend
+    local IsSpellKnown = C_SpellBook.IsSpellKnown
     
     ---@class idsTable
     local ids = aura_env.ids
@@ -507,22 +508,22 @@ function()
     Variables.RgDs = 0
     
     -- Fury generated per second
-    Variables.FuryGen = (IsPlayerSpell(ids.DemonBladesTalent) and 1 or 0) * ( 1 / ( 2.6 * GetMeleeHaste() ) * ( (( IsPlayerSpell(ids.DemonsurgeTalent) and PlayerHasBuff(ids.MetamorphosisBuff) ) and 1 or 0) * 3 + 12 ) ) + GetPlayerStacks(ids.ImmolationAuraBuff) * 6 + (PlayerHasBuff(ids.TacticalRetreatBuff) and 1 or 0) * 10
+    Variables.FuryGen = (IsSpellKnown(ids.DemonBladesTalent) and 1 or 0) * ( 1 / ( 2.6 * GetMeleeHaste() ) * ( (( IsSpellKnown(ids.DemonsurgeTalent) and PlayerHasBuff(ids.MetamorphosisBuff) ) and 1 or 0) * 3 + 12 ) ) + GetPlayerStacks(ids.ImmolationAuraBuff) * 6 + (PlayerHasBuff(ids.TacticalRetreatBuff) and 1 or 0) * 10
     
     Variables.FsTier342Piece = SetPieces >= 2
     
     -- Aldrachi Reaver
     local ArCooldown = function()
-        if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsPlayerSpell(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 3 ) ) ) and not IsPlayerSpell(ids.InertiaTalent) and not IsPlayerSpell(ids.EssenceBreakTalent)  ) then
+        if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsSpellKnown(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsSpellKnown(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsSpellKnown(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsSpellKnown(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 3 ) ) ) and not IsSpellKnown(ids.InertiaTalent) and not IsSpellKnown(ids.EssenceBreakTalent)  ) then
             NGSend("Metamorphosis") return true end
         
-        if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( PlayerHasBuff(ids.RendingStrikeBuff) == false or not IsPlayerSpell(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.EssenceBreakTalent) )  ) then
+        if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsSpellKnown(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( PlayerHasBuff(ids.RendingStrikeBuff) == false or not IsSpellKnown(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsSpellKnown(ids.InertiaTalent) or IsSpellKnown(ids.EssenceBreakTalent) )  ) then
             NGSend("Metamorphosis") return true end
         
-        if OffCooldownNotCasting(ids.TheHunt) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( (TargetHasDebuff(ids.ReaversMarkDebuff) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent)) or not IsPlayerSpell(ids.ArtOfTheGlaiveTalent) ) and FindSpellOverrideByID(ids.ThrowGlaive) ~= ids.ReaversGlaive and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
+        if OffCooldownNotCasting(ids.TheHunt) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( (TargetHasDebuff(ids.ReaversMarkDebuff) or not IsSpellKnown(ids.ArtOfTheGlaiveTalent)) or not IsSpellKnown(ids.ArtOfTheGlaiveTalent) ) and FindSpellOverrideByID(ids.ThrowGlaive) ~= ids.ReaversGlaive and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
             NGSend("The Hunt") return true end
         
-        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) ) and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) then
+        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsSpellKnown(ids.QuickenedSigilsTalent) and 1 or 0) ) and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) then
             NGSend("Sigil of Spite") return true end
     end
     
@@ -534,7 +535,7 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.InnerDemonBuff) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.EyeBeam) and ( ( PlayerHasBuff(ids.FelBarrageBuff) == false or CurrentFury > 45 and IsPlayerSpell(ids.BlindFuryTalent) ) ) then
+        if OffCooldown(ids.EyeBeam) and ( ( PlayerHasBuff(ids.FelBarrageBuff) == false or CurrentFury > 45 and IsSpellKnown(ids.BlindFuryTalent) ) ) then
             NGSend("Eye Beam") return true end
         
         if OffCooldown(ids.EssenceBreak) and ( PlayerHasBuff(ids.FelBarrageBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) ) then
@@ -587,39 +588,39 @@ function()
         if OffCooldown(ids.ChaosStrike) and ( CurrentFury - Variables.GcdDrain - 40 > 20 and ( GetRemainingSpellCooldown(ids.FelBarrage) > 0 and GetRemainingSpellCooldown(ids.FelBarrage) < 10 and CurrentFury > 100 or PlayerHasBuff(ids.FelBarrageBuff) and ( GetRemainingAuraDuration("player", ids.FelBarrageBuff) * Variables.FuryGen - GetRemainingAuraDuration("player", ids.FelBarrageBuff) * 32 ) > 0 ) ) then
             NGSend("Chaos Strike") return true end
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
     end
     
     local ArMeta = function()
-        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) or OffCooldown(ids.Metamorphosis) and not IsPlayerSpell(ids.RestlessHunterTalent) ) then
+        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) or OffCooldown(ids.Metamorphosis) and not IsSpellKnown(ids.RestlessHunterTalent) ) then
             NGSend("Death Sweep") return true end
         
-        if OffCooldown(ids.VengefulRetreat) and ( IsPlayerSpell(ids.InitiativeTalent) and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and ( GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.6 or GetRemainingSpellCooldown(ids.EssenceBreak) > 10 or not IsPlayerSpell(ids.EssenceBreakTalent) ) or IsPlayerSpell(ids.RestlessHunterTalent) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
+        if OffCooldown(ids.VengefulRetreat) and ( IsSpellKnown(ids.InitiativeTalent) and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and ( GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.6 or GetRemainingSpellCooldown(ids.EssenceBreak) > 10 or not IsSpellKnown(ids.EssenceBreakTalent) ) or IsSpellKnown(ids.RestlessHunterTalent) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and ( not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) ) then
             NGSend("Vengeful Retreat") return true end
         
         -- actions.ar_meta+=/annihilation,if=talent.restless_hunter&buff.rending_strike.up&cooldown.essence_break.up&cooldown.metamorphosis.up
         
-        if OffCooldown(ids.Felblade) and ( IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 1 and GetRemainingSpellCooldown(ids.BladeDance) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and GetRemainingSpellCooldown(ids.Metamorphosis) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) then
+        if OffCooldown(ids.Felblade) and ( IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 1 and GetRemainingSpellCooldown(ids.BladeDance) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and GetRemainingSpellCooldown(ids.Metamorphosis) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) then
             NGSend("Felblade") return true end
         
         -- actions.ar_meta+=/fel_rush,if=talent.inertia&buff.inertia_trigger.up&cooldown.essence_break.remains<=1&cooldown.blade_dance.remains<=gcd.max*2&cooldown.metamorphosis.remains<=gcd.max*3
         
-        if OffCooldown(ids.EssenceBreak) and ( CurrentFury >= 30 and IsPlayerSpell(ids.RestlessHunterTalent) and OffCooldown(ids.Metamorphosis) and ( IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaBuff) or not IsPlayerSpell(ids.InertiaTalent) ) and GetRemainingSpellCooldown(ids.BladeDance) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
+        if OffCooldown(ids.EssenceBreak) and ( CurrentFury >= 30 and IsSpellKnown(ids.RestlessHunterTalent) and OffCooldown(ids.Metamorphosis) and ( IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaBuff) or not IsSpellKnown(ids.InertiaTalent) ) and GetRemainingSpellCooldown(ids.BladeDance) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) then
             NGSend("Essence Break") return true end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 and GetRemainingSpellCooldown(ids.BladeDance) > 0 or PlayerHasBuff(ids.InnerDemonBuff) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and ( GetRemainingSpellCooldown(ids.EyeBeam) <= 0.5 or GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.5 or GetRemainingSpellCooldown(ids.BladeDance) <= 5.5 or GetRemainingAuraDuration("player", ids.InitiativeBuff) < 0 ) ) then       
+        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and ( GetRemainingSpellCooldown(ids.EyeBeam) <= 0.5 or GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.5 or GetRemainingSpellCooldown(ids.BladeDance) <= 5.5 or GetRemainingAuraDuration("player", ids.InitiativeBuff) < 0 ) ) then       
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and NearbyEnemies > 2 ) then
+        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and NearbyEnemies > 2 ) then
             NGSend("Fel Rush") return true end
         
         -- actions.ar_meta+=/felblade,if=buff.inertia_trigger.up&talent.inertia&cooldown.blade_dance.remains<gcd.max*3&cooldown.metamorphosis.remains
         
-        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and NearbyEnemies > 2 ) then
+        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and NearbyEnemies > 2 ) then
             NGSend("Fel Rush") return true end
         
         if OffCooldown(ids.ImmolationAura) and ( C_Spell.GetSpellCharges(ids.ImmolationAura).currentCharges == 2 and NearbyEnemies > 1 and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
@@ -628,7 +629,7 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.InnerDemonBuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.BladeDance) > 0 or GetRemainingSpellCooldown(ids.Metamorphosis) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.EssenceBreak) and ( CurrentFury > 20 and ( GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or OffCooldown(ids.BladeDance) ) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and not IsPlayerSpell(ids.InertiaTalent) or PlayerHasBuff(ids.InertiaBuff) ) and ( not IsPlayerSpell(ids.ShatteredDestinyTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 4 ) or FightRemains(60, NearbyRange) < 10 ) then
+        if OffCooldown(ids.EssenceBreak) and ( CurrentFury > 20 and ( GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or OffCooldown(ids.BladeDance) ) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and not IsSpellKnown(ids.InertiaTalent) or PlayerHasBuff(ids.InertiaBuff) ) and ( not IsSpellKnown(ids.ShatteredDestinyTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 4 ) or FightRemains(60, NearbyRange) < 10 ) then
             NGSend("Essence Break") return true end
         
         if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep then
@@ -643,19 +644,19 @@ function()
         if OffCooldown(ids.SigilOfFlame) and ( NearbyEnemies > 2 and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
             NGSend("Sigil of Flame") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( IsPlayerSpell(ids.SoulscarTalent) and IsPlayerSpell(ids.FuriousThrowsTalent) and NearbyEnemies > 2 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( C_Spell.GetSpellCharges(ids.ThrowGlaive).currentCharges == 2 or GetTimeToFullCharges(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.BladeDance) ) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( IsSpellKnown(ids.SoulscarTalent) and IsSpellKnown(ids.FuriousThrowsTalent) and NearbyEnemies > 2 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( C_Spell.GetSpellCharges(ids.ThrowGlaive).currentCharges == 2 or GetTimeToFullCharges(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.BladeDance) ) ) then
             NGSend("Throw Glaive") return true end
         
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingSpellCooldown(ids.BladeDance) > 0 or CurrentFury > 60 or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < 5 and OffCooldown(ids.Felblade) or TargetHasDebuff(ids.EssenceBreakDebuff) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 and MaxFury - CurrentFury >= 30 + Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + NearbyEnemies  * (IsPlayerSpell(ids.FlamesOfFuryTalent) and 2 or 0 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 and MaxFury - CurrentFury >= 30 + Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + NearbyEnemies  * (IsSpellKnown(ids.FlamesOfFuryTalent) and 2 or 0 ) ) then
             NGSend("Sigil of Flame") return true end
         
         if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury >= 40 + Variables.FuryGen * 0.5 and not PlayerHasBuff(ids.InertiaTriggerBuff) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and aura_env.OutOfRange == true and MaxFury - CurrentFury >= 30 + Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + NearbyEnemies * ( IsPlayerSpell(ids.FlamesOfFuryTalent) and 2 or 0 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and aura_env.OutOfRange == true and MaxFury - CurrentFury >= 30 + Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + NearbyEnemies * ( IsSpellKnown(ids.FlamesOfFuryTalent) and 2 or 0 ) ) then
             NGSend("Sigil of Flame") return true end
         
         if OffCooldown(ids.ImmolationAura) and ( aura_env.OutOfRange == true and GetTimeToNextCharge(ids.ImmolationAura) < ( max(GetRemainingSpellCooldown(ids.EyeBeam), GetRemainingAuraDuration("player", ids.MetamorphosisBuff)) ) ) then
@@ -668,20 +669,20 @@ function()
         if OffCooldown(ids.ImmolationAura) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( not PlayerHasBuff(ids.UnboundChaosBuff) and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and not TargetHasDebuff(ids.EssenceBreakDebuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and NearbyEnemies > 1 and not IsPlayerSpell(ids.FuriousThrowsTalent) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( not PlayerHasBuff(ids.UnboundChaosBuff) and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and not TargetHasDebuff(ids.EssenceBreakDebuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and NearbyEnemies > 1 and not IsSpellKnown(ids.FuriousThrowsTalent) ) then
             NGSend("Throw Glaive") return true end
         
         if OffCooldown(ids.FelRush) and ( GetTimeToNextCharge(ids.FelRush) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.FelRush) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 ) then
             NGSend("Fel Rush") return true end
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
     end
     
     local Ar = function()
         Variables.RgInc = PlayerHasBuff(ids.RendingStrikeBuff) == false and PlayerHasBuff(ids.GlaiveFlurryBuff) and OffCooldown(ids.BladeDance) or Variables.RgInc and ( CurrentTime - aura_env.LastDeathSweep < 1 )      
         
-        Variables.FelBarrage = IsPlayerSpell(ids.FelBarrageTalent) and ( GetRemainingSpellCooldown(ids.FelBarrage) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 or NearbyEnemies > 2 ) or PlayerHasBuff(ids.FelBarrageBuff) )
+        Variables.FelBarrage = IsSpellKnown(ids.FelBarrageTalent) and ( GetRemainingSpellCooldown(ids.FelBarrage) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 or NearbyEnemies > 2 ) or PlayerHasBuff(ids.FelBarrageBuff) )
         
         if OffCooldown(ids.ChaosStrike) and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies > 2 )) then
             NGSend("Chaos Strike") return true end
@@ -689,7 +690,7 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.RendingStrikeBuff) and PlayerHasBuff(ids.GlaiveFlurryBuff) and ( Variables.RgDs == 2 or NearbyEnemies > 2 ) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsPlayerSpell(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 3 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 ) then
+        if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 + ( (Variables.RgDs == 2) and 1 or 0 ) + (( GetRemainingSpellCooldown(ids.TheHunt) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) and 1 or 0) * 3 + (( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and IsSpellKnown(ids.ShatteredDestinyTalent) ) and 1 or 0) * 3 and ( Variables.RgDs == 0 or Variables.RgDs == 1 and OffCooldown(ids.BladeDance) or Variables.RgDs == 2 and GetRemainingSpellCooldown(ids.BladeDance) > 0 ) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies < 3 and CurrentTime - aura_env.ReaversGlaiveLastUsed > 5 and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 2 or GetRemainingSpellCooldown(ids.EyeBeam) < 10 or FightRemains(60, NearbyRange) < 10 ) and ( TargetTimeToXPct(0, 50) >= 10 or FightRemains(60, NearbyRange) <= 10 ) or FightRemains(60, NearbyRange) <= 10 ) then
             NGSend("Reavers Glaive") return true end
         
         if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < 4 and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies > 2 and TargetTimeToXPct(0, 50) >= 10 and not TargetHasDebuff(ids.EssenceBreakDebuff) or FightRemains(60, NearbyRange) <= 10 ) then
@@ -697,48 +698,48 @@ function()
         
         if ArCooldown() then return true end
         
-        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.BladeDance) > 0 and GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) and ( GetRemainingAuraDuration("player", ids.NecessarySacrificeBuff) >= 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) or not (OldSetPieces >= 4) or GetRemainingSpellCooldown(ids.EyeBeam) > 8 ) and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) + (IsPlayerSpell(ids.ShatteredDestinyTalent) and 1 or 0) >= GetRemainingAuraDuration("player", ids.NecessarySacrificeBuff) + 2 - (IsPlayerSpell(ids.QuickenedSigilsTalent) and 1 or 0) ) or FightRemains(60, NearbyRange) < 20 ) then
+        if OffCooldown(ids.SigilOfSpite) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.BladeDance) > 0 and GetRemainingDebuffDuration("target", ids.ReaversMarkDebuff) >= 2 - (IsSpellKnown(ids.QuickenedSigilsTalent) and 1 or 0) and ( GetRemainingAuraDuration("player", ids.NecessarySacrificeBuff) >= 2 - (IsSpellKnown(ids.QuickenedSigilsTalent) and 1 or 0) or not (OldSetPieces >= 4) or GetRemainingSpellCooldown(ids.EyeBeam) > 8 ) and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) + (IsSpellKnown(ids.ShatteredDestinyTalent) and 1 or 0) >= GetRemainingAuraDuration("player", ids.NecessarySacrificeBuff) + 2 - (IsSpellKnown(ids.QuickenedSigilsTalent) and 1 or 0) ) or FightRemains(60, NearbyRange) < 20 ) then
             NGSend("Sigil of Spite") return true end
         
         if Variables.FelBarrage then
             return ArFelBarrage() end
         
-        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.RagefireTalent) and ( not IsPlayerSpell(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > GetTimeToNextCharge(ids.ImmolationAura) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 ) ) then
+        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsSpellKnown(ids.RagefireTalent) and ( not IsSpellKnown(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > GetTimeToNextCharge(ids.ImmolationAura) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 ) ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.RagefireTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
+        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsSpellKnown(ids.RagefireTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
             NGSend("Immolation Aura") return true end
         
         -- actions.ar+=/fel_rush,if=buff.unbound_chaos.up&active_enemies>2&(!talent.inertia|cooldown.eye_beam.remains+2>buff.unbound_chaos.remains)
         
         -- Lineup Vengeful retreat with Eyebeam casts for Tactical retreat builds
-        if OffCooldown(ids.VengefulRetreat) and ( IsPlayerSpell(ids.InitiativeTalent) and IsPlayerSpell(ids.TacticalRetreatTalent) and (OffCooldown(ids.EyeBeam) and ( IsPlayerSpell(ids.RestlessHunterTalent) or GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) ) and (not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false) ) then
+        if OffCooldown(ids.VengefulRetreat) and ( IsSpellKnown(ids.InitiativeTalent) and IsSpellKnown(ids.TacticalRetreatTalent) and (OffCooldown(ids.EyeBeam) and ( IsSpellKnown(ids.RestlessHunterTalent) or GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) ) and (not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false) ) then
             NGSend("Vengeful Retreat") return true end
         
-        if OffCooldown(ids.VengefulRetreat) and ( IsPlayerSpell(ids.InitiativeTalent) and not IsPlayerSpell(ids.TacticalRetreatTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 15 and 0 < 0.3 or 0 < 0.2 and GetRemainingSpellCooldown(ids.EyeBeam) <= 0 and GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false ) ) then
+        if OffCooldown(ids.VengefulRetreat) and ( IsSpellKnown(ids.InitiativeTalent) and not IsSpellKnown(ids.TacticalRetreatTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 15 and 0 < 0.3 or 0 < 0.2 and GetRemainingSpellCooldown(ids.EyeBeam) <= 0 and GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) and ( not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false ) ) then
             NGSend("Vengeful Retreat") return true end
         
         -- talent.initiative&(cooldown.eye_beam.remains>15&gcd.remains<0.3|gcd.remains<0.2&cooldown.eye_beam.remains<=gcd.remains&(buff.unbound_chaos.up|action.immolation_aura.recharge_time>6|!talent.inertia|talent.momentum)&(cooldown.metamorphosis.remains>10|cooldown.blade_dance.remains<gcd.max*2&(talent.inertia|talent.momentum|buff.metamorphosis.up)))&(!talent.student_of_suffering|cooldown.sigil_of_flame.remains)&time>10&(!variable.trinket1_steroids&!variable.trinket2_steroids|variable.trinket1_steroids&(trinket.1.cooldown.remains<gcd.max*3|trinket.1.cooldown.remains>20)|variable.trinket2_steroids&(trinket.2.cooldown.remains<gcd.max*3|trinket.2.cooldown.remains>20|talent.shattered_destiny))&(cooldown.metamorphosis.remains|hero_tree.aldrachi_reaver)&time>20
         
-        if Variables.FelBarrage or not IsPlayerSpell(ids.DemonBladesTalent) and IsPlayerSpell(ids.FelBarrageTalent) and ( PlayerHasBuff(ids.FelBarrageBuff) or OffCooldown(ids.FelBarrage) ) and PlayerHasBuff(ids.MetamorphosisBuff) == false then       
+        if Variables.FelBarrage or not IsSpellKnown(ids.DemonBladesTalent) and IsSpellKnown(ids.FelBarrageTalent) and ( PlayerHasBuff(ids.FelBarrageBuff) or OffCooldown(ids.FelBarrage) ) and PlayerHasBuff(ids.MetamorphosisBuff) == false then       
             return ArFelBarrage() end
         
-        if OffCooldown(ids.Felblade) and ( not IsPlayerSpell(ids.InertiaTalent) and NearbyEnemies == 1 and PlayerHasBuff(ids.UnboundChaosBuff) and PlayerHasBuff(ids.InitiativeBuff) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false ) then
+        if OffCooldown(ids.Felblade) and ( not IsSpellKnown(ids.InertiaTalent) and NearbyEnemies == 1 and PlayerHasBuff(ids.UnboundChaosBuff) and PlayerHasBuff(ids.InitiativeBuff) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) == false ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) <= 0.5 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and IsPlayerSpell(ids.LooksCanKillTalent) or NearbyEnemies > 1 ) ) then
+        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) <= 0.5 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 and IsSpellKnown(ids.LooksCanKillTalent) or NearbyEnemies > 1 ) ) then
             NGSend("Felblade") return true end
         
         if PlayerHasBuff(ids.MetamorphosisBuff) then
             return ArMeta() end
         
-        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaBuff) == false and GetRemainingSpellCooldown(ids.BladeDance) < 4 and ( GetRemainingSpellCooldown(ids.EyeBeam) > 5 and GetRemainingSpellCooldown(ids.EyeBeam) > GetRemainingAuraDuration("player", ids.UnboundChaosBuff) or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.VengefulRetreat) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + 1 ) ) then
+        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaBuff) == false and GetRemainingSpellCooldown(ids.BladeDance) < 4 and ( GetRemainingSpellCooldown(ids.EyeBeam) > 5 and GetRemainingSpellCooldown(ids.EyeBeam) > GetRemainingAuraDuration("player", ids.UnboundChaosBuff) or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.VengefulRetreat) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + 1 ) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
+        if OffCooldown(ids.ImmolationAura) and ( IsSpellKnown(ids.AFireInsideTalent) and IsSpellKnown(ids.BurningWoundTalent) and GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( FightRemains(60, NearbyRange) < 15 and GetRemainingSpellCooldown(ids.BladeDance) > 0 and IsPlayerSpell(ids.RagefireTalent) ) then
+        if OffCooldown(ids.ImmolationAura) and ( FightRemains(60, NearbyRange) < 15 and GetRemainingSpellCooldown(ids.BladeDance) > 0 and IsSpellKnown(ids.RagefireTalent) ) then
             NGSend("Immolation Aura") return true end
         
         -- # actions.ar+=/blade_dance,if=buff.rending_strike.down&buff.glaive_flurry.up&active_enemies>2&cooldown.eye_beam.remains<=4&buff.thrill_of_the_fight_damage.remains<gcd.max&raid_event.adds.remains>10&(cooldown.immolation_aura.remains|!talent.burning_wound) actions.ar+=/eye_beam,if=!talent.essence_break&(!talent.chaotic_transformation|cooldown.metamorphosis.remains<5+3*talent.shattered_destiny|cooldown.metamorphosis.remains>10)&(active_enemies>desired_targets*2|raid_event.adds.in>30-talent.cycle_of_hatred.rank*2.5*buff.cycle_of_hatred.stack)&(!talent.initiative|cooldown.vengeful_retreat.remains>5|cooldown.vengeful_retreat.up&active_enemies>2|talent.shattered_destiny)
@@ -758,7 +759,7 @@ function()
         if OffCooldown(ids.SigilOfFlame) and (NearbyEnemies > 3 or TargetHasDebuff(ids.EssenceBreakDebuff) == false) then
             NGSend("Sigil of Flame") return true end
         
-        if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury >= 40 + Variables.FuryGen * 0.5 and not PlayerHasBuff(ids.InertiaTriggerBuff) and ( not IsPlayerSpell(ids.BlindFuryTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 5 ) ) then
+        if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury >= 40 + Variables.FuryGen * 0.5 and not PlayerHasBuff(ids.InertiaTriggerBuff) and ( not IsSpellKnown(ids.BlindFuryTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 5 ) ) then
             NGSend("Felblade") return true end
         
         if OffCooldown(ids.GlaiveTempest) then
@@ -767,26 +768,26 @@ function()
         if OffCooldown(ids.ChaosStrike) and ( TargetHasDebuff(ids.EssenceBreakDebuff) ) then
             NGSend("Chaos Strike") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.FuriousThrowsTalent) and IsPlayerSpell(ids.SoulscarTalent) and ( not IsPlayerSpell(ids.ScreamingBrutalityTalent) or GetSpellChargesFractional(ids.ThrowGlaive) >= 2 or GetTimeToFullCharges(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.BladeDance) ) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( NearbyEnemies > 2 and IsSpellKnown(ids.FuriousThrowsTalent) and IsSpellKnown(ids.SoulscarTalent) and ( not IsSpellKnown(ids.ScreamingBrutalityTalent) or GetSpellChargesFractional(ids.ThrowGlaive) >= 2 or GetTimeToFullCharges(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.BladeDance) ) ) then
             NGSend("Throw Glaive") return true end
         
-        if OffCooldown(ids.ChaosStrike) and ( GetRemainingSpellCooldown(ids.EyeBeam) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 or CurrentFury >= 70 - Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) - ( IsPlayerSpell(ids.BlindFuryTalent) and 30 or 0) ) then
+        if OffCooldown(ids.ChaosStrike) and ( GetRemainingSpellCooldown(ids.EyeBeam) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 or CurrentFury >= 70 - Variables.FuryGen * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) - ( IsSpellKnown(ids.BlindFuryTalent) and 30 or 0) ) then
             NGSend("Chaos Strike") return true end
         
-        if OffCooldown(ids.Felblade) and ( not IsPlayerSpell(ids.AFireInsideTalent) and CurrentFury < 40 ) then
+        if OffCooldown(ids.Felblade) and ( not IsSpellKnown(ids.AFireInsideTalent) and CurrentFury < 40 ) then
             NGSend("Felblade") return true end
         
         -- NG REMOVED "NearbyEnemies > 2"
         if OffCooldown(ids.ImmolationAura) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( aura_env.OutOfRange == true and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( not IsPlayerSpell(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > 25 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( aura_env.OutOfRange == true and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( not IsSpellKnown(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > 25 ) ) then
             NGSend("Sigil of Flame") return true end
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsPlayerSpell(ids.FuriousThrowsTalent) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsSpellKnown(ids.FuriousThrowsTalent) ) then
             NGSend("Throw Glaive") return true end
         
         if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.FelRush) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.FelRush) > 1.01 ) and NearbyEnemies > 1 ) then
@@ -795,13 +796,13 @@ function()
     
     -- Fel-Scarred
     local FsCooldown = function()
-        if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsPlayerSpell(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) and not IsPlayerSpell(ids.InertiaTalent) and not IsPlayerSpell(ids.EssenceBreakTalent) ) then
+        if OffCooldown(ids.Metamorphosis) and ( ( ( ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or IsSpellKnown(ids.CycleOfHatredTalent) and GetRemainingSpellCooldown(ids.EyeBeam) >= 13 ) and ( not IsSpellKnown(ids.EssenceBreakTalent) or TargetHasDebuff(ids.EssenceBreakDebuff) ) and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsSpellKnown(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsSpellKnown(ids.RestlessHunterTalent) and GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) and not IsSpellKnown(ids.InertiaTalent) and not IsSpellKnown(ids.EssenceBreakTalent) ) then
             NGSend("Metamorphosis") return true end
         
-        if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsPlayerSpell(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsPlayerSpell(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.EssenceBreakTalent) ) ) then       
+        if OffCooldown(ids.Metamorphosis) and ( ( GetRemainingSpellCooldown(ids.BladeDance) > 0 and ( ( ( CurrentTime - aura_env.LastDeathSweep < 3 ) or PlayerHasBuff(ids.MetamorphosisBuff) and GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and PlayerHasBuff(ids.FelBarrageBuff) == false or not IsSpellKnown(ids.ChaoticTransformationTalent) or FightRemains(60, NearbyRange) < 30 ) and ( PlayerHasBuff(ids.InnerDemonBuff) == false and ( not IsSpellKnown(ids.RestlessHunterTalent) or ( CurrentTime - aura_env.LastDeathSweep < 1 ) ) ) ) and ( IsSpellKnown(ids.InertiaTalent) or IsSpellKnown(ids.EssenceBreakTalent) ) ) then       
             NGSend("Metamorphosis") return true end
         
-        if OffCooldownNotCasting(ids.TheHunt) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) and PlayerHasBuff(ids.MetamorphosisBuff) == false or FightRemains(60, NearbyRange) <= 30 ) then
+        if OffCooldownNotCasting(ids.TheHunt) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 or PlayerHasBuff(ids.MetamorphosisBuff) == false ) and ( not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) and PlayerHasBuff(ids.MetamorphosisBuff) == false or FightRemains(60, NearbyRange) <= 30 ) then
             NGSend("The Hunt") return true end
         
         -- actions.fs_cooldown+=/the_hunt,if=debuff.essence_break.down&(active_enemies>=desired_targets+raid_event.adds.count|raid_event.adds.in>90)&(debuff.reavers_mark.up|!hero_tree.aldrachi_reaver)&buff.reavers_glaive.down&(buff.metamorphosis.remains>5|buff.metamorphosis.down)&(!talent.initiative|buff.initiative.up|time>5)&time>5&(!talent.inertia&buff.unbound_chaos.down|buff.inertia_trigger.down)&(!talent.inertia&(hero_tree.aldrachi_reaver|buff.metamorphosis.down)|hero_tree.felscarred&cooldown.metamorphosis.up|fight_remains<cooldown.metamorphosis.remains)
@@ -818,7 +819,7 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( PlayerHasBuff(ids.InnerDemonBuff) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.EyeBeam) and ( ( PlayerHasBuff(ids.FelBarrageBuff) == false or CurrentFury > 45 and IsPlayerSpell(ids.BlindFuryTalent) ) and ( NearbyEnemies > 1 ) ) then
+        if OffCooldown(ids.EyeBeam) and ( ( PlayerHasBuff(ids.FelBarrageBuff) == false or CurrentFury > 45 and IsSpellKnown(ids.BlindFuryTalent) ) and ( NearbyEnemies > 1 ) ) then
             NGSend("Eye Beam") return true end
         
         if OffCooldown(ids.EssenceBreak) and ( PlayerHasBuff(ids.FelBarrageBuff) == false and PlayerHasBuff(ids.MetamorphosisBuff) ) then
@@ -845,7 +846,7 @@ function()
         if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.UnboundChaosBuff) and CurrentFury > 20 and PlayerHasBuff(ids.FelBarrageBuff) ) then
             NGSend("Fel Rush") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( MaxFury - CurrentFury > 40 and PlayerHasBuff(ids.FelBarrageBuff) and ( not IsPlayerSpell(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 30 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( MaxFury - CurrentFury > 40 and PlayerHasBuff(ids.FelBarrageBuff) and ( not IsSpellKnown(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 30 ) ) then
             NGSend("Sigil of Flame") return true end
         
         if OffCooldown(ids.SigilOfFlame) and ( aura_env.DemonsurgeSigilOfDoomBuff and MaxFury - CurrentFury > 40 and PlayerHasBuff(ids.FelBarrageBuff) ) then
@@ -875,51 +876,51 @@ function()
         if OffCooldown(ids.ChaosStrike) and ( CurrentFury - Variables.GcdDrain - 40 > 20 and ( GetRemainingSpellCooldown(ids.FelBarrage) > 0 and GetRemainingSpellCooldown(ids.FelBarrage) < 10 and CurrentFury > 100 or PlayerHasBuff(ids.FelBarrageBuff) and ( GetRemainingAuraDuration("player", ids.FelBarrageBuff) * Variables.FuryGen - GetRemainingAuraDuration("player", ids.FelBarrageBuff) * 32 ) > 0 ) ) then
             NGSend("Chaos Strike") return true end
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
     end
     
     local FsMeta = function()
-        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) and ( not PlayerHasBuff(ids.ImmolationAuraBuff) or not Variables.FsTier342Piece ) and ( not PlayerHasBuff(ids.DemonSoulTww3Buff) or not SetPieces >= 4 ) or aura_env.PrevCast == ids.Metamorphosis and not Variables.FsTier342Piece or aura_env.DemonsurgeDeathSweepBuff and Variables.FsTier342Piece and GetRemainingAuraDuration("player", ids.DemonsurgeBuff) < 5 or ( Variables.FsTier342Piece and OffCooldown(ids.Metamorphosis) and IsPlayerSpell(ids.InertiaTalent) ) or NearbyEnemies >= 3 and aura_env.DemonsurgeDeathSweepBuff and ( not IsPlayerSpell(ids.InertiaTalent) or not PlayerHasBuff(ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.VengefulRetreat) > 0 or PlayerHasBuff(ids.InertiaBuff) ) and ( not IsPlayerSpell(ids.EssenceBreak) or TargetHasDebuff(ids.EssenceBreakDebuff) or GetRemainingSpellCooldown(ids.EssenceBreak) >= 5 ) ) then
+        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) and ( not PlayerHasBuff(ids.ImmolationAuraBuff) or not Variables.FsTier342Piece ) and ( not PlayerHasBuff(ids.DemonSoulTww3Buff) or not SetPieces >= 4 ) or aura_env.PrevCast == ids.Metamorphosis and not Variables.FsTier342Piece or aura_env.DemonsurgeDeathSweepBuff and Variables.FsTier342Piece and GetRemainingAuraDuration("player", ids.DemonsurgeBuff) < 5 or ( Variables.FsTier342Piece and OffCooldown(ids.Metamorphosis) and IsSpellKnown(ids.InertiaTalent) ) or NearbyEnemies >= 3 and aura_env.DemonsurgeDeathSweepBuff and ( not IsSpellKnown(ids.InertiaTalent) or not PlayerHasBuff(ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.VengefulRetreat) > 0 or PlayerHasBuff(ids.InertiaBuff) ) and ( not IsSpellKnown(ids.EssenceBreak) or TargetHasDebuff(ids.EssenceBreakDebuff) or GetRemainingSpellCooldown(ids.EssenceBreak) >= 5 ) ) then
             NGSend("Death Sweep") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( aura_env.DemonsurgeSigilOfDoomBuff and IsPlayerSpell(ids.StudentOfSufferingTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and 
-            ( IsPlayerSpell(ids.StudentOfSufferingTalent) and 
-                ( ( IsPlayerSpell(ids.EssenceBreakTalent) and GetRemainingSpellCooldown(ids.EssenceBreak) > 30 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or 
-                        GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + (IsPlayerSpell(ids.InertiaTalent) and 1 or 0) and 
+        if OffCooldown(ids.SigilOfFlame) and ( aura_env.DemonsurgeSigilOfDoomBuff and IsSpellKnown(ids.StudentOfSufferingTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and 
+            ( IsSpellKnown(ids.StudentOfSufferingTalent) and 
+                ( ( IsSpellKnown(ids.EssenceBreakTalent) and GetRemainingSpellCooldown(ids.EssenceBreak) > 30 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or 
+                        GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) + (IsSpellKnown(ids.InertiaTalent) and 1 or 0) and 
                         (( GetRemainingSpellCooldown(ids.VengefulRetreat) <= WeakAuras.gcdDuration() or PlayerHasBuff(ids.InitiativeBuff) ) and 1 or 0) + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( ( GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and 1 or 0 ) ) or
-                    ( not IsPlayerSpell(ids.EssenceBreakTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= 10 or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) ) ) then
+                    ( not IsSpellKnown(ids.EssenceBreakTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= 10 or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) ) ) ) ) then
             NGSend("Sigil of Flame") return true end
         
-        if OffCooldown(ids.VengefulRetreat) and ( IsPlayerSpell(ids.InitiativeTalent) and ( 0 < 0.3 or IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and ( GetPlayerStacks(ids.CycleOfHatredBuff) == 2 or GetPlayerStacks(ids.CycleOfHatredBuff) == 3 ) ) and ( GetRemainingSpellCooldown(ids.Metamorphosis) and ( aura_env.DemonsurgeAnnihilationBuff == false and aura_env.DemonsurgeDeathSweepBuff == false ) or IsPlayerSpell(ids.RestlessHunterTalent) and aura_env.DemonsurgeAnnihilationBuff == false ) and ( not IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) and ( not IsPlayerSpell(ids.EssenceBreakTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) > 18 or GetRemainingSpellCooldown(ids.EssenceBreak) <= 0 + (IsPlayerSpell(ids.InertiaTalent) and 1 or 0) * 1.5 and ( not IsPlayerSpell(ids.StudentOfSufferingTalent) or ( PlayerHasBuff(ids.StudentOfSufferingBuff) or GetRemainingSpellCooldown(ids.SigilOfFlame) > 5 ) ) ) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 5 or GetRemainingSpellCooldown(ids.EyeBeam) <= 0 or OffCooldown(ids.EyeBeam) ) or OffCooldown(ids.Metamorphosis) and GetPlayerStacks(ids.DemonsurgeBuff) > 1 and IsPlayerSpell(ids.InitiativeTalent) and not IsPlayerSpell(ids.InertiaTalent) ) then
+        if OffCooldown(ids.VengefulRetreat) and ( IsSpellKnown(ids.InitiativeTalent) and ( 0 < 0.3 or IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) > 0 and ( GetPlayerStacks(ids.CycleOfHatredBuff) == 2 or GetPlayerStacks(ids.CycleOfHatredBuff) == 3 ) ) and ( GetRemainingSpellCooldown(ids.Metamorphosis) and ( aura_env.DemonsurgeAnnihilationBuff == false and aura_env.DemonsurgeDeathSweepBuff == false ) or IsSpellKnown(ids.RestlessHunterTalent) and aura_env.DemonsurgeAnnihilationBuff == false ) and ( not IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.UnboundChaosBuff) == false or PlayerHasBuff(ids.InertiaTriggerBuff) == false ) and ( not IsSpellKnown(ids.EssenceBreakTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) > 18 or GetRemainingSpellCooldown(ids.EssenceBreak) <= 0 + (IsSpellKnown(ids.InertiaTalent) and 1 or 0) * 1.5 and ( not IsSpellKnown(ids.StudentOfSufferingTalent) or ( PlayerHasBuff(ids.StudentOfSufferingBuff) or GetRemainingSpellCooldown(ids.SigilOfFlame) > 5 ) ) ) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 5 or GetRemainingSpellCooldown(ids.EyeBeam) <= 0 or OffCooldown(ids.EyeBeam) ) or OffCooldown(ids.Metamorphosis) and GetPlayerStacks(ids.DemonsurgeBuff) > 1 and IsSpellKnown(ids.InitiativeTalent) and not IsSpellKnown(ids.InertiaTalent) ) then
             NGSend("Vengeful Retreat") return true end
         
-        if OffCooldown(ids.VengefulRetreat) and ( Variables.FsTier342Piece and not PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InitiativeTalent) ) then
+        if OffCooldown(ids.VengefulRetreat) and ( Variables.FsTier342Piece and not PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InitiativeTalent) ) then
             NGSend("Vengeful Retreat") return true end
         
-        if OffCooldown(ids.Felblade) and ( IsPlayerSpell(ids.InertiaTalent) and Variables.FsTier342Piece and PlayerHasBuff(ids.InertiaTriggerBuff) ) then
+        if OffCooldown(ids.Felblade) and ( IsSpellKnown(ids.InertiaTalent) and Variables.FsTier342Piece and PlayerHasBuff(ids.InertiaTriggerBuff) ) then
             NGSend("Felblade") return true end
         
         -- &active_enemies<3 actions.fs_meta+=/fel_rush,if=talent.inertia&variable.fs_tier34_2piece&buff.inertia_trigger.up&(active_enemies>=3|cooldown.felblade.remains) actions.fs_meta+=/felblade,if=talent.inertia&buff.inertia_trigger.up&cooldown.essence_break.remains<=1&hero_tree.aldrachi_reaver&cooldown.blade_dance.remains<=gcd.max*2&cooldown.metamorphosis.remains<=gcd.max*3 actions.fs_meta+=/felblade,if=talent.inertia&buff.inertia_trigger.up&debuff.essence_break.down&buff.demonsurge_hardcast.up&buff.demonsurge.stack=0&buff.demonsurge_death_sweep.up actions.fs_meta+=/fel_rush,if=talent.inertia&buff.inertia_trigger.up&debuff.essence_break.down&buff.demonsurge_hardcast.up&buff.demonsurge.stack=0&buff.demonsurge_death_sweep.up&cooldown.felblade.remains actions.fs_meta+=/fel_rush,if=talent.inertia&buff.inertia_trigger.up&cooldown.essence_break.remains<=1&hero_tree.aldrachi_reaver&cooldown.blade_dance.remains<=gcd.max*2&cooldown.metamorphosis.remains<=gcd.max*3 actions.fs_meta+=/essence_break,if=fury>=30&talent.restless_hunter&cooldown.metamorphosis.up&(talent.inertia&buff.inertia.up|!talent.inertia)&cooldown.blade_dance.remains<=gcd.max&(hero_tree.felscarred&buff.demonsurge_annihilation.down|hero_tree.aldrachi_reaver)
         
-        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( ( IsPlayerSpell(ids.EssenceBreakTalent) and aura_env.DemonsurgeDeathSweepBuff and ( PlayerHasBuff(ids.InertiaBuff) and ( GetRemainingSpellCooldown(ids.EssenceBreak) > GetRemainingAuraDuration("player", ids.InertiaBuff) or not IsPlayerSpell(ids.EssenceBreakTalent) ) or GetRemainingSpellCooldown(ids.Metamorphosis) <= 5 and PlayerHasBuff(ids.InertiaTriggerBuff) == false or PlayerHasBuff(ids.InertiaBuff) and aura_env.DemonsurgeAbyssalGazeBuff ) or IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) == false and GetRemainingSpellCooldown(ids.VengefulRetreat) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and PlayerHasBuff(ids.InertiaBuff) == false ) and ( not Variables.FsTier342Piece or not IsPlayerSpell(ids.InertiaTalent) or NearbyEnemies >= 3 and TargetHasDebuff(ids.EssenceBreakDebuff) ) ) then
+        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( ( IsSpellKnown(ids.EssenceBreakTalent) and aura_env.DemonsurgeDeathSweepBuff and ( PlayerHasBuff(ids.InertiaBuff) and ( GetRemainingSpellCooldown(ids.EssenceBreak) > GetRemainingAuraDuration("player", ids.InertiaBuff) or not IsSpellKnown(ids.EssenceBreakTalent) ) or GetRemainingSpellCooldown(ids.Metamorphosis) <= 5 and PlayerHasBuff(ids.InertiaTriggerBuff) == false or PlayerHasBuff(ids.InertiaBuff) and aura_env.DemonsurgeAbyssalGazeBuff ) or IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) == false and GetRemainingSpellCooldown(ids.VengefulRetreat) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and PlayerHasBuff(ids.InertiaBuff) == false ) and ( not Variables.FsTier342Piece or not IsSpellKnown(ids.InertiaTalent) or NearbyEnemies >= 3 and TargetHasDebuff(ids.EssenceBreakDebuff) ) ) then
             NGSend("Death Sweep") return true end
         
-        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.BladeDance) < GetRemainingAuraDuration("player", ids.MetamorphosisBuff) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 or IsPlayerSpell(ids.RestlessHunterTalent) and ( aura_env.DemonsurgeAnnihilationBuff or IsPlayerSpell(ids.ArtOfTheGlaiveTalent) and PlayerHasBuff(ids.InnerDemonBuff) ) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.BladeDance) < GetRemainingAuraDuration("player", ids.MetamorphosisBuff) or GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) and GetRemainingDebuffDuration("target", ids.EssenceBreakDebuff) < 0.5 or IsSpellKnown(ids.RestlessHunterTalent) and ( aura_env.DemonsurgeAnnihilationBuff or IsSpellKnown(ids.ArtOfTheGlaiveTalent) and PlayerHasBuff(ids.InnerDemonBuff) ) and OffCooldown(ids.EssenceBreak) and OffCooldown(ids.Metamorphosis) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( ( aura_env.DemonsurgeAnnihilationBuff and IsPlayerSpell(ids.RestlessHunterTalent) ) and ( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.BladeDance) or GetRemainingSpellCooldown(ids.Metamorphosis) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) then
+        if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( ( aura_env.DemonsurgeAnnihilationBuff and IsSpellKnown(ids.RestlessHunterTalent) ) and ( GetRemainingSpellCooldown(ids.EyeBeam) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 and GetRemainingSpellCooldown(ids.BladeDance) or GetRemainingSpellCooldown(ids.Metamorphosis) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) and ( GetRemainingSpellCooldown(ids.BladeDance) <= 5.5 and ( IsPlayerSpell(ids.EssenceBreakTalent) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.5 or not IsPlayerSpell(ids.EssenceBreakTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) >= GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.BladeDance) <= 4.5 and ( GetRemainingSpellCooldown(ids.BladeDance) or GetRemainingSpellCooldown(ids.BladeDance) <= 0.5 ) ) or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) <= 5.5 + (IsPlayerSpell(ids.ShatteredDestinyTalent) and 1 or 0) * 2 ) ) then
+        if OffCooldown(ids.Felblade) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) and ( GetRemainingSpellCooldown(ids.BladeDance) <= 5.5 and ( IsSpellKnown(ids.EssenceBreakTalent) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.5 or not IsSpellKnown(ids.EssenceBreakTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) >= GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) and GetRemainingSpellCooldown(ids.BladeDance) <= 4.5 and ( GetRemainingSpellCooldown(ids.BladeDance) or GetRemainingSpellCooldown(ids.BladeDance) <= 0.5 ) ) or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) <= 5.5 + (IsSpellKnown(ids.ShatteredDestinyTalent) and 1 or 0) * 2 ) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsPlayerSpell(ids.InertiaTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) and ( GetRemainingSpellCooldown(ids.Felblade) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.6 or NearbyEnemies > 2 ) ) then
+        if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.InertiaTriggerBuff) and IsSpellKnown(ids.InertiaTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) and ( GetRemainingSpellCooldown(ids.Felblade) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 0.6 or NearbyEnemies > 2 ) ) then
             NGSend("Fel Rush") return true end
         
         -- |cooldown.felblade.remains&buff.metamorphosis.remains<=5.6-talent.shattered_destiny*gcd.max*2) actions.fs_meta+=/felblade,if=buff.inertia_trigger.up&talent.inertia&debuff.essence_break.down&cooldown.metamorphosis.remains&(!hero_tree.felscarred|cooldown.eye_beam.remains&(!buff.demonsurge_hardcast.up|cooldown.essence_break.remains<=0.5)|buff.demonsurge_hardcast.up&cooldown.eye_beam.remains<=0.6) actions.fs_meta+=/fel_rush,if=buff.inertia_trigger.up&talent.inertia&debuff.essence_break.down&cooldown.metamorphosis.remains&(!hero_tree.felscarred|cooldown.eye_beam.remains&(!buff.demonsurge_hardcast.up|cooldown.essence_break.remains<=0.5)|buff.demonsurge_hardcast.up&cooldown.eye_beam.remains<=gcd.max)&(active_enemies>2|hero_tree.felscarred)&cooldown.felblade.remains actions.fs_meta+=/felblade,if=buff.inertia_trigger.up&talent.inertia&debuff.essence_break.down&cooldown.blade_dance.remains<gcd.max*3&(!hero_tree.felscarred|cooldown.eye_beam.remains)&cooldown.metamorphosis.remains actions.fs_meta+=/fel_rush,if=buff.inertia_trigger.up&talent.inertia&debuff.essence_break.down&cooldown.blade_dance.remains<gcd.max*3&(!hero_tree.felscarred|cooldown.eye_beam.remains)&cooldown.metamorphosis.remains&(active_enemies>2|hero_tree.felscarred) actions.fs_meta+=/immolation_aura,if=charges=2&active_enemies>1&debuff.essence_break.down
         
-        if OffCooldown(ids.ImmolationAura) and ( ( NearbyEnemies > 1 or IsPlayerSpell(ids.AFireInsideTalent) and ( IsPlayerSpell(ids.IsolatedPreyTalent) or Variables.FsTier342Piece ) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( NearbyEnemies >= 3 or GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 or Variables.FsTier342Piece and GetRemainingAuraDuration("player", ids.ImmolationAuraBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or Variables.FsTier342Piece and not PlayerHasBuff(ids.ImmolationAuraBuff) ) ) then
+        if OffCooldown(ids.ImmolationAura) and ( ( NearbyEnemies > 1 or IsSpellKnown(ids.AFireInsideTalent) and ( IsSpellKnown(ids.IsolatedPreyTalent) or Variables.FsTier342Piece ) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( NearbyEnemies >= 3 or GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 or Variables.FsTier342Piece and GetRemainingAuraDuration("player", ids.ImmolationAuraBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or Variables.FsTier342Piece and not PlayerHasBuff(ids.ImmolationAuraBuff) ) ) then
             NGSend("Immolation Aura") return true end
         
         
@@ -928,10 +929,10 @@ function()
         
         -- actions.fs_meta+=/sigil_of_doom,if=debuff.essence_break.down&(buff.demonsurge_sigil_of_doom.up&cooldown.blade_dance.remains|talent.student_of_suffering&((talent.essence_break&cooldown.essence_break.remains>30-gcd.max|cooldown.essence_break.remains<=gcd.max*3&(!talent.inertia|buff.inertia_trigger.up))|(!talent.essence_break&(cooldown.eye_beam.remains>=30|cooldown.eye_beam.remains<=gcd.max))))
         
-        if OffCooldown(ids.EssenceBreak) and ( CurrentFury > 20 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and not Variables.FsTier342Piece or Variables.FsTier342Piece and PlayerHasBuff(ids.MetamorphosisBuff) ) and ( PlayerHasBuff(ids.InertiaTriggerBuff) == false or PlayerHasBuff(ids.InertiaBuff) and GetRemainingAuraDuration("player", ids.InertiaBuff) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not IsPlayerSpell(ids.InertiaTalent) or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) <= GetRemainingSpellCooldown(ids.Metamorphosis) ) and ( not IsPlayerSpell(ids.ShatteredDestinyTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 4 ) and ( NearbyEnemies > 1 or GetRemainingSpellCooldown(ids.Metamorphosis) > 5 and GetRemainingSpellCooldown(ids.EyeBeam) ) and ( not GetPlayerStacks(ids.CycleOfHatredBuff) == 3 or PlayerHasBuff(ids.InitiativeBuff) or not IsPlayerSpell(ids.InitiativeTalent) or not IsPlayerSpell(ids.CycleOfHatredTalent) ) or FightRemains(60, NearbyRange) < 5 ) then
+        if OffCooldown(ids.EssenceBreak) and ( CurrentFury > 20 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and not Variables.FsTier342Piece or Variables.FsTier342Piece and PlayerHasBuff(ids.MetamorphosisBuff) ) and ( PlayerHasBuff(ids.InertiaTriggerBuff) == false or PlayerHasBuff(ids.InertiaBuff) and GetRemainingAuraDuration("player", ids.InertiaBuff) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not IsSpellKnown(ids.InertiaTalent) or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) <= GetRemainingSpellCooldown(ids.Metamorphosis) ) and ( not IsSpellKnown(ids.ShatteredDestinyTalent) or GetRemainingSpellCooldown(ids.EyeBeam) > 4 ) and ( NearbyEnemies > 1 or GetRemainingSpellCooldown(ids.Metamorphosis) > 5 and GetRemainingSpellCooldown(ids.EyeBeam) ) and ( not GetPlayerStacks(ids.CycleOfHatredBuff) == 3 or PlayerHasBuff(ids.InitiativeBuff) or not IsSpellKnown(ids.InitiativeTalent) or not IsSpellKnown(ids.CycleOfHatredTalent) ) or FightRemains(60, NearbyRange) < 5 ) then
             NGSend("Essence Break") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( aura_env.DemonsurgeSigilOfDoomBuff and not aura_env.DemonsurgeDeathSweepBuff and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( not IsPlayerSpell(ids.StudentOfSufferingTalent) or aura_env.DemonsurgeSigilOfDoomBuff ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( aura_env.DemonsurgeSigilOfDoomBuff and not aura_env.DemonsurgeDeathSweepBuff and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) >= 20 or GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( not IsSpellKnown(ids.StudentOfSufferingTalent) or aura_env.DemonsurgeSigilOfDoomBuff ) ) then
             NGSend("Sigil of Flame") return true end
         
         if OffCooldown(ids.ImmolationAura) and ( not Variables.FsTier342Piece and PlayerHasBuff(ids.DemonsurgeBuff) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and aura_env.DemonsurgeConsumingFireBuff and GetRemainingSpellCooldown(ids.BladeDance) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) and MaxFury - CurrentFury > 10 + Variables.FuryGen ) then
@@ -940,10 +941,10 @@ function()
         if OffCooldown(ids.EyeBeam) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and PlayerHasBuff(ids.InnerDemonBuff) == false and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) or SetPieces < 4 ) ) then
             NGSend("Eye Beam") return true end
         
-        if OffCooldown(ids.EyeBeam) and ( aura_env.DemonsurgeAbyssalGazeBuff and TargetHasDebuff(ids.EssenceBreakDebuff) == false and PlayerHasBuff(ids.InnerDemonBuff) == false and ( GetPlayerStacks(ids.CycleOfHatredBuff) < 4 or GetRemainingSpellCooldown(ids.EssenceBreak) >= 20 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * (IsPlayerSpell(ids.StudentOfSufferingTalent) and 1 or 0) or GetRemainingSpellCooldown(ids.SigilOfFlame) and IsPlayerSpell(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or not IsPlayerSpell(ids.EssenceBreak) ) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) >= 7 or SetPieces < 4 ) ) then
+        if OffCooldown(ids.EyeBeam) and ( aura_env.DemonsurgeAbyssalGazeBuff and TargetHasDebuff(ids.EssenceBreakDebuff) == false and PlayerHasBuff(ids.InnerDemonBuff) == false and ( GetPlayerStacks(ids.CycleOfHatredBuff) < 4 or GetRemainingSpellCooldown(ids.EssenceBreak) >= 20 - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * (IsSpellKnown(ids.StudentOfSufferingTalent) and 1 or 0) or GetRemainingSpellCooldown(ids.SigilOfFlame) and IsSpellKnown(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or not IsSpellKnown(ids.EssenceBreak) ) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) >= 7 or SetPieces < 4 ) ) then
             NGSend("Eye Beam") return true end
         
-        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( ( GetRemainingSpellCooldown(ids.EssenceBreak) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 + (IsPlayerSpell(ids.StudentOfSufferingTalent) and 1 or 0) * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) or not IsPlayerSpell(ids.EssenceBreakTalent) ) and ( not PlayerHasBuff(ids.ImmolationAuraBuff) or not Variables.FsTier342Piece or IsPlayerSpell(ids.ScreamingBrutalityTalent) and IsPlayerSpell(ids.SoulscarTalent) ) and ( not PlayerHasBuff(ids.DemonSoulTww3Buff) or SetPieces < 4 or NearbyEnemies >= 3 or IsPlayerSpell(ids.ScreamingBrutalityTalent) and IsPlayerSpell(ids.SoulscarTalent) ) ) then
+        if OffCooldown(ids.BladeDance) and FindSpellOverrideByID(ids.BladeDance) == ids.DeathSweep and ( ( GetRemainingSpellCooldown(ids.EssenceBreak) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 + (IsSpellKnown(ids.StudentOfSufferingTalent) and 1 or 0) * max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or TargetHasDebuff(ids.EssenceBreakDebuff) or not IsSpellKnown(ids.EssenceBreakTalent) ) and ( not PlayerHasBuff(ids.ImmolationAuraBuff) or not Variables.FsTier342Piece or IsSpellKnown(ids.ScreamingBrutalityTalent) and IsSpellKnown(ids.SoulscarTalent) ) and ( not PlayerHasBuff(ids.DemonSoulTww3Buff) or SetPieces < 4 or NearbyEnemies >= 3 or IsSpellKnown(ids.ScreamingBrutalityTalent) and IsSpellKnown(ids.SoulscarTalent) ) ) then
             NGSend("Death Sweep") return true end
         
         if OffCooldown(ids.GlaiveTempest) and ( TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.BladeDance) > max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 or CurrentFury > 60 ) ) then
@@ -957,7 +958,7 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation and ( GetRemainingSpellCooldown(ids.BladeDance) or CurrentFury > 60 or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) < 5 ) then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 and aura_env.OutOfRange and not IsPlayerSpell(ids.StudentOfSufferingTalent) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 and aura_env.OutOfRange and not IsSpellKnown(ids.StudentOfSufferingTalent) ) then
             NGSend("Sigil of Flame") return true end
         
         -- actions.fs_meta+=/felblade,if=(buff.out_of_range.down|fury.deficit>40+variable.fury_gen*(0.5%gcd.max))&!buff.inertia.up actions.fs_meta+=/sigil_of_flame,if=debuff.essence_break.down&buff.out_of_range.down
@@ -971,13 +972,13 @@ function()
         if OffCooldown(ids.ChaosStrike) and FindSpellOverrideByID(ids.ChaosStrike) == ids.Annihilation then
             NGSend("Annihilation") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsPlayerSpell(ids.FuriousThrowsTalent) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsSpellKnown(ids.FuriousThrowsTalent) ) then
             NGSend("Throw Glaive") return true end
         
         if OffCooldown(ids.FelRush) and ( GetTimeToNextCharge(ids.FelRush) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.FelRush) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 ) then
             NGSend("Fel Rush") return true end
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
             
         -- NG ADDED LOW PRIO IMMO AURA FOR SINGLE TARGET!
@@ -987,66 +988,66 @@ function()
     end
     
     local Fs = function()
-        Variables.FelBarrage = IsPlayerSpell(ids.FelBarrageTalent) and ( GetRemainingSpellCooldown(ids.FelBarrage) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 or NearbyEnemies > 2 ) or PlayerHasBuff(ids.FelBarrageBuff) )
+        Variables.FelBarrage = IsSpellKnown(ids.FelBarrageTalent) and ( GetRemainingSpellCooldown(ids.FelBarrage) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 7 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 0 or NearbyEnemies > 2 ) or PlayerHasBuff(ids.FelBarrageBuff) )
         
         if FsCooldown() then return true end
         
         if Variables.FelBarrage then
             return FsFelBarrage() end
         
-        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.RagefireTalent) and ( not IsPlayerSpell(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > GetTimeToNextCharge(ids.ImmolationAura) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 ) ) then
+        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsSpellKnown(ids.RagefireTalent) and ( not IsSpellKnown(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > GetTimeToNextCharge(ids.ImmolationAura) ) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( PlayerHasBuff(ids.MetamorphosisBuff) == false or GetRemainingAuraDuration("player", ids.MetamorphosisBuff) > 5 ) ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsPlayerSpell(ids.RagefireTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
+        if OffCooldown(ids.ImmolationAura) and ( NearbyEnemies > 2 and IsSpellKnown(ids.RagefireTalent) and TargetHasDebuff(ids.EssenceBreakDebuff) == false ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.Felblade) and ( IsPlayerSpell(ids.UnboundChaosTalent) and PlayerHasBuff(ids.UnboundChaosBuff) and not IsPlayerSpell(ids.InertiaTalent) and NearbyEnemies <= 2 and ( IsPlayerSpell(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.EyeBeam) - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 <= GetRemainingAuraDuration("player", ids.UnboundChaosBuff) or IsPlayerSpell(ids.ArtOfTheGlaiveTalent) ) ) then
+        if OffCooldown(ids.Felblade) and ( IsSpellKnown(ids.UnboundChaosTalent) and PlayerHasBuff(ids.UnboundChaosBuff) and not IsSpellKnown(ids.InertiaTalent) and NearbyEnemies <= 2 and ( IsSpellKnown(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.EyeBeam) - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 <= GetRemainingAuraDuration("player", ids.UnboundChaosBuff) or IsSpellKnown(ids.ArtOfTheGlaiveTalent) ) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.FelRush) and ( IsPlayerSpell(ids.UnboundChaosTalent) and PlayerHasBuff(ids.UnboundChaosBuff) and not IsPlayerSpell(ids.InertiaTalent) and NearbyEnemies > 3 and ( IsPlayerSpell(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.EyeBeam) - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 <= GetRemainingAuraDuration("player", ids.UnboundChaosBuff) ) ) then
+        if OffCooldown(ids.FelRush) and ( IsSpellKnown(ids.UnboundChaosTalent) and PlayerHasBuff(ids.UnboundChaosBuff) and not IsSpellKnown(ids.InertiaTalent) and NearbyEnemies > 3 and ( IsSpellKnown(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.EyeBeam) - max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 <= GetRemainingAuraDuration("player", ids.UnboundChaosBuff) ) ) then
             NGSend("Fel Rush") return true end
         
         if PlayerHasBuff(ids.MetamorphosisBuff) then
             return FsMeta() end
         
-        if OffCooldown(ids.VengefulRetreat) and ( IsPlayerSpell(ids.InitiativeTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 15 and 0 < 0.3 or 0 < 0.2 and GetRemainingSpellCooldown(ids.EyeBeam) <= 0 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) and ( not IsPlayerSpell(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.SigilOfFlame) ) and ( GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and IsPlayerSpell(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.SigilOfFlame) or GetRemainingSpellCooldown(ids.EssenceBreak) >= 18 or not IsPlayerSpell(ids.StudentOfSufferingTalent) ) and GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) then
+        if OffCooldown(ids.VengefulRetreat) and ( IsSpellKnown(ids.InitiativeTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) > 15 and 0 < 0.3 or 0 < 0.2 and GetRemainingSpellCooldown(ids.EyeBeam) <= 0 and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 ) ) and ( not IsSpellKnown(ids.StudentOfSufferingTalent) or GetRemainingSpellCooldown(ids.SigilOfFlame) ) and ( GetRemainingSpellCooldown(ids.EssenceBreak) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 and IsSpellKnown(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.SigilOfFlame) or GetRemainingSpellCooldown(ids.EssenceBreak) >= 18 or not IsSpellKnown(ids.StudentOfSufferingTalent) ) and GetRemainingSpellCooldown(ids.Metamorphosis) > 10 ) then
             NGSend("Vengeful Retreat") return true end
         
-        if Variables.FelBarrage or not IsPlayerSpell(ids.DemonBladesTalent) and IsPlayerSpell(ids.FelBarrageTalent) and ( PlayerHasBuff(ids.FelBarrageBuff) or OffCooldown(ids.FelBarrage) ) and PlayerHasBuff(ids.MetamorphosisBuff) == false then
+        if Variables.FelBarrage or not IsSpellKnown(ids.DemonBladesTalent) and IsSpellKnown(ids.FelBarrageTalent) and ( PlayerHasBuff(ids.FelBarrageBuff) or OffCooldown(ids.FelBarrage) ) and PlayerHasBuff(ids.MetamorphosisBuff) == false then
             return FsFelBarrage() end
         
         -- actions.fs+=/felblade,if=!talent.inertia&active_enemies=1&buff.unbound_chaos.up&buff.initiative.up&debuff.essence_break.down&buff.metamorphosis.down actions.fs+=/felblade,if=buff.inertia_trigger.up&talent.inertia&buff.inertia.down&cooldown.blade_dance.remains<4&cooldown.eye_beam.remains>5&cooldown.eye_beam.remains>buff.unbound_chaos.remains-2 actions.fs+=/fel_rush,if=buff.unbound_chaos.up&talent.inertia&buff.inertia.down&cooldown.blade_dance.remains<4&cooldown.eye_beam.remains>5&(action.immolation_aura.charges>0|action.immolation_aura.recharge_time+2<cooldown.eye_beam.remains|cooldown.eye_beam.remains>buff.unbound_chaos.remains-2)
         
-        if OffCooldown(ids.ImmolationAura) and ( Variables.FsTier342Piece and ( GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not PlayerHasBuff(ids.ImmolationAuraBuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) < 3 and ( not IsPlayerSpell(ids.EssenceBreak) or GetPlayerStacks(ids.CycleOfHatredBuff) < 4 ) or IsPlayerSpell(ids.EssenceBreak) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 5 or IsPlayerSpell(ids.EssenceBreak) and ( ( GetRemainingSpellCooldown(ids.EyeBeam) < 3 and 1 or 0 ) * GetRemainingSpellCooldown(ids.EssenceBreak) ) > GetTimeToNextCharge(ids.ImmolationAura) ) ) ) then
+        if OffCooldown(ids.ImmolationAura) and ( Variables.FsTier342Piece and ( GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not PlayerHasBuff(ids.ImmolationAuraBuff) and ( GetRemainingSpellCooldown(ids.EyeBeam) < 3 and ( not IsSpellKnown(ids.EssenceBreak) or GetPlayerStacks(ids.CycleOfHatredBuff) < 4 ) or IsSpellKnown(ids.EssenceBreak) and GetRemainingSpellCooldown(ids.EssenceBreak) <= 5 or IsSpellKnown(ids.EssenceBreak) and ( ( GetRemainingSpellCooldown(ids.EyeBeam) < 3 and 1 or 0 ) * GetRemainingSpellCooldown(ids.EssenceBreak) ) > GetTimeToNextCharge(ids.ImmolationAura) ) ) ) then
             NGSend("Immolation Aura") return true end
         
         if OffCooldown(ids.ImmolationAura) and ( Variables.FsTier342Piece and ( ( GetRemainingSpellCooldown(ids.EyeBeam) + GetRemainingSpellCooldown(ids.Metamorphosis) ) < 10 ) ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( IsPlayerSpell(ids.AFireInsideTalent) and IsPlayerSpell(ids.BurningWoundTalent) and GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
+        if OffCooldown(ids.ImmolationAura) and ( IsSpellKnown(ids.AFireInsideTalent) and IsSpellKnown(ids.BurningWoundTalent) and GetTimeToFullCharges(ids.ImmolationAura) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.ImmolationAura) and ( FightRemains(60, NearbyRange) < 15 and GetRemainingSpellCooldown(ids.BladeDance) and IsPlayerSpell(ids.RagefireTalent) ) then
+        if OffCooldown(ids.ImmolationAura) and ( FightRemains(60, NearbyRange) < 15 and GetRemainingSpellCooldown(ids.BladeDance) and IsSpellKnown(ids.RagefireTalent) ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( IsPlayerSpell(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or not IsPlayerSpell(ids.InitiativeTalent) ) and ( GetRemainingSpellCooldown(ids.EssenceBreak) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not IsPlayerSpell(ids.EssenceBreakTalent) ) and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( IsSpellKnown(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.EyeBeam) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or not IsSpellKnown(ids.InitiativeTalent) ) and ( GetRemainingSpellCooldown(ids.EssenceBreak) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 3 or not IsSpellKnown(ids.EssenceBreakTalent) ) and ( GetRemainingSpellCooldown(ids.Metamorphosis) > 10 or GetRemainingSpellCooldown(ids.BladeDance) < max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 2 ) ) then
             NGSend("Sigil of Flame") return true end
         
         -- actions.fs+=/eye_beam,if=!talent.essence_break&(!talent.chaotic_transformation|cooldown.metamorphosis.remains<5+3*talent.shattered_destiny|cooldown.metamorphosis.remains>10)&(active_enemies>desired_targets*2|raid_event.adds.in>30-talent.cycle_of_hatred.rank*2.5*buff.cycle_of_hatred.stack)&(!talent.initiative|cooldown.vengeful_retreat.remains>5|cooldown.vengeful_retreat.up&active_enemies>2|talent.shattered_destiny)&(!talent.student_of_suffering|cooldown.sigil_of_flame.remains)
         
-        if OffCooldown(ids.EyeBeam) and ( ( not IsPlayerSpell(ids.InitiativeTalent) or PlayerHasBuff(ids.InitiativeBuff) or GetRemainingSpellCooldown(ids.VengefulRetreat) >= 10 or OffCooldown(ids.Metamorphosis) or IsPlayerSpell(ids.InitiativeTalent) and not IsPlayerSpell(ids.TacticalRetreatTalent) ) and ( GetRemainingSpellCooldown(ids.BladeDance) < 7 ) ) then
+        if OffCooldown(ids.EyeBeam) and ( ( not IsSpellKnown(ids.InitiativeTalent) or PlayerHasBuff(ids.InitiativeBuff) or GetRemainingSpellCooldown(ids.VengefulRetreat) >= 10 or OffCooldown(ids.Metamorphosis) or IsSpellKnown(ids.InitiativeTalent) and not IsSpellKnown(ids.TacticalRetreatTalent) ) and ( GetRemainingSpellCooldown(ids.BladeDance) < 7 ) ) then
             NGSend("Eye Beam") return true end
         
-        if OffCooldown(ids.Felblade) and ( Variables.FsTier342Piece and IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and ( PlayerHasBuff(ids.ImmolationAuraBuff) or GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) <= 0.5 or GetRemainingSpellCooldown(ids.TheHunt) <= 0.5 ) and NearbyEnemies <= 2 ) then
+        if OffCooldown(ids.Felblade) and ( Variables.FsTier342Piece and IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and ( PlayerHasBuff(ids.ImmolationAuraBuff) or GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) <= 0.5 or GetRemainingSpellCooldown(ids.TheHunt) <= 0.5 ) and NearbyEnemies <= 2 ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.FelRush) and ( Variables.FsTier342Piece and IsPlayerSpell(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and ( PlayerHasBuff(ids.ImmolationAuraBuff) or GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or GetRemainingSpellCooldown(ids.TheHunt) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( NearbyEnemies > 2 or GetRemainingSpellCooldown(ids.Felblade) > GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) ) ) then
+        if OffCooldown(ids.FelRush) and ( Variables.FsTier342Piece and IsSpellKnown(ids.InertiaTalent) and PlayerHasBuff(ids.InertiaTriggerBuff) and ( PlayerHasBuff(ids.ImmolationAuraBuff) or GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or GetRemainingSpellCooldown(ids.TheHunt) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( NearbyEnemies > 2 or GetRemainingSpellCooldown(ids.Felblade) > GetRemainingAuraDuration("player", ids.InertiaTriggerBuff) ) ) then
             NGSend("Fel Rush") return true end
         
-        if OffCooldown(ids.EssenceBreak) and ( not IsPlayerSpell(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) > 5 ) then
+        if OffCooldown(ids.EssenceBreak) and ( not IsSpellKnown(ids.InertiaTalent) and GetRemainingSpellCooldown(ids.EyeBeam) > 5 ) then
             NGSend("Essence Break") return true end
         
-        if OffCooldown(ids.BladeDance) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 and ( NearbyEnemies > 3 or IsPlayerSpell(ids.ScreamingBrutalityTalent) and IsPlayerSpell(ids.SoulscarTalent) ) ) then
+        if OffCooldown(ids.BladeDance) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 and ( NearbyEnemies > 3 or IsSpellKnown(ids.ScreamingBrutalityTalent) and IsSpellKnown(ids.SoulscarTalent) ) ) then
             NGSend("Blade Dance") return true end
         
         if OffCooldown(ids.ChaosStrike) and ( Variables.FsTier342Piece and ( PlayerHasBuff(ids.ImmolationAuraBuff) or TargetHasDebuff(ids.EssenceBreak) ) ) then
@@ -1058,7 +1059,7 @@ function()
         if OffCooldown(ids.GlaiveTempest) then
             NGSend("Glaive Tempest") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( NearbyEnemies > 3 and not IsPlayerSpell(ids.StudentOfSufferingTalent) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( NearbyEnemies > 3 and not IsSpellKnown(ids.StudentOfSufferingTalent) ) then
             NGSend("Sigil of Flame") return true end
         
         if OffCooldown(ids.ChaosStrike) and ( TargetHasDebuff(ids.EssenceBreakDebuff) ) then
@@ -1066,29 +1067,29 @@ function()
         
         -- actions.fs+=/sigil_of_flame,if=talent.student_of_suffering&((cooldown.eye_beam.remains<4&cooldown.metamorphosis.remains>20)|(cooldown.eye_beam.remains<gcd.max&cooldown.metamorphosis.up)) actions.fs+=/felblade,if=buff.out_of_range.up&buff.inertia_trigger.down  actions.fs+=/throw_glaive,if=active_enemies>2&talent.furious_throws&(!talent.screaming_brutality|charges=2|full_recharge_time<cooldown.blade_dance.remains) actions.fs+=/immolation_aura,if=talent.a_fire_inside&talent.isolated_prey&talent.flamebound&active_enemies=1&cooldown.eye_beam.remains>=gcd.max
         
-        if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury > 40 + Variables.FuryGen * ( 0.5 / max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( GetRemainingSpellCooldown(ids.VengefulRetreat) >= GetSpellBaseCooldown(ids.Felblade)/1000 + 0.5 and IsPlayerSpell(ids.InertiaTalent) and NearbyEnemies == 1 or not IsPlayerSpell(ids.InertiaTalent) or IsPlayerSpell(ids.ArtOfTheGlaiveTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) ) and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) >= 0.5 + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * (( IsPlayerSpell(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and 1 or 0) and ( not Variables.FsTier342Piece or Variables.FsTier342Piece and not PlayerHasBuff(ids.ImmolationAuraBuff) and not OffCooldown(ids.ImmolationAura) ) ) then
+        if OffCooldown(ids.Felblade) and ( MaxFury - CurrentFury > 40 + Variables.FuryGen * ( 0.5 / max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and ( GetRemainingSpellCooldown(ids.VengefulRetreat) >= GetSpellBaseCooldown(ids.Felblade)/1000 + 0.5 and IsSpellKnown(ids.InertiaTalent) and NearbyEnemies == 1 or not IsSpellKnown(ids.InertiaTalent) or IsSpellKnown(ids.ArtOfTheGlaiveTalent) or GetRemainingSpellCooldown(ids.EssenceBreak) ) and GetRemainingSpellCooldown(ids.Metamorphosis) and GetRemainingSpellCooldown(ids.EyeBeam) >= 0.5 + max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * (( IsSpellKnown(ids.StudentOfSufferingTalent) and GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) ) and 1 or 0) and ( not Variables.FsTier342Piece or Variables.FsTier342Piece and not PlayerHasBuff(ids.ImmolationAuraBuff) and not OffCooldown(ids.ImmolationAura) ) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.ChaosStrike) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 or ( CurrentFury >= 70 - 30 * (( IsPlayerSpell(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) ) and 1 or 0) - (PlayerHasBuff(ids.ChaosTheoryBuff) and 1 or 0) * 20 - Variables.FuryGen ) ) then
+        if OffCooldown(ids.ChaosStrike) and ( GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * 4 or ( CurrentFury >= 70 - 30 * (( IsSpellKnown(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) ) and 1 or 0) - (PlayerHasBuff(ids.ChaosTheoryBuff) and 1 or 0) * 20 - Variables.FuryGen ) ) then
             NGSend("Chaos Strike") return true end
         
         -- actions.fs+=/chaos_strike,if=cooldown.eye_beam.remains>=gcd.max*3|(fury>=70+(talent.untethered_fury*50-20*talent.blind_fury.rank)*hero_tree.felscarred-38*(talent.student_of_suffering&(cooldown.sigil_of_flame.remains<=gcd.max|cooldown.sigil_of_flame.up))-buff.chaos_theory.up*20-variable.fury_gen) actions.fs+=/chaos_strike,if=cooldown.eye_beam.remains>=gcd.max*2|(cooldown.eye_beam.remains>=gcd+gcd.max*(talent.student_of_suffering&(cooldown.sigil_of_flame.remains<=5|cooldown.sigil_of_flame.up))&(fury>=70-20*talent.blind_fury.rank-38*(talent.student_of_suffering&(cooldown.sigil_of_flame.remains<=gcd.max|cooldown.sigil_of_flame.up))-(talent.essence_break&talent.inertia&cooldown.felblade.up*40)-variable.fury_gen*2))
         
-        if OffCooldown(ids.ImmolationAura) and ( not Variables.FsTier342Piece and GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 1 + (IsPlayerSpell(ids.StudentOfSufferingTalent) and 1 or 0) and (( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) and 1 or 0) ) or NearbyEnemies > 2 ) then
+        if OffCooldown(ids.ImmolationAura) and ( not Variables.FsTier342Piece and GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 1 + ( ( IsSpellKnown(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) ) and 1 or 0 ) ) or NearbyEnemies > 2 ) then
             NGSend("Immolation Aura") return true end
         
-        if OffCooldown(ids.Felblade) and ( aura_env.OutOfRange == true and PlayerHasBuff(ids.InertiaTriggerBuff) == false and GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 1 + (IsPlayerSpell(ids.StudentOfSufferingTalent) and 1 or 0) and ( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) ) and 1 or 0 ) ) ) then
+        if OffCooldown(ids.Felblade) and ( aura_env.OutOfRange == true and PlayerHasBuff(ids.InertiaTriggerBuff) == false and GetRemainingSpellCooldown(ids.EyeBeam) >= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) * ( 1 + ( ( IsSpellKnown(ids.StudentOfSufferingTalent) and ( GetRemainingSpellCooldown(ids.SigilOfFlame) <= max(1.5/(1+0.01*UnitSpellHaste("player")), 0.75) or OffCooldown(ids.SigilOfFlame) ) ) and 1 or 0 ) ) ) then
             NGSend("Felblade") return true end
         
-        if OffCooldown(ids.SigilOfFlame) and ( aura_env.OutOfRange == true and TargetHasDebuff(ids.EssenceBreakDebuff) == false and not IsPlayerSpell(ids.StudentOfSufferingTalent) and ( not IsPlayerSpell(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > 25 ) ) then
+        if OffCooldown(ids.SigilOfFlame) and ( aura_env.OutOfRange == true and TargetHasDebuff(ids.EssenceBreakDebuff) == false and not IsSpellKnown(ids.StudentOfSufferingTalent) and ( not IsSpellKnown(ids.FelBarrageTalent) or GetRemainingSpellCooldown(ids.FelBarrage) > 25 ) ) then
             NGSend("Sigil of Flame") return true end
         
         -- actions.fs+=/felblade,if=cooldown.blade_dance.remains>=0.5&cooldown.blade_dance.remains<gcd.max actions.fs+=/demons_bite
         
-        if OffCooldown(ids.DemonsBite) and not IsPlayerSpell(ids.DemonBladesTalent) then
+        if OffCooldown(ids.DemonsBite) and not IsSpellKnown(ids.DemonBladesTalent) then
             NGSend("Demons Bite") return true end
         
-        if OffCooldown(ids.ThrowGlaive) and ( GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsPlayerSpell(ids.FuriousThrowsTalent) ) then
+        if OffCooldown(ids.ThrowGlaive) and ( GetTimeToNextCharge(ids.ThrowGlaive) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.ThrowGlaive) > 1.01 ) and aura_env.OutOfRange == true and NearbyEnemies > 1 and not IsSpellKnown(ids.FuriousThrowsTalent) ) then
             NGSend("Throw Glaive") return true end
         
         if OffCooldown(ids.FelRush) and ( PlayerHasBuff(ids.UnboundChaosBuff) == false and GetTimeToNextCharge(ids.FelRush) < GetRemainingSpellCooldown(ids.EyeBeam) and TargetHasDebuff(ids.EssenceBreakDebuff) == false and ( GetRemainingSpellCooldown(ids.EyeBeam) > 8 or GetSpellChargesFractional(ids.FelRush) > 1.01 ) and NearbyEnemies > 1 ) then
@@ -1096,10 +1097,10 @@ function()
     end
     
     -- Separate actionlists for each hero tree
-    if IsPlayerSpell(ids.ArtOfTheGlaiveTalent) then
+    if IsSpellKnown(ids.ArtOfTheGlaiveTalent) then
         if Ar() then return true end end
     
-    if IsPlayerSpell(ids.DemonsurgeTalent) then
+    if IsSpellKnown(ids.DemonsurgeTalent) then
         if Fs() then return true end end
     
     NGSend("Clear")
