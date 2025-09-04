@@ -13,15 +13,26 @@ env.test = function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
             aura_env.DisorientingStrikesCount = 2
         elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
             aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
-        elseif spellId == aura_env.ids.CoupDeGrace and GetTime() - aura_env.PrevCoupCast > 5 and WeakAuras.GetNumSetItemsEquipped(1928) and IsPlayerSpell(aura_env.ids.CoupDeGraceTalent) then
+        -- Kichi fix for NG mistake
+        elseif spellId == aura_env.ids.CoupDeGrace and (aura_env.PrevCoupCast == 0 or GetTime() - aura_env.PrevCoupCast > 5) and WeakAuras.GetNumSetItemsEquipped(1928)>=4 and IsPlayerSpell(aura_env.ids.CoupDeGraceTalent) then
             aura_env.HasTww34PcTricksterBuff = true
+            aura_env.PrevCoupCast = GetTime()
         elseif spellId == aura_env.ids.CoupDeGrace then
             aura_env.HasTww34PcTricksterBuff = false
             aura_env.PrevCoupCast = GetTime()
         end
-        
+    
         if spellId == aura_env.ids.KillingSpree then
             aura_env.LastKillingSpree = GetTime()
         end
+
+        -- Kichi add
+        if spellId == aura_env.ids.CoupDeGrace then
+            aura_env.LastCoupDeGrace = GetTime()
+        end
+        if GetTime() - aura_env.PrevCoupCast > 5 then
+            aura_env.HasTww34PcTricksterBuff = false
+        end
+    
     end
 end

@@ -80,7 +80,7 @@ function(event, _, subEvent, _, sourceGUID, _, _, _, targetGUID, _, _, _, spellI
         end
         aura_env.lastCast = timestamp
         usable, _ = C_Spell.IsSpellUsable(61304)
-        if not usable then
+        if not usable or spellID == 51690 then
             aura_env.stunInLastCast = true
         else aura_env.stunInLastCast = false
         end

@@ -45,6 +45,7 @@ env.test = function()
     ---- Setup Data -----------------------------------------------------------------------------------------------    
     local Variables = {}
     local SetPieces = WeakAuras.GetNumSetItemsEquipped(1928)
+    -- local SetPieces = 4
     local OldSetPieces = WeakAuras.GetNumSetItemsEquipped(1876)
     local CurrentComboPoints = UnitPower("player", Enum.PowerType.ComboPoints)
     local MaxComboPoints = UnitPowerMax("player", Enum.PowerType.ComboPoints)
@@ -265,7 +266,9 @@ env.test = function()
         end
         
         -- Trickster builds with Killing Spree should Vanish if Killing Spree is not up soon. With TWW3 Trickster, attempt to align Vanish with a recently used Coup de Grace.
-        if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastKillingSpree) <= 10 or not (SetPieces >= 4) ) then
+        -- if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastKillingSpree) <= 10 or not (SetPieces >= 4) ) then
+        -- Kichi fix for: (CurrentTime - aura_env.LastCoupDeGrace)
+        if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastCoupDeGrace) <= 10 or not (SetPieces >= 4) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")

@@ -10,7 +10,8 @@ aura_env.RTBContainerExpires = 0
 aura_env.DisorientingStrikesCount = 0
 aura_env.HasTww34PcTricksterBuff = false
 aura_env.LastKillingSpree = 0
-aura_env.PrevCoupCast = 99999999
+aura_env.PrevCoupCast = 0 -- Kichi fixed
+aura_env.LastCoupDeGrace = 0 -- Kichi add
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
@@ -366,6 +367,7 @@ function()
     ---- Setup Data -----------------------------------------------------------------------------------------------    
     local Variables = {}
     local SetPieces = WeakAuras.GetNumSetItemsEquipped(1928)
+    -- local SetPieces = 4
     local OldSetPieces = WeakAuras.GetNumSetItemsEquipped(1876)
     local CurrentComboPoints = UnitPower("player", Enum.PowerType.ComboPoints)
     local MaxComboPoints = UnitPowerMax("player", Enum.PowerType.ComboPoints)
@@ -586,7 +588,9 @@ function()
         end
         
         -- Trickster builds with Killing Spree should Vanish if Killing Spree is not up soon. With TWW3 Trickster, attempt to align Vanish with a recently used Coup de Grace.
-        if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastKillingSpree) <= 10 or not (SetPieces >= 4) ) then
+        -- if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastKillingSpree) <= 10 or not (SetPieces >= 4) ) then
+        -- Kichi fix for: (CurrentTime - aura_env.LastCoupDeGrace)
+        if OffCooldown(ids.Vanish) and ( IsSpellKnown(ids.UnseenBladeTalent) and IsSpellKnown(ids.KillingSpreeTalent) and GetRemainingSpellCooldown(ids.KillingSpree) > 30 and (CurrentTime - aura_env.LastCoupDeGrace) <= 10 or not (SetPieces >= 4) ) then
             -- KTrig("Vanish") return true end
             if aura_env.config[tostring(ids.Vanish)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Vanish")
@@ -728,16 +732,27 @@ function(_, _, _, _, sourceGUID, _, _, _, _, _, _, _, spellId, ...)
             aura_env.DisorientingStrikesCount = 2
         elseif spellId == aura_env.ids.SinisterStrike or spellId == aura_env.ids.Ambush then
             aura_env.DisorientingStrikesCount = max(aura_env.DisorientingStrikesCount - 1, 0)
-        elseif spellId == aura_env.ids.CoupDeGrace and GetTime() - aura_env.PrevCoupCast > 5 and WeakAuras.GetNumSetItemsEquipped(1928) and IsPlayerSpell(aura_env.ids.CoupDeGraceTalent) then
+        -- Kichi fix for NG mistake
+        elseif spellId == aura_env.ids.CoupDeGrace and (aura_env.PrevCoupCast == 0 or GetTime() - aura_env.PrevCoupCast > 5) and WeakAuras.GetNumSetItemsEquipped(1928)>=4 and IsPlayerSpell(aura_env.ids.CoupDeGraceTalent) then
             aura_env.HasTww34PcTricksterBuff = true
+            aura_env.PrevCoupCast = GetTime()
         elseif spellId == aura_env.ids.CoupDeGrace then
             aura_env.HasTww34PcTricksterBuff = false
             aura_env.PrevCoupCast = GetTime()
         end
-        
+    
         if spellId == aura_env.ids.KillingSpree then
             aura_env.LastKillingSpree = GetTime()
         end
+
+        -- Kichi add
+        if spellId == aura_env.ids.CoupDeGrace then
+            aura_env.LastCoupDeGrace = GetTime()
+        end
+        if GetTime() - aura_env.PrevCoupCast > 5 then
+            aura_env.HasTww34PcTricksterBuff = false
+        end
+    
     end
 end
 

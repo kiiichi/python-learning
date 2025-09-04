@@ -4,7 +4,8 @@ aura_env.RTBContainerExpires = 0
 aura_env.DisorientingStrikesCount = 0
 aura_env.HasTww34PcTricksterBuff = false
 aura_env.LastKillingSpree = 0
-aura_env.PrevCoupCast = 99999999
+aura_env.PrevCoupCast = 0 -- Kichi fixed
+aura_env.LastCoupDeGrace = 0 -- Kichi add
 
 ---- Spell IDs ------------------------------------------------------------------------------------------------
 ---@class idsTable
