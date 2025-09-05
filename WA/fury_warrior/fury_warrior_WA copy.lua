@@ -281,6 +281,12 @@ aura_env.KTrigCD = function(Name, customData, ...)
     aura_env.FlagKTrigCD = false
 end
 
+aura_env.KTrigTinyCD = function(Name, customData, ...)
+    WeakAuras.ScanEvents("K_TRIGED_CD", Name, customData, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigCD = false
+end
+
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ----------Trigger1----------------------------------------------------------------------------------------------------
@@ -317,6 +323,7 @@ function()
     -- Kichi --
     local KTrig = aura_env.KTrig
     local KTrigCD = aura_env.KTrigCD
+    local KTrigTinyCD = aura_env.KTrigTinyCD
     aura_env.FlagKTrigCD = true
     local FullGCD = aura_env.FullGCD
     

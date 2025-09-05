@@ -1156,8 +1156,8 @@ function()
         if OffCooldown(ids.ThrowGlaive) and FindSpellOverrideByID(ids.ThrowGlaive) == ids.ReaversGlaive and ( FightRemains(60, 40) < aura_env.config["SavingReaversGlaiveTime"] and not aura_env.config["SavingReaversGlaive"]==true or FightRemains(60, 40) >= aura_env.config["SavingReaversGlaiveTime"] ) and ( PlayerHasBuff(ids.GlaiveFlurryBuff) == false and PlayerHasBuff(ids.RendingStrikeBuff) == false and (GetRemainingAuraDuration("player", ids.ThrillOfTheFightDamageBuff) < 4 or GetRemainingSpellCooldown(ids.BladeDance) <= 2*FullGCD()) and ( PlayerHasBuff(ids.ThrillOfTheFightDamageBuff) or not ( CurrentTime - aura_env.LastDeathSweep < 1 ) or not Variables.RgInc ) and NearbyEnemies >= 2 and not TargetHasDebuff(ids.EssenceBreakDebuff) or FightRemains(60, 40) <= 10 ) then
             -- KTrig("Reavers Glaive") return true end
             if aura_env.config[tostring(ids.ThrowGlaive)] == true and aura_env.FlagKTrigCD then
-                if FightRemains(60, 40) >= 10 then KTrigCD("Reavers Glaive") end
-                if FightRemains(60, 40) < 10 then KTrigCD("Reavers Glaive", "Not Good") end
+                if FightRemains(60, 40) >= aura_env.config["SavingReaversGlaiveTime"] then KTrigCD("Reavers Glaive") end
+                if FightRemains(60, 40) < aura_env.config["SavingReaversGlaiveTime"] then KTrigCD("Reavers Glaive", "Not Good") end
             elseif aura_env.config[tostring(ids.ThrowGlaive)] ~= true then
                 KTrig("Reavers Glaive")
                 return true
