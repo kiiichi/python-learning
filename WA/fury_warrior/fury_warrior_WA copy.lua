@@ -86,12 +86,6 @@ aura_env.KTrig = function(Name, ...)
     aura_env.FlagKTrigCD = flase
 end
 
-aura_env.KTrigCD = function(Name, ...)
-    WeakAuras.ScanEvents("K_TRIGED_CD", Name, ...)
-    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
-    aura_env.FlagKTrigCD = false
-end
-
 aura_env.OffCooldown = function(spellID)
     if spellID == nil then
         local c = a < b -- Throw an error
@@ -274,6 +268,19 @@ aura_env.FullGCD = function()
     return FullGCDnum
 end
 
+aura_env.KTrigCD = function(Name, customData, ...)
+    if customData == nil then
+        if aura_env.config["SavingCD"] == false and aura_env.FightRemains(60, 40) <= aura_env.config["SavingCDTime"] then
+            customData = "Saving" 
+        elseif aura_env.config["SavingCD"] == true and aura_env.FightRemains(60, 40) <= aura_env.config["SavingCDTime"] then
+            Name = "Clear"
+        end
+    end
+    WeakAuras.ScanEvents("K_TRIGED_CD", Name, customData, ...)
+    WeakAuras.ScanEvents("K_OUT_OF_RANGE", aura_env.OutOfRange)
+    aura_env.FlagKTrigCD = false
+end
+
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 ----------Trigger1----------------------------------------------------------------------------------------------------
@@ -367,29 +374,41 @@ function()
         ExtraGlows.Avatar = true
     end
     
-    WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
-    
-
     -- Kichi --
-    if GetPlayerStacks(ids.MeatCleaverBuff) == 1 then 
-        local ListenLastCastInMeatCleaverBuff = aura_env.PrevCast
-    else local ListenLastCastInMeatCleaverBuff = 0
+    if aura_env.config["SavingCD"] == false and FightRemains(60, 40) <= aura_env.config["SavingCDTime"] then
+        WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, "Saving")
+    elseif aura_env.config["SavingCD"] == true and FightRemains(60, 40) <= aura_env.config["SavingCDTime"] then
+        WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
+    else WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
     end
 
-    NoMeatCleaverBuff = GetPlayerStacks(ids.MeatCleaverBuff) == 0 or GetPlayerStacks(ids.MeatCleaverBuff) == 1 and ( ListenLastCastInMeatCleaverBuff == ids.Execute or ListenLastCastInMeatCleaverBuff == ids.Onslaught or ListenLastCastInMeatCleaverBuff == ids.Rampage or ListenLastCastInMeatCleaverBuff == ids.RagingBlow or ListenLastCastInMeatCleaverBuff == ids.Bloodthirst )
-    print(NoMeatCleaverBuff)
 
+    -- Kichi --
+    local NoMeatCleaverBuff = GetPlayerStacks(ids.MeatCleaverBuff) == 0 or GetPlayerStacks(ids.MeatCleaverBuff) == 1 and ( aura_env.ListenSpellInMeatCleaver == ids.Execute or aura_env.ListenSpellInMeatCleaver == ids.Onslaught or aura_env.ListenSpellInMeatCleaver == ids.Rampage or aura_env.ListenSpellInMeatCleaver == ids.RagingBlow or aura_env.ListenSpellInMeatCleaver == ids.Bloodthirst )
 
     ---- Normal GCDs -------------------------------------------------------------------------------------------
     
     local Slayer = function()
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( PlayerHasBuff(ids.AshenJuggernautBuff) and GetRemainingAuraDuration("player", ids.AshenJuggernautBuff) <= WeakAuras.gcdDuration() ) then
+        -- Kichi replace WeakAuras.gcdDuration() to FullGCD()
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( PlayerHasBuff(ids.AshenJuggernautBuff) and GetRemainingAuraDuration("player", ids.AshenJuggernautBuff) < FullGCD() ) then
             KTrig("Execute") return true end
 
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetRemainingAuraDuration("player", ids.SuddenDeathBuff) < 2 and not Variables.ExecutePhase ) then
             KTrig("Execute") return true end
 
-        if OffCooldown(ids.ThunderousRoar) and ( NearbyEnemies > 1 ) then
+        -- Kichi add for quick 4 pc buff
+        if OffCooldown(ids.Bladestorm) and ( PlayerHasBuff(ids.EnrageBuff) and ( IsPlayerSpell(ids.RecklessAbandonTalent) and GetRemainingSpellCooldown(ids.Avatar) >= 24 or IsPlayerSpell(ids.AngerManagementTalent) and GetRemainingSpellCooldown(ids.Recklessness) >= 15 and ( PlayerHasBuff(ids.Avatar) or GetRemainingSpellCooldown(ids.Avatar) >= 8 ) ) ) then
+            -- KTrig("Bladestorm") return true end
+            if aura_env.config[tostring(ids.Bladestorm)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Bladestorm")
+            elseif aura_env.config[tostring(ids.Bladestorm)] ~= true then
+                KTrig("Bladestorm")
+                return true
+            end
+        end
+
+        -- Kichi update for simc 9.3 update
+        if OffCooldown(ids.ThunderousRoar) and ( NearbyEnemies > 1 and PlayerHasBuff(ids.EnrageBuff) ) then
             -- KTrig("Thunderous Roar") return true end
             if aura_env.config[tostring(ids.ThunderousRoar)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Thunderous Roar")
@@ -409,6 +428,18 @@ function()
             end
         end
 
+        -- Kichi update for simc 9.3 update
+        -- actions.slayer+=/odyns_fury,if=active_enemies>1&talent.titanic_rage&buff.meat_cleaver.stack=0
+        if OffCooldown(ids.OdynsFury) and NearbyEnemies > 1 and IsPlayerSpell(ids.TitanicRageTalent) and NoMeatCleaverBuff then
+            -- KTrig("Odyns Fury") return true end
+            if aura_env.config[tostring(ids.OdynsFury)] == true and aura_env.FlagKTrigCD then
+                KTrigCD("Odyns Fury")
+            elseif aura_env.config[tostring(ids.OdynsFury)] ~= true then
+                KTrig("Odyns Fury")
+                return true
+            end
+        end
+
         if OffCooldown(ids.Bladestorm) and ( PlayerHasBuff(ids.EnrageBuff) and ( IsPlayerSpell(ids.RecklessAbandonTalent) and GetRemainingSpellCooldown(ids.Avatar) >= 24 or IsPlayerSpell(ids.AngerManagementTalent) and GetRemainingSpellCooldown(ids.Recklessness) >= 15 and ( PlayerHasBuff(ids.Avatar) or GetRemainingSpellCooldown(ids.Avatar) >= 8 ) ) ) then
             -- KTrig("Bladestorm") return true end
             if aura_env.config[tostring(ids.Bladestorm)] == true and aura_env.FlagKTrigCD then
@@ -419,13 +450,15 @@ function()
             end
         end
         
-        if OffCooldown(ids.Whirlwind) and ( NearbyEnemies >= 2 and IsPlayerSpell(ids.MeatCleaverTalent) and GetPlayerStacks(ids.MeatCleaverBuff) == 0 ) then
+        -- Kichi change "GetPlayerStacks(ids.MeatCleaverBuff) == 0" to "NoMeatCleaverBuff" for fast prediction
+        if OffCooldown(ids.Whirlwind) and ( NearbyEnemies >= 2 and IsPlayerSpell(ids.MeatCleaverTalent) and NoMeatCleaverBuff ) then
             KTrig("Whirlwind") return true end
 
         if OffCooldown(ids.Onslaught) and ( IsPlayerSpell(ids.TenderizeTalent) and PlayerHasBuff(ids.BrutalFinishBuff) ) then
             KTrig("Onslaught") return true end
 
-        if OffCooldown(ids.Rampage) and ( GetRemainingAuraDuration("player", ids.EnrageBuff) < WeakAuras.gcdDuration() ) then
+        -- Kichi replace WeakAuras.gcdDuration() to FullGCD()
+        if OffCooldown(ids.Rampage) and ( GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Rampage") return true end
 
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) ) then
@@ -434,7 +467,8 @@ function()
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetTargetStacks(ids.MarkedForExecutionDebuff) > 1 and PlayerHasBuff(ids.EnrageBuff) ) then
             KTrig("Execute") return true end
         
-        if OffCooldown(ids.OdynsFury) and ( NearbyEnemies > 1 and ( PlayerHasBuff(ids.EnrageBuff) or IsPlayerSpell(ids.TitanicRageTalent) ) ) then
+        -- Kichi update for simc 9.3 update
+        if OffCooldown(ids.OdynsFury) and ( NearbyEnemies > 1 and ( not IsPlayerSpell(ids.TitanicRageTalent) ) ) then
             -- KTrig("Odyns Fury") return true end
             if aura_env.config[tostring(ids.OdynsFury)] == true and aura_env.FlagKTrigCD then
                 KTrigCD("Odyns Fury")
@@ -447,19 +481,22 @@ function()
         if OffCooldown(ids.RagingBlow) and FindSpellOverrideByID(ids.RagingBlow) == ids.CrushingBlow and ( C_Spell.GetSpellCharges(ids.RagingBlow).currentCharges == 2 or PlayerHasBuff(ids.BrutalFinishBuff) and ( not TargetHasDebuff(ids.ChampionsMightDebuff) or TargetHasDebuff(ids.ChampionsMightDebuff) and GetRemainingDebuffDuration("target", ids.ChampionsMightDebuff) > WeakAuras.gcdDuration() ) ) then
             KTrig("Crushing Blow") return true end
         
-        if OffCooldown(ids.Bloodthirst) and FindSpellOverrideByID(ids.Bloodthirst) == ids.Bloodbath and ( GetPlayerStacks(ids.BloodcrazeBuff) >= 1 or ( IsPlayerSpell(ids.UproarTalent) and GetRemainingDebuffDuration("target", ids.BloodbathDotDebuff) < 40 and IsPlayerSpell(ids.BloodborneTalent) ) or PlayerHasBuff(ids.EnrageBuff) and GetRemainingAuraDuration("player", ids.EnrageBuff) < WeakAuras.gcdDuration() ) then
+        -- Kichi replace WeakAuras.gcdDuration() to FullGCD()
+        if OffCooldown(ids.Bloodthirst) and FindSpellOverrideByID(ids.Bloodthirst) == ids.Bloodbath and ( GetPlayerStacks(ids.BloodcrazeBuff) >= 1 or ( IsPlayerSpell(ids.UproarTalent) and GetRemainingDebuffDuration("target", ids.BloodbathDotDebuff) < 40 and IsPlayerSpell(ids.BloodborneTalent) ) or PlayerHasBuff(ids.EnrageBuff) and GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Bloodbath") return true end
         
-        if OffCooldown(ids.RagingBlow) and ( PlayerHasBuff(ids.BrutalFinishBuff) and GetPlayerStacks(ids.SlaughteringStrikesBuff) < 5 and ( not TargetHasDebuff(ids.ChampionsMightDebuff) or TargetHasDebuff(ids.ChampionsMightDebuff) and GetRemainingDebuffDuration("target", ids.ChampionsMightDebuff) > WeakAuras.gcdDuration() ) ) then
+        if OffCooldown(ids.RagingBlow) and ( NearbyEnemies>=8 and SetPieces>=4 or PlayerHasBuff(ids.BrutalFinishBuff) and GetPlayerStacks(ids.SlaughteringStrikesBuff) < 5 and ( not TargetHasDebuff(ids.ChampionsMightDebuff) or TargetHasDebuff(ids.ChampionsMightDebuff) and GetRemainingDebuffDuration("target", ids.ChampionsMightDebuff) > WeakAuras.gcdDuration() ) ) then
             KTrig("Raging Blow") return true end
         
         if OffCooldown(ids.Rampage) and ( CurrentRage > 115 ) then
             KTrig("Rampage") return true end
 
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( Variables.ExecutePhase and TargetHasDebuff(ids.MarkedForExecutionDebuff) and PlayerHasBuff(ids.EnrageBuff) ) then
+        -- Kichi update for simc 9.3 update
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( Variables.ExecutePhase and TargetHasDebuff(ids.MarkedForExecutionDebuff) and PlayerHasBuff(ids.EnrageBuff) and NearbyEnemies > 1 ) then
             KTrig("Execute") return true end
 
-        if OffCooldown(ids.Bloodthirst) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ViciousContemptTalent) and PlayerHasBuff(ids.BrutalFinishBuff) and PlayerHasBuff(ids.EnrageBuff) or NearbyEnemies >= 6 ) then
+        -- Kichi update for simc 9.3 update
+        if OffCooldown(ids.Bloodthirst) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ViciousContemptTalent) and PlayerHasBuff(ids.BrutalFinishBuff) and PlayerHasBuff(ids.EnrageBuff) and GetPlayerStacks(ids.BloodcrazeBuff) >= 5 and NearbyEnemies == 1 or not (SetPieces >= 4) and NearbyEnemies > 4 ) then
             KTrig("Bloodthirst") return true end
 
         if OffCooldown(ids.RagingBlow) and FindSpellOverrideByID(ids.RagingBlow) == ids.CrushingBlow then
@@ -471,7 +508,7 @@ function()
         if OffCooldown(ids.RagingBlow) and ( PlayerHasBuff(ids.OpportunistBuff) ) then
             KTrig("Raging Blow") return true end
         
-        if OffCooldown(ids.Bloodthirst) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ViciousContemptTalent) ) then
+        if OffCooldown(ids.Bloodthirst) and ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsPlayerSpell(ids.ViciousContemptTalent) and GetPlayerStacks(ids.BloodcrazeBuff) >= 4 ) then
             KTrig("Bloodthirst") return true end
         
         if OffCooldown(ids.RagingBlow) and ( GetSpellChargesFractional(ids.RagingBlow) == 2 ) then
@@ -553,16 +590,19 @@ function()
             end
         end
         
-        if OffCooldown(ids.ThunderClap) and ( GetPlayerStacks(ids.MeatCleaverBuff) == 0 and IsPlayerSpell(ids.MeatCleaverTalent) and NearbyEnemies >= 2 ) then
+        -- Kichi change "GetPlayerStacks(ids.MeatCleaverBuff) == 0" to "NoMeatCleaverBuff" for fast prediction
+        if OffCooldown(ids.ThunderClap) and ( NoMeatCleaverBuff and IsPlayerSpell(ids.MeatCleaverTalent) and NearbyEnemies >= 2 ) then
             KTrig("Thunder Clap") return true end
         
         if GetRemainingSpellCooldown(ids.ThunderClap) == 0 and aura_env.config[tostring(ids.ThunderClap)] and FindSpellOverrideByID(ids.ThunderClap) == ids.ThunderBlast and ( PlayerHasBuff(ids.EnrageBuff) and IsPlayerSpell(ids.MeatCleaverTalent) ) then
             KTrig("Thunder Blast") return true end
 
-        if OffCooldown(ids.Rampage) and ( not PlayerHasBuff(ids.EnrageBuff) or ( IsPlayerSpell(ids.Bladestorm) and GetRemainingSpellCooldown(ids.Bladestorm) <= WeakAuras.gcdDuration() and not TargetHasDebuff(ids.ChampionsMightDebuff) ) ) then
+        -- Kichi replace WeakAuras.gcdDuration() to FullGCD()
+        if OffCooldown(ids.Rampage) and ( not PlayerHasBuff(ids.EnrageBuff) or ( IsPlayerSpell(ids.Bladestorm) and GetRemainingSpellCooldown(ids.Bladestorm) <= FullGCD() and not TargetHasDebuff(ids.ChampionsMightDebuff) ) ) then
             KTrig("Rampage") return true end
         
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( IsPlayerSpell(ids.AshenJuggernautTalent) and GetRemainingAuraDuration("player", ids.AshenJuggernautBuff) <= WeakAuras.gcdDuration() ) then
+        -- Kichi replace WeakAuras.gcdDuration() to FullGCD()
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( IsPlayerSpell(ids.AshenJuggernautTalent) and GetRemainingAuraDuration("player", ids.AshenJuggernautBuff) <= FullGCD() ) then
             KTrig("Execute") return true end
         
         if OffCooldown(ids.Bladestorm) and ( PlayerHasBuff(ids.EnrageBuff) and IsPlayerSpell(ids.UnhingedTalent) ) then
@@ -676,14 +716,21 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
 
--- CLEU:SPELL_CAST_SUCCESS
+-- Kichi change for fast reaction
 
-function( _,_,_,_,sourceGUID,_,_,_,_,_,_,_,spellID,_,_,_,_)
-    if sourceGUID ~= UnitGUID("player") then return false end
+-- UNIT_SPELLCAST_SENT
+
+function( _,unit,_,_,spellID)
+    if unit ~= "player" then return false end
     aura_env.PrevCast = spellID
+
+    if aura_env.GetStacks("player", aura_env.ids.MeatCleaverBuff) == 1 then
+        aura_env.ListenSpellInMeatCleaver = spellID
+    else aura_env.ListenSpellInMeatCleaver = 0
+    end
+
     return
 end
-
 
 ----------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------
