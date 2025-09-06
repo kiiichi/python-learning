@@ -376,7 +376,8 @@ function()
     ---- Variables -------------------------------------------------------------------------------------------
     
     Variables.SoulBurst = aura_env.config["SoulBurstSwitch"]
-    if SetPieces >= 4 and IsSpellKnown(ids.SpellfireSpheresTalent) and IsSpellKnown(ids.ResonanceTalent) and not IsSpellKnown(ids.MagisSparkTalent) and ( NearbyEnemies >= 3 ) and Variables.SoulBurst then
+    if SetPieces >= 4 and IsSpellKnown(ids.SpellfireSpheresTalent) and IsSpellKnown(ids.ResonanceTalent) and not IsSpellKnown(ids.MagisSparkTalent) and ( NearbyEnemies >= 3 ) and Variables.SoulBurst 
+    and not (aura_env.config["SoulBurstSwitchBack"] == true and GetRemainingSpellCooldown(ids.Evocation)>80 ) then
         Variables.SoulCd = true
     else
         Variables.SoulCd = false
@@ -735,13 +736,15 @@ function()
         if OffCooldown(ids.ArcaneBarrage) and ( ( NearbyEnemies > 2 or ( NearbyEnemies > 1 and (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) ) ) and GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax and CurrentArcaneCharges == 4 and GetRemainingSpellCooldown(ids.TouchOfTheMagi) > GcdMax * 6 and ( not aura_env.NeedArcaneBlastSpark or not IsSpellKnown(ids.MagisSparkTalent) ) and (NetherPrecisionStacks > 0) and ( IsSpellKnown(ids.HighVoltageTalent) or ( ( not PlayerHasBuff(ids.LeydrinkerBuff) or ( (UnitHealth("target")/UnitHealthMax("target")*100) < 35 and IsSpellKnown(ids.ArcaneBombardmentTalent) and NearbyEnemies >= 4 and IsSpellKnown(ids.ResonanceTalent) ) ) and NetherPrecisionStacks == 2 ) or ( NetherPrecisionStacks == 1 and not PlayerHasBuff(ids.ClearcastingBuff) ) ) ) then
             KTrig("Arcane Barrage") return true end
         
+        -- Kichi add: () for NG wrong
         -- Missiles to recoup Charges with High Voltage or maintain Nether Precision and combine it with other Barrage buffs.
-        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or ( NetherPrecisionStacks == 0 and GetPlayerStacks(ids.ClearcastingBuff) > 1 or GetPlayerStacks(ids.SpellfireSpheresBuff) == 6 or PlayerHasBuff(ids.BurdenOfPowerBuff) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) ) ) ) then
+        if OffCooldown(ids.ArcaneMissiles) and not IsChanneling(ids.ArcaneMissiles) and ( PlayerHasBuff(ids.ClearcastingBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and CurrentArcaneCharges < 4 ) or ( NetherPrecisionStacks == 0 and (GetPlayerStacks(ids.ClearcastingBuff) > 1 or GetPlayerStacks(ids.SpellfireSpheresBuff) == 6 or PlayerHasBuff(ids.BurdenOfPowerBuff) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff)) ) ) ) then
             KTrig("Arcane Missiles") return true end
         
-        -- Barrage with Burden if 2-4 targets and you have a way to recoup Charges, however skip this is you have Bauble and don't have High Voltage.
-        if OffCooldown(ids.ArcaneBarrage) and ( ( CurrentArcaneCharges == 4 and NearbyEnemies > 1 and NearbyEnemies < 5 and PlayerHasBuff(ids.BurdenOfPowerBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) ) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) or ( GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax or C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges > 0 ) ) ) and ( not IsSpellKnown(ids.ConsortiumsBaubleTalent) or IsSpellKnown(ids.HighVoltageTalent) ) ) then
-            KTrig("Arcane Barrage") return true end
+        -- Kichi remove for same with simc
+        -- -- Barrage with Burden if 2-4 targets and you have a way to recoup Charges, however skip this is you have Bauble and don't have High Voltage.
+        -- if OffCooldown(ids.ArcaneBarrage) and ( ( CurrentArcaneCharges == 4 and NearbyEnemies > 1 and NearbyEnemies < 5 and PlayerHasBuff(ids.BurdenOfPowerBuff) and ( ( IsSpellKnown(ids.HighVoltageTalent) and PlayerHasBuff(ids.ClearcastingBuff) ) or PlayerHasBuff(ids.GloriousIncandescenceBuff) or PlayerHasBuff(ids.IntuitionBuff) or ( GetRemainingSpellCooldown(ids.ArcaneOrb) < GcdMax or C_Spell.GetSpellCharges(ids.ArcaneOrb).currentCharges > 0 ) ) ) and ( not IsSpellKnown(ids.ConsortiumsBaubleTalent) or IsSpellKnown(ids.HighVoltageTalent) ) ) then
+        --     KTrig("Arcane Barrage") return true end
         
         -- Arcane Orb to recover Charges quickly if below 3.
         if OffCooldown(ids.ArcaneOrb) and ( CurrentArcaneCharges < 3 ) then

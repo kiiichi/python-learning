@@ -28,6 +28,7 @@ env.test = function()
     -- Kichi --
     local KTrig = aura_env.KTrig
     local KTrigCD = aura_env.KTrigCD
+    local KTrigTinyCD = aura_env.KTrigTinyCD
     aura_env.FlagKTrigCD = true
     local FullGCD = aura_env.FullGCD
     
@@ -37,7 +38,9 @@ env.test = function()
     local Variables = {}
     
     ---- Setup Data -----------------------------------------------------------------------------------------------
-    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1879)
+    -- Kichi fix for NG wrong
+    local SetPieces = WeakAuras.GetNumSetItemsEquipped(1931)
+    -- local SetPieces = WeakAuras.GetNumSetItemsEquipped(1879)
     
     local CurrentRage = UnitPower("player", Enum.PowerType.Rage)
     local MaxRage = UnitPowerMax("player", Enum.PowerType.Rage)
@@ -92,7 +95,6 @@ env.test = function()
         WeakAuras.ScanEvents("K_TRIGED_EXTRA", {})
     else WeakAuras.ScanEvents("K_TRIGED_EXTRA", ExtraGlows, nil)
     end
-
 
     -- Kichi --
     local NoMeatCleaverBuff = GetPlayerStacks(ids.MeatCleaverBuff) == 0 or GetPlayerStacks(ids.MeatCleaverBuff) == 1 and ( aura_env.ListenSpellInMeatCleaver == ids.Execute or aura_env.ListenSpellInMeatCleaver == ids.Onslaught or aura_env.ListenSpellInMeatCleaver == ids.Rampage or aura_env.ListenSpellInMeatCleaver == ids.RagingBlow or aura_env.ListenSpellInMeatCleaver == ids.Bloodthirst )
@@ -172,10 +174,10 @@ env.test = function()
         if OffCooldown(ids.Rampage) and ( GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Rampage") return true end
 
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) and not PlayerHasBuff(ids.BrutalFinishBuff) ) then
             KTrig("Execute") return true end
         
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetTargetStacks(ids.MarkedForExecutionDebuff) > 1 and PlayerHasBuff(ids.EnrageBuff) ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetTargetStacks(ids.MarkedForExecutionDebuff) >= aura_env.config["MarkedForExecutionDebuffStacks"] and PlayerHasBuff(ids.EnrageBuff) ) then
             KTrig("Execute") return true end
         
         -- Kichi update for simc 9.3 update
