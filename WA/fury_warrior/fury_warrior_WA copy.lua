@@ -401,7 +401,7 @@ function()
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( PlayerHasBuff(ids.AshenJuggernautBuff) and GetRemainingAuraDuration("player", ids.AshenJuggernautBuff) < FullGCD() ) then
             KTrig("Execute") return true end
 
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetRemainingAuraDuration("player", ids.SuddenDeathBuff) < 2 and not Variables.ExecutePhase ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( PlayerHasBuff(ids.SuddenDeathBuff) and GetRemainingAuraDuration("player", ids.SuddenDeathBuff) < 2 and not Variables.ExecutePhase ) then
             KTrig("Execute") return true end
 
         -- Kichi add for quick 4 pc buff
@@ -469,7 +469,7 @@ function()
         if OffCooldown(ids.Rampage) and ( GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Rampage") return true end
 
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) and not PlayerHasBuff(ids.BrutalFinishBuff) ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) >= 2 and PlayerHasBuff(ids.EnrageBuff) and not PlayerHasBuff(ids.BrutalFinishBuff) ) then
             KTrig("Execute") return true end
         
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetTargetStacks(ids.MarkedForExecutionDebuff) >= aura_env.config["MarkedForExecutionDebuffStacks"] and PlayerHasBuff(ids.EnrageBuff) ) then
@@ -493,6 +493,10 @@ function()
         if OffCooldown(ids.Bloodthirst) and FindSpellOverrideByID(ids.Bloodthirst) == ids.Bloodbath and ( GetPlayerStacks(ids.BloodcrazeBuff) >= 1 or ( IsPlayerSpell(ids.UproarTalent) and GetRemainingDebuffDuration("target", ids.BloodbathDotDebuff) < 40 and IsPlayerSpell(ids.BloodborneTalent) ) or PlayerHasBuff(ids.EnrageBuff) and GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Bloodbath") return true end
         
+        -- Kichi add for better prediction
+        if PlayerHasBuff(446035) and IsPlayerSpell(446085) and ( true and GetPlayerStacks(ids.SlaughteringStrikesBuff) < 5 and ( not TargetHasDebuff(ids.ChampionsMightDebuff) or TargetHasDebuff(ids.ChampionsMightDebuff) and GetRemainingDebuffDuration("target", ids.ChampionsMightDebuff) > WeakAuras.gcdDuration() ) ) then
+            KTrig("Raging Blow") return true end
+
         if OffCooldown(ids.RagingBlow) and ( NearbyEnemies>=8 and SetPieces>=4 or PlayerHasBuff(ids.BrutalFinishBuff) and GetPlayerStacks(ids.SlaughteringStrikesBuff) < 5 and ( not TargetHasDebuff(ids.ChampionsMightDebuff) or TargetHasDebuff(ids.ChampionsMightDebuff) and GetRemainingDebuffDuration("target", ids.ChampionsMightDebuff) > WeakAuras.gcdDuration() ) ) then
             KTrig("Raging Blow") return true end
         
@@ -500,7 +504,7 @@ function()
             KTrig("Rampage") return true end
 
         -- Kichi update for simc 9.3 update
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( Variables.ExecutePhase and TargetHasDebuff(ids.MarkedForExecutionDebuff) and PlayerHasBuff(ids.EnrageBuff) and NearbyEnemies > 1 ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( Variables.ExecutePhase and TargetHasDebuff(ids.MarkedForExecutionDebuff) and PlayerHasBuff(ids.EnrageBuff) and NearbyEnemies == 1 ) then
             KTrig("Execute") return true end
 
         -- Kichi update for simc 9.3 update
@@ -705,7 +709,7 @@ function()
         if OffCooldown(ids.Whirlwind) then
             KTrig("Whirlwind") return true end
     end
-    
+
     if IsPlayerSpell(ids.SlayersDominanceTalent) then
         Slayer() return true end
     

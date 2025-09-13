@@ -469,7 +469,7 @@ function()
         if OffCooldown(ids.Rampage) and ( GetRemainingAuraDuration("player", ids.EnrageBuff) < FullGCD() ) then
             KTrig("Rampage") return true end
 
-        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) ) then
+        if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetPlayerStacks(ids.SuddenDeathBuff) == 2 and PlayerHasBuff(ids.EnrageBuff) and not PlayerHasBuff(ids.BrutalFinishBuff) ) then
             KTrig("Execute") return true end
         
         if OffCooldown(ids.Execute) and (GetRemainingSpellCooldown(ids.ExecuteMassacre) == 0 or not IsPlayerSpell(ids.ExecuteMassacreTalent)) and ( GetTargetStacks(ids.MarkedForExecutionDebuff) >= aura_env.config["MarkedForExecutionDebuffStacks"] and PlayerHasBuff(ids.EnrageBuff) ) then

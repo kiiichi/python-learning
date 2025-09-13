@@ -1,4 +1,4 @@
-warrior="TWW3_Warrior_Fury_fixed"
+warrior="TWW3_Warrior_Fury_fixed123"
 source=default
 spec=fury
 level=80
@@ -78,11 +78,11 @@ actions.slayer+=/bloodbath,if=buff.bloodcraze.stack>=1|(talent.uproar&dot.bloodb
 actions.slayer+=/raging_blow,if=buff.brutal_finish.up&buff.slaughtering_strikes.stack<5&(!debuff.champions_might.up|debuff.champions_might.up&debuff.champions_might.remains>gcd)|active_enemies>=8&set_bonus.tww3_4pc
 actions.slayer+=/rampage,if=rage>115
 actions.slayer+=/execute,if=variable.execute_phase&debuff.marked_for_execution.up&buff.enrage.up&active_enemies=1
-actions.slayer+=/bloodthirst,if=target.health.pct<35&talent.vicious_contempt&buff.brutal_finish.up&buff.enrage.up&buff.bloodcraze.stack>=5&active_enemies=1|(!set_bonus.tww3_4pc&active_enemies>4)
+actions.slayer+=/bloodthirst,if=target.health.pct<35&talent.vicious_contempt&buff.brutal_finish.up&buff.enrage.up&(buff.bloodcraze.stack>=5|buff.bloodcraze.stack>=4&buff.recklessness.up)&active_enemies=1|(!set_bonus.tww3_4pc&active_enemies>4)
 actions.slayer+=/crushing_blow
 actions.slayer+=/bloodbath
 actions.slayer+=/raging_blow,if=buff.opportunist.up
-actions.slayer+=/bloodthirst,if=target.health.pct<35&talent.vicious_contempt&buff.bloodcraze.stack>=4
+actions.slayer+=/bloodthirst,if=target.health.pct<35&talent.vicious_contempt&(buff.bloodcraze.stack>=4|buff.bloodcraze.stack>=3&buff.recklessness.up)
 actions.slayer+=/raging_blow,if=action.raging_blow.charges=2
 actions.slayer+=/onslaught,if=talent.tenderize
 actions.slayer+=/raging_blow

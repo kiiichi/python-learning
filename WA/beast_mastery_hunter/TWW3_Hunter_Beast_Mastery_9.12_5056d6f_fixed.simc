@@ -1,11 +1,14 @@
-hunter="TWW3_Hunter_Beast_Mastery"
+hunter="TWW3_Hunter_Beast_Mastery_fixed"
 source=default
 spec=beast_mastery
 level=80
 race=dwarf
 role=attack
 position=ranged_back
-talents=C0PAAAAAAAAAAAAAAAAAAAAAAAMmxwCsBzwQDbAAAAAAYMjxYZmZYGzglhZmxMzMzkZMjZGzMMzYGGjZMMLD2WmBLAAAAAAwMA
+# 兽群领袖
+# talents=C0PA11Mk8aZ38kAf+zso3nZ9IAMmxwCZDmRDNsBAAAAAgxMGjlZmhZMDWGmZGzMzMTmxMmZMzwMjZYMmxwsMYbZGsAAAAAAAzA
+# 黑暗游侠
+talents=C0PAAAAAAAAAAAAAAAAAAAAAAYMbDMgBMbsFYsAAAAAAgZGbzgZmBzYMzyMzMzgZMTmxMmZmZGmZYYMMzwYY2WmBbAAAAAAwMA
 
 # Default consumables
 potion=tempered_potion_3
@@ -41,7 +44,7 @@ actions.cds+=/ancestral_call,if=buff.call_of_the_wild.up|!talent.call_of_the_wil
 actions.cds+=/fireblood,if=buff.call_of_the_wild.up|!talent.call_of_the_wild&buff.bestial_wrath.up|fight_remains<9
 actions.cds+=/potion,if=buff.call_of_the_wild.up|!talent.call_of_the_wild&buff.bestial_wrath.up|fight_remains<31
 
-actions.cleave=bestial_wrath,if=buff.howl_of_the_pack_leader_cooldown.remains-buff.lead_from_the_front.duration<buff.lead_from_the_front.duration%gcd*0.5|!set_bonus.tww3_4pc|talent.multishot
+actions.cleave=bestial_wrath,if=buff.howl_of_the_pack_leader_cooldown.remains<12%gcd*0.5+12|!set_bonus.tww3_4pc|talent.multishot
 actions.cleave+=/barbed_shot,target_if=min:dot.barbed_shot.remains,if=full_recharge_time<gcd|charges_fractional>=cooldown.kill_command.charges_fractional|talent.call_of_the_wild&cooldown.call_of_the_wild.ready|howl_summon.ready&full_recharge_time<8
 actions.cleave+=/bloodshed
 actions.cleave+=/multishot,if=pet.main.buff.beast_cleave.down&(!talent.bloody_frenzy|cooldown.call_of_the_wild.remains)
@@ -50,7 +53,8 @@ actions.cleave+=/explosive_shot,if=talent.thundering_hooves
 actions.cleave+=/kill_command
 actions.cleave+=/cobra_shot,if=focus.time_to_max<gcd*2|buff.hogstrider.stack>3|!talent.multishot
 
-actions.drcleave=kill_shot
+actions.drcleave=bestial_wrath,if=buff.call_of_the_wild.remains
+actions.drcleave+=/kill_shot
 actions.drcleave+=/bestial_wrath,if=cooldown.call_of_the_wild.remains>20|!talent.call_of_the_wild
 actions.drcleave+=/barbed_shot,target_if=min:dot.barbed_shot.remains,if=full_recharge_time<gcd
 actions.drcleave+=/bloodshed
@@ -63,15 +67,16 @@ actions.drcleave+=/cobra_shot,if=focus.time_to_max<gcd*2
 actions.drcleave+=/explosive_shot
 
 actions.drst=kill_shot
-actions.drst+=/bestial_wrath,if=cooldown.call_of_the_wild.remains>20|!talent.call_of_the_wild
-actions.drst+=/barbed_shot,target_if=min:dot.barbed_shot.remains,if=full_recharge_time<gcd
+actions.drst+=/bestial_wrath,if=cooldown.call_of_the_wild.remains>30|!talent.call_of_the_wild|time_to_die.remains<cooldown.call_of_the_wild.remains
+actions.drst+=/barbed_shot,if=buff.thrill_of_the_hunt.remains<1.5*gcd
 actions.drst+=/bloodshed
 actions.drst+=/call_of_the_wild
-actions.drst+=/kill_command
-actions.drst+=/barbed_shot,target_if=min:dot.barbed_shot.remains
-actions.drst+=/cobra_shot
+actions.drst+=/kill_command,if=buff.withering_fire.tick_time_remains>gcd&cooldown.black_arrow.remains>0.5
+actions.drst+=/kill_command,if=buff.withering_fire.down
+actions.drst+=/barbed_shot,target_if=min:dot.barbed_shot.remains,if=buff.withering_fire.tick_time_remains>0.5&cooldown.black_arrow.remains>0.5
+actions.drst+=/cobra_shot,if=buff.withering_fire.tick_time_remains>0.5&cooldown.black_arrow.remains>0.5
 
-actions.st=bestial_wrath,if=buff.howl_of_the_pack_leader_cooldown.remains-buff.lead_from_the_front.duration<buff.lead_from_the_front.duration%gcd*0.5|!set_bonus.tww3_4pc
+actions.st=bestial_wrath,if=buff.howl_of_the_pack_leader_cooldown.remains<12%gcd*0.5+12|!set_bonus.tww3_4pc
 actions.st+=/barbed_shot,target_if=min:dot.barbed_shot.remains,if=full_recharge_time<gcd
 actions.st+=/call_of_the_wild
 actions.st+=/bloodshed

@@ -377,7 +377,7 @@ function()
     
     Variables.SoulBurst = aura_env.config["SoulBurstSwitch"]
     if SetPieces >= 4 and IsSpellKnown(ids.SpellfireSpheresTalent) and IsSpellKnown(ids.ResonanceTalent) and not IsSpellKnown(ids.MagisSparkTalent) and ( NearbyEnemies >= 3 ) and Variables.SoulBurst 
-    and not (aura_env.config["SoulBurstSwitchBack"] == true and GetRemainingSpellCooldown(ids.Evocation)>80 ) then
+    and not (aura_env.config["SoulBurstSwitchBack"] == true and GetRemainingSpellCooldown(ids.Evocation)>80 and ( GetRemainingSpellCooldown(ids.ArcaneSurge) < (GcdMax * 3) and GetRemainingSpellCooldown(ids.TouchOfTheMagi) < GcdMax * 5 or false ) ) then
         Variables.SoulCd = true
     else
         Variables.SoulCd = false
